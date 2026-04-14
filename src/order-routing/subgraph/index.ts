@@ -1,9 +1,7 @@
-import { noopLogger } from "../../lib";
+import { type Logger, noopLogger, querySubgraph } from "../../lib";
 import { validate } from "../../validation";
 import { OrderRoutingError } from "../errors";
-import type { Logger } from "../types";
 import { ZodCirclesForRoutingResponseSchema } from "../validation";
-import { querySubgraph } from "./client";
 import { CIRCLES_FOR_ROUTING_QUERY } from "./queries";
 
 export function getCirclesForRouting(
@@ -16,25 +14,33 @@ export function getCirclesForRouting(
 	return querySubgraph(subgraphUrl, {
 		query: CIRCLES_FOR_ROUTING_QUERY,
 		variables: { currency },
-	}).andThen((data) =>
-		validate(
-			ZodCirclesForRoutingResponseSchema,
-			data,
-			(message, cause, d) =>
-				new OrderRoutingError(message, { code: "VALIDATION_ERROR", cause, context: { data: d } }),
-		).map((validated) => {
-			const circles = validated.circles.filter(
-				(item) => Number(item.metrics.scoreState.activeMerchantsCount) > 0,
-			);
-			logger.info("fetched circles from subgraph", {
-				total: validated.circles.length,
-				withActiveMerchants: circles.length,
-				circles,
-			});
-			return circles;
-		}),
-	);
+	})
+		.mapErr(
+			(e) =>
+				new OrderRoutingError(e.message, {
+					code: "SUBGRAPH_ERROR",
+					cause: e.cause ?? e,
+					context: e.context,
+				}),
+		)
+		.andThen((data) =>
+			validate(
+				ZodCirclesForRoutingResponseSchema,
+				data,
+				(message, cause, d) =>
+					new OrderRoutingError(message, { code: "VALIDATION_ERROR", cause, context: { data: d } }),
+			).map((validated) => {
+				const circles = validated.circles.filter(
+					(item) => Number(item.metrics.scoreState.activeMerchantsCount) > 0,
+				);
+				logger.info("fetched circles from subgraph", {
+					total: validated.circles.length,
+					withActiveMerchants: circles.length,
+					circles,
+				});
+				return circles;
+			}),
+		);
 }
 
-export { querySubgraph } from "./client";
 export { CIRCLES_FOR_ROUTING_QUERY } from "./queries";

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { querySubgraph } from "../../src/order-routing/subgraph/client";
+import { querySubgraph } from "../../src/lib/subgraph";
 
 const URL = "https://subgraph.example.com/graphql";
 const PARAMS = { query: "{ circles { id } }", timeoutMs: 50 };
@@ -43,7 +43,7 @@ describe("querySubgraph", () => {
 		const result = await querySubgraph(URL, PARAMS);
 
 		expect(result.isErr()).toBe(true);
-		expect(result._unsafeUnwrapErr().code).toBe("SUBGRAPH_ERROR");
+		expect(result._unsafeUnwrapErr().code).toBe("HTTP_ERROR");
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 
@@ -159,7 +159,7 @@ describe("querySubgraph", () => {
 		const result = await querySubgraph(URL, PARAMS);
 
 		expect(result.isErr()).toBe(true);
-		expect(result._unsafeUnwrapErr().code).toBe("SUBGRAPH_ERROR");
+		expect(result._unsafeUnwrapErr().code).toBe("HTTP_ERROR");
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
 	});
 
