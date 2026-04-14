@@ -52,16 +52,23 @@ function validateCNPJ(cnpj: string): boolean {
 
 /**
  * Validates PIX ID format.
- * PIX can be: CPF (11 digits), CNPJ (14 digits), email, phone, or random key (UUID).
+ * PIX can be: CPF (11 digits), CNPJ (14 digits), email, phone (10–11 digits or E.164),
+ * random key (UUID), or a PIX "copia e cola" EMV QR payload (starts with 000201).
  */
 export function validatePIXId(pixId: string): boolean {
 	if (!pixId || pixId.trim().length === 0) return false;
 
 	const trimmedPixId = pixId.trim();
 
-	if (/^\d{11}$/.test(trimmedPixId)) return validateCPF(trimmedPixId);
+	// PIX "copia e cola" — EMV QR code payload
+	if (/^000201/.test(trimmedPixId)) return true;
+
+	// 11 digits: valid CPF or Brazilian mobile phone key (DDD 11–99 + digit 9 + 8 digits)
+	if (/^\d{11}$/.test(trimmedPixId))
+		return validateCPF(trimmedPixId) || /^[1-9][1-9]9\d{8}$/.test(trimmedPixId);
 	if (/^\d{14}$/.test(trimmedPixId)) return validateCNPJ(trimmedPixId);
 	if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedPixId)) return true;
+	// Phone key: 10–11 digits (with or without country code prefix)
 	if (/^\d{10,11}$/.test(trimmedPixId)) return true;
 	if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedPixId))
 		return true;
