@@ -1,0 +1,89 @@
+# @p2pdotme/sdk/qr-parsers
+
+QR code parsers for P2P.me payment networks. Extracts payment addresses and amounts from QR codes across multiple currencies.
+
+## Supported Currencies
+
+| Currency | Country     | Payment Network | Format          |
+| -------- | ----------- | --------------- | --------------- |
+| INR      | India       | UPI             | URL scheme      |
+| IDR      | Indonesia   | QRIS            | EMVCo TLV       |
+| BRL      | Brazil      | PIX             | EMVCo TLV + CRC |
+| ARS      | Argentina   | MercadoPago     | EMVCo TLV + CRC |
+| VEN      | Venezuela   | Pago Movil      | Base64 payload   |
+
+## Installation
+
+```bash
+bun add @p2pdotme/sdk
+```
+
+## Usage
+
+```ts
+import { parseQR } from "@p2pdotme/sdk/qr-parsers";
+
+const result = await parseQR(
+  "upi://pay?pa=merchant@upi&am=500&pn=Store",
+  "INR",
+  85, // sellPrice: 1 USDC = 85 INR
+);
+
+if (result.isOk()) {
+  console.log(result.value.paymentAddress); // "merchant@upi"
+  console.log(result.value.amount);         // { usdc: 5.88, fiat: 500 }
+} else {
+  console.error(result.error.code);    // "INVALID_QR" | "INVALID_CURRENCY" | "INVALID_AMOUNT" | "FETCH_FAILED"
+  console.error(result.error.message);
+}
+```
+
+### PIX (BRL) — Dynamic QR codes
+
+PIX QR codes can contain a URL that points to dynamic payment data. To resolve these, pass a `proxyUrl` (and optionally `orderId` for tracking):
+
+```ts
+const result = await parseQR(qrData, "BRL", 5.5, {
+  proxyUrl: "https://pix-proxy.example.com",
+  orderId: "order-123",
+});
+```
+
+The proxy receives `GET /pix?locationUrl=<url>&orderId=<id>` and should return the raw PIX response (JWT).
+
+## API
+
+### `parseQR(qrData, currency, sellPrice, config?)`
+
+| Param       | Type                | Description                            |
+| ----------- | ------------------- | -------------------------------------- |
+| `qrData`    | `string`            | Raw QR code content                    |
+| `currency`  | `SupportedCurrency` | `"INR" \| "IDR" \| "BRL" \| "ARS" \| "VEN"` |
+| `sellPrice` | `number`            | Exchange rate: 1 USDC = X fiat         |
+| `config`    | `ParseQRConfig`     | Optional. `{ proxyUrl?, orderId? }`    |
+
+**Returns** `Promise<Result<ParsedQR, QRParserError>>` ([neverthrow](https://github.com/supermacro/neverthrow))
+
+### Types
+
+```ts
+interface ParsedQR {
+  paymentAddress: string;
+  amount?: { usdc: number; fiat: number };
+}
+
+interface ParseQRConfig {
+  proxyUrl?: string; // Required for dynamic PIX QR codes
+  orderId?: string;  // Forwarded to proxy for tracking
+}
+
+type QRParserErrorCode =
+  | "INVALID_QR"
+  | "INVALID_CURRENCY"
+  | "INVALID_AMOUNT"
+  | "FETCH_FAILED";
+```
+
+## Example
+
+See the [example app](../../example/) for a working demo — run `bun run dev` from the `example/` folder.
