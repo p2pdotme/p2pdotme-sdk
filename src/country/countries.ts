@@ -1,0 +1,27 @@
+import {
+	ARS_COUNTRY_OPTION,
+	BRL_COUNTRY_OPTION,
+	COP_COUNTRY_OPTION,
+	EUR_COUNTRY_OPTION,
+	IDR_COUNTRY_OPTION,
+	INR_COUNTRY_OPTION,
+	MEX_COUNTRY_OPTION,
+	NGN_COUNTRY_OPTION,
+	USD_COUNTRY_OPTION,
+	VEN_COUNTRY_OPTION,
+} from "./currencies";
+import type { CountryOption } from "./types";
+
+/** All supported countries with their currency metadata, payment methods, and display config. */
+export const COUNTRY_OPTIONS: readonly CountryOption[] = [
+	INR_COUNTRY_OPTION,
+	IDR_COUNTRY_OPTION,
+	BRL_COUNTRY_OPTION,
+	ARS_COUNTRY_OPTION,
+	MEX_COUNTRY_OPTION,
+	VEN_COUNTRY_OPTION,
+	NGN_COUNTRY_OPTION,
+	COP_COUNTRY_OPTION,
+	EUR_COUNTRY_OPTION,
+	USD_COUNTRY_OPTION,
+];

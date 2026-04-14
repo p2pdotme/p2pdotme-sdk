@@ -1,0 +1,28 @@
+import type { CurrencyType } from "../types";
+import {
+	ARS_PAYMENT_FIELDS,
+	BRL_PAYMENT_FIELDS,
+	COP_PAYMENT_FIELDS,
+	EUR_PAYMENT_FIELDS,
+	IDR_PAYMENT_FIELDS,
+	INR_PAYMENT_FIELDS,
+	MEX_PAYMENT_FIELDS,
+	NGN_PAYMENT_FIELDS,
+	USD_PAYMENT_FIELDS,
+	VEN_PAYMENT_FIELDS,
+} from "./currencies";
+import type { PaymentIdFieldConfig } from "./types";
+
+/** Payment ID field configuration for each supported currency. */
+export const PAYMENT_ID_FIELDS: Record<CurrencyType, PaymentIdFieldConfig[]> = {
+	INR: INR_PAYMENT_FIELDS,
+	IDR: IDR_PAYMENT_FIELDS,
+	BRL: BRL_PAYMENT_FIELDS,
+	ARS: ARS_PAYMENT_FIELDS,
+	MEX: MEX_PAYMENT_FIELDS,
+	VEN: VEN_PAYMENT_FIELDS,
+	NGN: NGN_PAYMENT_FIELDS,
+	EUR: EUR_PAYMENT_FIELDS,
+	USD: USD_PAYMENT_FIELDS,
+	COP: COP_PAYMENT_FIELDS,
+};

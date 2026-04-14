@@ -1,0 +1,9 @@
+example/
+src/
+.github/
+.husky/
+.changeset/
+*.config.ts
+tsconfig.json
+biome.json
+CLAUDE.md

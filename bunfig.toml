@@ -1,0 +1,4 @@
+[install]
+# Don't auto-install peer dependencies — consumers provide their own.
+# Prevents a local react copy that breaks linked consumers' bundlers.
+peer = false
