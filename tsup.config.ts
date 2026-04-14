@@ -28,6 +28,15 @@ export default defineConfig([
     },
   },
   {
+    entry: { orders: "src/orders/index.ts" },
+    format: ["cjs", "esm"],
+    dts: true,
+    sourcemap: true,
+    outExtension({ format }) {
+      return { js: format === "cjs" ? ".cjs" : ".mjs" };
+    },
+  },
+  {
     entry: { react: "src/react/index.ts" },
     format: ["cjs", "esm"],
     dts: true,
