@@ -74,7 +74,7 @@ describe("validatePIXId (BRL)", () => {
 		["valid UUID", "123e4567-e89b-12d3-a456-426614174000"],
 		[
 			"PIX copia e cola (EMV QR payload)",
-			"00020126540012br.gov.bcb.pix0132pix_marketplace@mercadolibre.com5204000053039865406647.025802BR5911@33368855466009SaoPaulo62250521mpqrinter15399624083763016A57",
+			"00020127890012br.gov.bcb.pix0132pix_randomuser@paymenthub.net5204000053039865406123.458802BR5911@87492011666009RioDeJaneiro62250521mpqrinter84736291520463016B93",
 		],
 	])("accepts %s", (_label, input) => {
 		expect(validatePIXId(input)).toBe(true);
