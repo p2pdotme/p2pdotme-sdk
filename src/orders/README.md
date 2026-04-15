@@ -1,9 +1,10 @@
 # @p2pdotme/sdk/orders
 
-Order reads for P2P.me. Two methods:
+Order reads for P2P.me. Three methods:
 
 - `getOrder({ orderId })` — single order read from the Diamond via multicall (with a parallel-`readContract` fallback).
 - `getOrders({ userAddress, skip?, limit? })` — paginated list of a user's orders from the subgraph, newest first.
+- `getFeeConfig({ currency })` — per-currency small-order threshold and fixed fee, read from the Diamond via multicall.
 
 Both sources normalize into a single `Order` shape: enum indices become string literals, the `bytes32` currency is decoded to a string, amounts stay as 6-decimal `bigint`s, and timestamps as unix-seconds `bigint`s.
 
@@ -68,6 +69,23 @@ Returns `ResultAsync<Order[], OrdersError>`. Orders are newest first.
 | `skip` | `number` | `0` | Pagination offset |
 | `limit` | `number` | `20` | Page size (max `100`) |
 
+### `orders.getFeeConfig(params)`
+
+Returns `ResultAsync<FeeConfig, OrdersError>`. Reads `getSmallOrderThreshold` and `getSmallOrderFixedFee` from the Diamond in a single multicall.
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `currency` | `CurrencyType` | Supported currency symbol (e.g. `"INR"`, `"BRL"`) |
+
+```ts
+interface FeeConfig {
+  smallOrderThreshold: bigint;  // 6 decimals; orders ≤ threshold are billed the fixed fee
+  smallOrderFixedFee: bigint;   // 6 decimals
+}
+```
+
+Fails with `INVALID_FEE_CONFIG_PARAMS` when `currency` is not a supported symbol; with `CONTRACT_READ_FAILED` on transport errors.
+
 ## `Order` shape
 
 ```ts
@@ -102,4 +120,4 @@ interface Order {
 
 ## Error codes
 
-`INVALID_ORDER_ID` · `INVALID_GET_ORDERS_PARAMS` · `ORDER_NOT_FOUND` · `MALFORMED_ORDER` · `CONTRACT_READ_FAILED` · `SUBGRAPH_REQUEST_FAILED` · `SUBGRAPH_VALIDATION_FAILED`
+`INVALID_ORDER_ID` · `INVALID_GET_ORDERS_PARAMS` · `INVALID_FEE_CONFIG_PARAMS` · `ORDER_NOT_FOUND` · `MALFORMED_ORDER` · `CONTRACT_READ_FAILED` · `SUBGRAPH_REQUEST_FAILED` · `SUBGRAPH_VALIDATION_FAILED`
