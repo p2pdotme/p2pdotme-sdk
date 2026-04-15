@@ -10,7 +10,3 @@ export type { CurrencyType, PublicClientLike } from "./types";
 // ── Shared errors ────────────────────────────────────────────────────────
 
 export { SdkError } from "./validation";
-
-// ── Constants ────────────────────────────────────────────────────────────
-
-export { CURRENCY, ORDER_TYPE } from "./constants";

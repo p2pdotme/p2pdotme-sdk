@@ -22,8 +22,9 @@ bun add react
 
 | Import | Description |
 |--------|-------------|
-| `@p2pdotme/sdk` | Shared types, `SdkError`, `ORDER_TYPE`, `VERSION` |
+| `@p2pdotme/sdk` | Shared types, `SdkError`, `VERSION` |
 | `@p2pdotme/sdk/order-routing` | [Circle selection](./src/order-routing/README.md) via epsilon-greedy algorithm + on-chain eligibility |
+| `@p2pdotme/sdk/orders` | [Order reads](./src/orders/README.md) — single order via Diamond multicall, user order list via subgraph |
 | `@p2pdotme/sdk/payload` | [Order payload generation](./src/payload/README.md), ECIES encryption, relay identity |
 | `@p2pdotme/sdk/profile` | [Account balances](./src/profile/README.md) (USDC + fiat) and price config reads |
 | `@p2pdotme/sdk/qr-parsers` | [QR code parsers](./src/qr-parsers/README.md) for UPI, QRIS, PIX, MercadoPago, Pago Movil |

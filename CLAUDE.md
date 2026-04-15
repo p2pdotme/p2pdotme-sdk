@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `@p2pdotme/sdk` — a multi-module TypeScript SDK for P2P.me. Published as a single package with subpath exports:
 
 - `@p2pdotme/sdk/order-routing` — circle selection via epsilon-greedy algorithm + on-chain eligibility validation
+- `@p2pdotme/sdk/orders` — order reads: `getOrder` (Diamond multicall) + `getOrders` (subgraph, paginated)
 - `@p2pdotme/sdk/react` — unified React provider (SdkProvider) + hooks (useProfile, useOrderRouter, usePayloadGenerator)
 - `@p2pdotme/sdk/qr-parsers` — QR code parsers for payment networks (UPI, PIX, QRIS, etc.)
 - `@p2pdotme/sdk/payload` — order payload generation, ECIES encryption/decryption, relay identity
@@ -63,14 +64,18 @@ src/
 │   ├── encoding.ts        # bytesToBase64, hexToBytes
 │   ├── logger.ts          # Logger type + noopLogger
 │   ├── sleep.ts           # sleep(ms)
+│   ├── subgraph.ts        # querySubgraph() + SubgraphError (shared GraphQL client)
 │   └── index.ts
 ├── contracts/             # Centralized contract interactions
 │   ├── abis/
 │   │   ├── order-flow-facet.ts        # getAssignableMerchantsFromCircle ABI
+│   │   ├── order-processor-facet.ts   # getOrder + getOrderDetails ABI
 │   │   ├── p2p-config-facet.ts        # getPriceConfig ABI
 │   │   └── index.ts                   # ABIS object (DIAMOND, FACETS, EXTERNAL)
 │   ├── order-flow/
 │   │   └── index.ts                   # checkCircleEligibility()
+│   ├── order-processor/
+│   │   └── index.ts                   # readOrderMulticall() — multicall + fallback
 │   ├── p2p-config/
 │   │   └── index.ts                   # getPriceConfig()
 │   ├── usdc/
@@ -87,9 +92,18 @@ src/
 │   ├── types.ts           # Circle types, config interfaces
 │   ├── validation.ts      # Zod schemas for circle/eligibility params
 │   └── subgraph/
-│       ├── client.ts      # fetch-based GraphQL client (no graphql-request dep)
 │       ├── queries.ts     # CirclesForRouting GraphQL query
-│       └── index.ts       # getCirclesForRouting() — query + validate + filter
+│       └── index.ts       # getCirclesForRouting() — query + validate + filter (uses lib/subgraph)
+├── orders/
+│   ├── client.ts          # createOrders() — getOrder (multicall) + getOrders (subgraph)
+│   ├── errors.ts          # OrdersError class with typed error codes
+│   ├── types.ts           # Order, OrderType, OrderStatus, DisputeStatus, OrdersConfig
+│   ├── validation.ts      # Zod schemas for GetOrderParams / GetOrdersParams
+│   ├── normalize.ts       # normalizeContractOrder / normalizeSubgraphOrder → Order
+│   ├── subgraph/
+│   │   ├── queries.ts     # OrdersForUser GraphQL query
+│   │   └── index.ts       # getOrdersForUser() — query + validate + map
+│   └── index.ts
 ├── react/
 │   ├── sdk-provider.tsx   # SdkProvider context + useProfile, useOrderRouter, usePayloadGenerator hooks
 │   ├── types.ts           # SdkConfig, Sdk interfaces
