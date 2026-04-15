@@ -1,6 +1,6 @@
 {
   "name": "@p2pdotme/sdk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "P2P.me SDK",
   "license": "MIT",
   "type": "module",

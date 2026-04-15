@@ -69,9 +69,13 @@ describe("validatePIXId (BRL)", () => {
 	it.each([
 		["valid CPF", "52998224725"],
 		["valid email", "user@example.com"],
-		// 11-digit strings are treated as CPF — use 10-digit for phone key
 		["10-digit phone (landline)", "1198765432"],
+		["11-digit mobile phone", "91996339865"],
 		["valid UUID", "123e4567-e89b-12d3-a456-426614174000"],
+		[
+			"PIX copia e cola (EMV QR payload)",
+			"00020127890012br.gov.bcb.pix0132pix_randomuser@paymenthub.net5204000053039865406123.458802BR5911@87492011666009RioDeJaneiro62250521mpqrinter84736291520463016B93",
+		],
 	])("accepts %s", (_label, input) => {
 		expect(validatePIXId(input)).toBe(true);
 	});
@@ -79,8 +83,9 @@ describe("validatePIXId (BRL)", () => {
 	it.each([
 		["empty string", ""],
 		["whitespace only", "   "],
+		// 11-digit invalid CPF whose 3rd digit ≠ 9 (also not a mobile phone key)
 		["CPF all same digits", "11111111111"],
-		["CPF wrong check digit", "52998224724"],
+		["CPF wrong check digit", "12345678901"],
 		["CNPJ all same digits", "11111111111111"],
 		["invalid format", "not-a-pix-key"],
 		["partial UUID", "123e4567-e89b-12d3-a456"],
@@ -94,8 +99,8 @@ describe("validatePIXId (BRL)", () => {
 			expect(validatePIXId("11144477735")).toBe(true);
 		});
 
-		it("rejects CPF with flipped last digit", () => {
-			expect(validatePIXId("52998224726")).toBe(false);
+		it("rejects CPF with flipped last digit (3rd digit not 9, cannot be phone)", () => {
+			expect(validatePIXId("11144477736")).toBe(false);
 		});
 	});
 
