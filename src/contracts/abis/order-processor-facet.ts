@@ -1,6 +1,7 @@
 /**
  * Minimal ABI fragments for reads on OrderProcessor storage via the Diamond.
- * Only `getOrdersById` and `getAdditionalOrderDetails`.
+ * `getOrdersById`, `getAdditionalOrderDetails`, and the per-currency small-order
+ * fee config getters (`getSmallOrderThreshold`, `getSmallOrderFixedFee`).
  */
 export const orderProcessorFacetAbi = [
 	{
@@ -66,5 +67,19 @@ export const orderProcessorFacetAbi = [
 				],
 			},
 		],
+	},
+	{
+		type: "function",
+		name: "getSmallOrderThreshold",
+		stateMutability: "view",
+		inputs: [{ name: "currency", type: "bytes32" }],
+		outputs: [{ name: "", type: "uint256" }],
+	},
+	{
+		type: "function",
+		name: "getSmallOrderFixedFee",
+		stateMutability: "view",
+		inputs: [{ name: "currency", type: "bytes32" }],
+		outputs: [{ name: "", type: "uint256" }],
 	},
 ] as const;

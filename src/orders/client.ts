@@ -1,12 +1,23 @@
 import { errAsync, okAsync, type ResultAsync } from "neverthrow";
-import { readOrderMulticall } from "../contracts/order-processor";
+import { readFeeConfigMulticall, readOrderMulticall } from "../contracts/order-processor";
 import { noopLogger } from "../lib";
 import { validate } from "../validation";
 import { OrdersError } from "./errors";
 import { normalizeContractOrder } from "./normalize";
 import { getOrdersForUser } from "./subgraph";
-import type { GetOrderParams, GetOrdersParams, Order, OrdersConfig } from "./types";
-import { ZodGetOrderParamsSchema, ZodGetOrdersParamsSchema } from "./validation";
+import type {
+	FeeConfig,
+	GetFeeConfigParams,
+	GetOrderParams,
+	GetOrdersParams,
+	Order,
+	OrdersConfig,
+} from "./types";
+import {
+	ZodGetFeeConfigParamsSchema,
+	ZodGetOrderParamsSchema,
+	ZodGetOrdersParamsSchema,
+} from "./validation";
 
 export interface OrdersClient {
 	/** Reads a single order by id from the Diamond contract. */
@@ -16,6 +27,12 @@ export interface OrdersClient {
 	 * Defaults: `skip = 0`, `limit = 20`. Max `limit` is 100.
 	 */
 	getOrders(params: GetOrdersParams): ResultAsync<Order[], OrdersError>;
+	/**
+	 * Reads the per-currency small-order fee config from the Diamond via
+	 * multicall: threshold (below which the fixed fee applies) and the fixed
+	 * fee itself. Both are 6-decimal bigints.
+	 */
+	getFeeConfig(params: GetFeeConfigParams): ResultAsync<FeeConfig, OrdersError>;
 }
 
 /**
@@ -78,6 +95,33 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 			).asyncAndThen(({ userAddress, skip, limit }) =>
 				getOrdersForUser(subgraphUrl, userAddress, skip, limit, logger),
 			);
+		},
+
+		getFeeConfig(params) {
+			return validate(
+				ZodGetFeeConfigParamsSchema,
+				params,
+				(message, cause, d) =>
+					new OrdersError(message, {
+						code: "INVALID_FEE_CONFIG_PARAMS",
+						cause,
+						context: { params: d },
+					}),
+			)
+				.asyncAndThen(({ currency }) =>
+					readFeeConfigMulticall(publicClient, diamondAddress, currency).mapErr(
+						(cause) =>
+							new OrdersError("Fee config contract read failed", {
+								code: "CONTRACT_READ_FAILED",
+								cause,
+								context: { currency },
+							}),
+					),
+				)
+				.map((config) => {
+					logger.debug("getFeeConfig resolved", { currency: params.currency });
+					return config;
+				});
 		},
 	};
 }

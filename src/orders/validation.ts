@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ZodAddressSchema } from "../validation";
+import { ZodAddressSchema, ZodCurrencySchema } from "../validation";
 
 export const ZodGetOrderParamsSchema = z.object({
 	orderId: z.bigint().positive(),
@@ -7,6 +7,12 @@ export const ZodGetOrderParamsSchema = z.object({
 
 // `z.infer`: schema has no defaults, so input and output shapes match.
 export type GetOrderParams = z.infer<typeof ZodGetOrderParamsSchema>;
+
+export const ZodGetFeeConfigParamsSchema = z.object({
+	currency: ZodCurrencySchema,
+});
+
+export type GetFeeConfigParams = z.infer<typeof ZodGetFeeConfigParamsSchema>;
 
 export const ZodGetOrdersParamsSchema = z.object({
 	userAddress: ZodAddressSchema,
