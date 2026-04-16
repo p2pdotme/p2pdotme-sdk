@@ -55,4 +55,12 @@ describe("createLocalStorageRelayStore", () => {
 		const store = createLocalStorageRelayStore();
 		expect(await store.get()).toBeNull();
 	});
+
+	it("throws RelayIdentityCorruptError when the payload is not valid JSON", async () => {
+		storage.set("@P2PME:RELAY_IDENTITY", '{"pubkey":"abc",');
+		const store = createLocalStorageRelayStore();
+		await expect(store.get()).rejects.toMatchObject({
+			name: "RelayIdentityCorruptError",
+		});
+	});
 });
