@@ -3,7 +3,7 @@
 Multi-module TypeScript SDK for P2P.me. Published as a single package with subpath exports.
 
 - Framework-agnostic core with optional React bindings
-- Wallet-agnostic — consumers bring their own viem client
+- Wallet-agnostic — consumers bring their own viem client; optional `WalletClient` for writes
 - No thrown exceptions — all methods return `Result` / `ResultAsync` via neverthrow
 
 ## Installation
@@ -12,10 +12,12 @@ Multi-module TypeScript SDK for P2P.me. Published as a single package with subpa
 bun add @p2pdotme/sdk
 ```
 
-Peer dependency (required for React bindings):
+Peer dependencies (all optional):
 
 ```bash
-bun add react
+bun add react                            # only for @p2pdotme/sdk/react
+bun add @reclaimprotocol/js-sdk          # only for zkkyc Reclaim flow
+bun add @zkpassport/sdk                  # only for zkkyc ZK Passport flow
 ```
 
 ## Modules
@@ -23,24 +25,31 @@ bun add react
 | Import | Description |
 |--------|-------------|
 | `@p2pdotme/sdk` | Shared types, `SdkError`, `VERSION` |
-| `@p2pdotme/sdk/order-routing` | [Circle selection](./src/order-routing/README.md) via epsilon-greedy algorithm + on-chain eligibility |
-| `@p2pdotme/sdk/orders` | [Order reads](./src/orders/README.md) — single order via Diamond multicall, user order list via subgraph |
-| `@p2pdotme/sdk/payload` | [Order payload generation](./src/payload/README.md), ECIES encryption, relay identity |
-| `@p2pdotme/sdk/profile` | [Account balances](./src/profile/README.md) (USDC + fiat) and price config reads |
+| `@p2pdotme/sdk/orders` | [Order reads + writes](./src/orders/README.md) — `getOrder`, `getOrders`, `getFeeConfig`, `readUsdcAllowance`, and `prepare`/`execute` pairs for `placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc` |
+| `@p2pdotme/sdk/prices` | [Currency price config](./src/prices/README.md) — `getPriceConfig`, `getRpPerUsdtLimitRational` |
+| `@p2pdotme/sdk/profile` | [User-scoped reads](./src/profile/README.md) — USDC balance, fiat conversion, tx limits |
 | `@p2pdotme/sdk/qr-parsers` | [QR code parsers](./src/qr-parsers/README.md) for UPI, QRIS, PIX, MercadoPago, Pago Movil |
 | `@p2pdotme/sdk/fraud-engine` | [Fraud detection](./src/fraud-engine/README.md), device fingerprinting, SEON integration |
-| `@p2pdotme/sdk/zkkyc` | [ZK KYC verification](./src/zkkyc/README.md) — Reclaim, Anon Aadhaar, ZK Passport |
+| `@p2pdotme/sdk/zkkyc` | [ZK KYC](./src/zkkyc/README.md) — Reclaim, Anon Aadhaar, ZK Passport |
 | `@p2pdotme/sdk/country` | [Country & currency config](./src/country/README.md) — payment methods, validators, field configs |
 | `@p2pdotme/sdk/react` | Unified React provider (`SdkProvider`) + hooks |
+
+Circle-selection routing is an internal implementation detail of `placeOrder` — it is **not** exposed as a public subpath.
 
 ## Quick Start
 
 ```tsx
-import { SdkProvider, useOrderRouter, usePayloadGenerator, useProfile } from "@p2pdotme/sdk/react";
-import { createPublicClient, http, parseUnits } from "viem";
-import { base } from "viem/chains";
+import { SdkProvider, useOrders, useProfile } from "@p2pdotme/sdk/react";
+import { createPublicClient, createWalletClient, http, parseUnits } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { baseSepolia } from "viem/chains";
 
-const publicClient = createPublicClient({ chain: base, transport: http(RPC_URL) });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http(RPC_URL) });
+const walletClient = createWalletClient({
+  chain: baseSepolia,
+  transport: http(RPC_URL),
+  account: privateKeyToAccount(PRIVATE_KEY),
+});
 
 function App() {
   return (
@@ -56,48 +65,62 @@ function App() {
 }
 
 function BuyFlow() {
+  const orders = useOrders();
   const profile = useProfile();
-  const payload = usePayloadGenerator();
 
   async function handleBuy() {
     // 1. Check balance
     const balances = await profile.getBalances({
-      userAddress: "0xUser",
+      address: "0xUser",
       currency: "INR",
     });
 
-    // 2. Build order payload (includes circle selection)
-    const order = await payload.placeOrder({
-      amount: parseUnits("10", 6),
-      recipientAddr: "0xRecipient",
-      orderType: 0, // BUY
+    // 2. Place a BUY order (SDK picks the circle, signs, submits, awaits the receipt)
+    const placed = await orders.placeOrder.execute({
+      walletClient,
+      waitForReceipt: true,
+      orderType: 0, // 0 = BUY, 1 = SELL, 2 = PAY
       currency: "INR",
-      fiatAmount: parseUnits("850", 6),
       user: "0xUser",
+      recipientAddr: "0xRecipient",
+      amount: parseUnits("10", 6),
+      fiatAmount: parseUnits("850", 6),
+      fiatAmountLimit: 0n,
     });
 
-    order.match(
-      (data) => submitOnChain(data),
-      (error) => console.error(`[${error.code}] ${error.message}`),
+    placed.match(
+      ({ hash, meta }) => console.log("Placed!", { hash, orderId: meta?.orderId }),
+      (err) => console.error(`[${err.code}] ${err.message}`),
     );
   }
 }
 ```
 
-## React Hooks
+SELL and PAY follow the same shape — pass `autoApprove: true` so the SDK approves USDC on your behalf when the allowance is short. After the order is accepted, call `orders.setSellOrderUpi.execute({...})` to hand off the (ECIES-encrypted) payment destination to the merchant.
+
+See [example/](./example/) for runnable walkthroughs of each flow.
+
+## Layered writes: `prepare` vs `execute`
+
+Every write action exposes two methods:
+
+- **`action.prepare(params)`** — returns a `ResultAsync<PreparedTx, OrdersError>`, where `PreparedTx` is `{ to, data, value, meta }`. No wallet needed. Use this for gasless relayers, multisigs, server-side signing, or anything not wagmi/viem.
+- **`action.execute({ walletClient, waitForReceipt?, ...params })`** — `prepare()` + `walletClient.sendTransaction` + optional `waitForTransactionReceipt`. The fast path when you're signing directly with viem.
+
+## React hooks
 
 All hooks read from the nearest `<SdkProvider>`:
 
 | Hook | Returns |
 |------|---------|
-| `useProfile()` | `Profile` — balance and price reads |
-| `useOrderRouter()` | `OrderRouter` — circle selection |
-| `usePayloadGenerator()` | `PayloadGenerator` — order payload building |
+| `useProfile()` | `Profile` — user-scoped balance & limits reads |
+| `usePrices()` | `Prices` — currency price config reads |
+| `useOrders()` | `OrdersClient` — order reads + write actions |
 | `useZkkyc()` | `Zkkyc` — ZK verification (requires `reputationManagerAddress`) |
 | `useFraudEngine()` | `FraudEngine` — fraud detection (requires `fraudEngine` config) |
 | `useSdk()` | Full `Sdk` object |
 
-## Order Types
+## Order types
 
 | Value | Type |
 |-------|------|
@@ -105,9 +128,9 @@ All hooks read from the nearest `<SdkProvider>`:
 | `1` | Sell |
 | `2` | Pay |
 
-## Supported Currencies
+## Supported currencies
 
-`INR` | `IDR` | `BRL` | `ARS` | `MEX` | `VEN` | `EUR` | `NGN` | `USD` | `COP`
+`INR` · `IDR` · `BRL` · `ARS` · `MEX` · `VEN` · `EUR` · `NGN` · `USD` · `COP`
 
 ## Development
 
@@ -115,45 +138,51 @@ All hooks read from the nearest `<SdkProvider>`:
 bun install              # install dependencies
 bun run build            # tsup → ESM + CJS + DTS into dist/
 bun run dev              # tsup --watch
-bun run typecheck        # tsc --noEmit
+bun run typecheck        # tsc --noEmit (covers src/, test/, example/)
 bun run lint             # biome check src/
 bun run test             # vitest run
 bun run size             # show per-module bundle sizes
 ```
 
-### Example App
+### Examples
+
+Standalone scripts under [`example/`](./example/) — no Vite, no package.json, just .ts files with inline CONFIG blocks. Build the SDK once, then run any script directly:
 
 ```bash
-cd example
-bun install
-bun run dev              # http://localhost:5173
+bun run build
+bun run example/fetch-inr-price.ts
+bun run example/make-buy-order.ts
+# etc.
 ```
 
-### Git Hooks
+### Git hooks
 
 - **pre-commit** — lint-staged (biome lint + format on staged files)
 - **pre-push** — typecheck + build
 
 ### Release
 
-Releases are published manually — there is no CI. See [docs/publishing.md](./docs/publishing.md) for the full flow.
+Releases are published manually — there is no CI. See [docs/publishing.md](./docs/publishing.md).
 
 ```bash
 bun run changeset        # describe your change (run on feature branch)
 bunx changeset version   # bump version + update CHANGELOG (run on main after merge)
-bun run release          # build + publish to npm (run on main after version bump)
+bun run release          # build + publish to npm
 ```
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `viem` | Chain abstraction (address utils, hex encoding, contract reads) |
+| `viem` | Chain abstraction (address utils, contract reads/writes, event decoding) |
 | `neverthrow` | Result/ResultAsync types (no thrown exceptions) |
 | `zod` v4 | Runtime validation at SDK boundaries |
 | `@fingerprintjs/fingerprintjs` | Browser fingerprinting (fraud-engine) |
 | `@seontechnologies/seon-javascript-sdk` | SEON behavioral signals (fraud-engine) |
-| `react` | Peer dependency (for `./react` export) |
+| `@noble/ciphers` · `@noble/curves` · `@noble/hashes` | ECIES + AES-GCM (bundled, not re-exported) |
+| `react` | Optional peer (for `./react` export only) |
+| `@reclaimprotocol/js-sdk` | Optional peer (for zkkyc Reclaim flow only) |
+| `@zkpassport/sdk` | Optional peer (for zkkyc ZK Passport flow only) |
 
 ## License
 
