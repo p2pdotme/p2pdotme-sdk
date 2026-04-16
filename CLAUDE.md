@@ -39,16 +39,6 @@ bun run changeset      # create a changeset
 bun run release        # build + publish
 ```
 
-### Example App
-
-```bash
-cd example
-bun install
-bun run dev            # Vite dev server at http://localhost:5173
-```
-
-The example uses `link:..` to reference the SDK root.
-
 ## Architecture
 
 ```

@@ -6,8 +6,7 @@ export { SdkProvider } from "./sdk-provider";
 
 export {
 	useFraudEngine,
-	useOrderRouter,
-	usePayloadGenerator,
+	useOrders,
 	useProfile,
 	useSdk,
 	useZkkyc,
@@ -19,4 +18,4 @@ export { useFingerprint } from "../fraud-engine/react/use-fingerprint";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
-export type { FraudEngineSdkConfig, SdkConfig } from "./types";
+export type { FraudEngineSdkConfig, OrdersSdkConfig, SdkConfig } from "./types";

@@ -14,11 +14,6 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
-    "./order-routing": {
-      "types": "./dist/order-routing.d.ts",
-      "import": "./dist/order-routing.mjs",
-      "require": "./dist/order-routing.cjs"
-    },
     "./orders": {
       "types": "./dist/orders.d.ts",
       "import": "./dist/orders.mjs",
@@ -39,11 +34,6 @@
       "import": "./dist/fraud-engine.mjs",
       "require": "./dist/fraud-engine.cjs"
     },
-    "./payload": {
-      "types": "./dist/payload.d.ts",
-      "import": "./dist/payload.mjs",
-      "require": "./dist/payload.cjs"
-    },
     "./profile": {
       "types": "./dist/profile.d.ts",
       "import": "./dist/profile.mjs",
@@ -63,12 +53,10 @@
   "typesVersions": {
     "*": {
       ".": ["./dist/index.d.ts"],
-      "order-routing": ["./dist/order-routing.d.ts"],
       "orders": ["./dist/orders.d.ts"],
       "react": ["./dist/react.d.ts"],
       "qr-parsers": ["./dist/qr-parsers.d.ts"],
       "fraud-engine": ["./dist/fraud-engine.d.ts"],
-      "payload": ["./dist/payload.d.ts"],
       "profile": ["./dist/profile.d.ts"],
       "country": ["./dist/country.d.ts"],
       "zkkyc": ["./dist/zkkyc.d.ts"]

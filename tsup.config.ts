@@ -19,19 +19,11 @@ export default defineConfig([
     },
   },
   {
-    entry: { "order-routing": "src/order-routing/index.ts" },
-    format: ["cjs", "esm"],
-    dts: true,
-    sourcemap: true,
-    outExtension({ format }) {
-      return { js: format === "cjs" ? ".cjs" : ".mjs" };
-    },
-  },
-  {
     entry: { orders: "src/orders/index.ts" },
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,
+    noExternal: NOBLE_NO_EXTERNAL,
     outExtension({ format }) {
       return { js: format === "cjs" ? ".cjs" : ".mjs" };
     },
@@ -61,16 +53,6 @@ export default defineConfig([
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,
-    outExtension({ format }) {
-      return { js: format === "cjs" ? ".cjs" : ".mjs" };
-    },
-  },
-  {
-    entry: { payload: "src/payload/index.ts" },
-    format: ["cjs", "esm"],
-    dts: true,
-    sourcemap: true,
-    noExternal: NOBLE_NO_EXTERNAL,
     outExtension({ format }) {
       return { js: format === "cjs" ? ".cjs" : ".mjs" };
     },

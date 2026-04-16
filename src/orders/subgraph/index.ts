@@ -3,7 +3,6 @@ import { type Logger, noopLogger, querySubgraph } from "../../lib";
 import { validate } from "../../validation";
 import { OrdersError } from "../errors";
 import { normalizeSubgraphOrder } from "../normalize";
-import type { Order } from "../types";
 import { ZodSubgraphOrdersResponseSchema } from "../validation";
 import { ORDERS_BY_USER_QUERY } from "./queries";
 
