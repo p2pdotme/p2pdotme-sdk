@@ -1,6 +1,8 @@
 # @p2pdotme/sdk/orders
 
-The full order surface for P2P.me — reads (contract + subgraph), writes (layered `prepare`/`execute`), USDC allowance helpers, ECIES crypto, and a storage-agnostic relay identity resolver. Circle-selection routing lives inside as an internal implementation detail of `placeOrder`.
+The full order surface for P2P.me — reads (contract + subgraph), writes (layered `prepare`/`execute`), ECIES crypto, and a storage-agnostic relay identity resolver. Circle-selection routing lives inside as an internal implementation detail of `placeOrder`.
+
+USDC balance / allowance reads live in [`@p2pdotme/sdk/profile`](../profile/README.md) — use `profile.getUsdcAllowance({ owner })` to pre-flight before a SELL/PAY.
 
 ## Usage
 
@@ -8,11 +10,11 @@ The full order surface for P2P.me — reads (contract + subgraph), writes (layer
 import { createOrders } from "@p2pdotme/sdk/orders";
 import { createPublicClient, createWalletClient, http, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 
-const publicClient = createPublicClient({ chain: baseSepolia, transport: http(RPC_URL) });
+const publicClient = createPublicClient({ chain: base, transport: http(RPC_URL) });
 const walletClient = createWalletClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(RPC_URL),
   account: privateKeyToAccount(PRIVATE_KEY),
 });
@@ -39,7 +41,7 @@ const placed = await orders.placeOrder.execute({
   fiatAmount: parseUnits("850", 6),
   fiatAmountLimit: 0n,
 });
-// placed.value = { hash, receipt?, meta: { orderId, circleId, relayIdentity, ... } }
+// placed.value = { hash, receipt?, meta: { orderId, circleId, relayIdentity } }
 ```
 
 ## `createOrders(config)`
@@ -56,21 +58,15 @@ const placed = await orders.placeOrder.execute({
 
 ## Reads
 
-### `orders.getOrder(params)` → `ResultAsync<Order, OrdersError>`
+### `orders.getOrder({ orderId })` → `ResultAsync<Order, OrdersError>`
 
 Single order via Diamond multicall (with a parallel-`readContract` fallback).
 
-### `orders.getOrders(params)` → `ResultAsync<Order[], OrdersError>`
+### `orders.getOrders({ userAddress, skip?, limit? })` → `ResultAsync<Order[], OrdersError>`
 
-Paginated list of a user's orders from the subgraph, newest first.
+Paginated list of a user's orders from the subgraph, newest first. `skip` defaults to `0`; `limit` defaults to `20`, max `100`.
 
-| Param | Type | Default |
-|-------|------|---------|
-| `userAddress` | `Address` | — |
-| `skip` | `number` | `0` |
-| `limit` | `number` | `20` (max `100`) |
-
-### `orders.getFeeConfig(params)` → `ResultAsync<FeeConfig, OrdersError>`
+### `orders.getFeeConfig({ currency })` → `ResultAsync<FeeConfig, OrdersError>`
 
 Per-currency small-order threshold + fixed fee, read via multicall.
 
@@ -80,10 +76,6 @@ interface FeeConfig {
   smallOrderFixedFee: bigint;   // 6 decimals
 }
 ```
-
-### `orders.readUsdcAllowance(params)` → `ResultAsync<bigint, OrdersError>`
-
-Current USDC allowance of `owner → diamond`.
 
 ## Writes (layered `prepare` / `execute`)
 
@@ -97,7 +89,7 @@ Every write action has two methods with matching params:
 | Param | Type | Notes |
 |-------|------|-------|
 | `orderType` | `0 \| 1 \| 2` | 0 = BUY, 1 = SELL, 2 = PAY |
-| `currency` | `CurrencyType` | — |
+| `currency` | `CurrencyCode` | — |
 | `user` | `Address` | Placer |
 | `recipientAddr` | `Address` | Where USDC goes (BUY) / fiat recipient (SELL/PAY) |
 | `amount` | `bigint` | USDC (6 decimals) |
@@ -106,14 +98,12 @@ Every write action has two methods with matching params:
 | `preferredPaymentChannelConfigId` | `bigint?` | Optional channel pinning |
 | `pubKey` | `string?` | Overrides the auto-generated relay pubkey |
 
-**`execute` only:**
-- `autoApprove: boolean` (default `false`) — SELL/PAY only. When true and the current USDC allowance is short, the SDK submits an `approve(diamond, amount)` tx first (awaited to receipt), then the `placeOrder` tx; `meta.approveTxHash` is populated on the final result. With `autoApprove: false` + insufficient allowance → `ALLOWANCE_INSUFFICIENT`.
+**SELL and PAY require an explicit USDC approval first** — the Diamond pulls USDC via `transferFrom`. Call `orders.approveUsdc.execute({ amount })` before `placeOrder`. There is no auto-approve flag.
 
 **Meta on success:**
 - `meta.circleId` — circle selected by the internal epsilon-greedy router.
 - `meta.relayIdentity` — the identity that signed the payload.
 - `meta.orderId` — parsed from the `OrderPlaced` event in the receipt. **Requires `waitForReceipt: true`**; best-effort (decoding failures return the result unchanged, never an error).
-- `meta.approveTxHash` — set when `autoApprove` triggered an approve tx.
 
 ### `orders.cancelOrder`
 
@@ -143,7 +133,7 @@ Used on SELL and PAY once the merchant has accepted. Encrypts `paymentAddress` w
 
 ### `orders.approveUsdc`
 
-Convenience wrapper over `IERC20(usdc).approve(diamond, amount)` — so consumers don't need to encode ERC-20 themselves.
+Wrapper over `IERC20(usdc).approve(diamond, amount)` — call before SELL/PAY placeOrder.
 
 | Param | Type |
 |-------|------|
@@ -235,7 +225,6 @@ Single unified error surface across reads and writes.
 | `CIRCLE_SELECTION_FAILED` | `placeOrder` |
 | `ENCRYPTION_FAILED` | `setSellOrderUpi` |
 | `RELAY_IDENTITY_CORRUPT` · `RELAY_IDENTITY_STORE_FAILED` | `placeOrder` / `setSellOrderUpi` |
-| `ALLOWANCE_READ_FAILED` · `ALLOWANCE_INSUFFICIENT` | `placeOrder` (SELL/PAY), `readUsdcAllowance` |
 | `TX_SUBMISSION_FAILED` · `RECEIPT_TIMEOUT` · `TX_REVERTED` | any `execute()` |
 
 ## Example

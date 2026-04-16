@@ -1,5 +1,5 @@
-import { errAsync, ResultAsync } from "neverthrow";
-import { type Address, encodeFunctionData, erc20Abi, parseEventLogs, stringToHex } from "viem";
+import type { ResultAsync } from "neverthrow";
+import { type Address, encodeFunctionData, parseEventLogs, stringToHex } from "viem";
 import { ORDER_TYPE } from "../../constants";
 import { ABIS } from "../../contracts/abis";
 import type { PublicClientLike } from "../../types";
@@ -14,20 +14,10 @@ import {
 import { submitPreparedTx } from "../tx";
 import type { ExecuteBase, PreparedTx, TxResult } from "../types";
 import { type PlaceOrderParams, ZodPlaceOrderParamsSchema } from "../validation";
-import { readUsdcAllowance } from "./approve-usdc";
-
-export interface PlaceOrderExecuteParams extends ExecuteBase {
-	/**
-	 * When true on a SELL/PAY order with insufficient USDC allowance, an approve
-	 * tx is submitted and awaited before placeOrder. Defaults to false, in which
-	 * case insufficient allowance surfaces `ALLOWANCE_INSUFFICIENT`.
-	 */
-	readonly autoApprove?: boolean;
-}
 
 export interface PlaceOrderAction {
 	prepare(params: PlaceOrderParams): ResultAsync<PreparedTx, OrdersError>;
-	execute(params: PlaceOrderParams & PlaceOrderExecuteParams): ResultAsync<TxResult, OrdersError>;
+	execute(params: PlaceOrderParams & ExecuteBase): ResultAsync<TxResult, OrdersError>;
 }
 
 /**
@@ -59,11 +49,14 @@ function enrichWithOrderId(result: TxResult, userAddress: Address): TxResult {
 /**
  * Creates a placeOrder action that selects a circle, resolves a relay identity,
  * and encodes the on-chain calldata in `prepare`; `execute` submits via the consumer's WalletClient.
+ *
+ * SELL and PAY orders pull USDC from the user via `transferFrom`, so the
+ * consumer must approve USDC for the Diamond beforehand (see
+ * `orders.approveUsdc`). `placeOrder` does not approve on its own.
  */
 export function createPlaceOrderAction(input: {
 	readonly publicClient: PublicClientLike;
 	readonly diamondAddress: Address;
-	readonly usdcAddress: Address;
 	readonly orderRouter: OrderRouter;
 	readonly relayIdentityStore: RelayIdentityStore;
 	readonly relayIdentity?: RelayIdentity;
@@ -105,8 +98,8 @@ export function createPlaceOrderAction(input: {
 				store: relayIdentityStore,
 			});
 
-			return ResultAsync.combine([circleResult, identityResult]).map(
-				([circleId, senderIdentity]) => {
+			return identityResult.andThen((senderIdentity) =>
+				circleResult.map((circleId) => {
 					const isBuy = v.orderType === ORDER_TYPE.BUY;
 					const keyFromCaller = v.pubKey ?? senderIdentity.publicKey;
 					const pubKey = isBuy ? keyFromCaller : "";
@@ -137,7 +130,7 @@ export function createPlaceOrderAction(input: {
 						value: 0n,
 						meta: { circleId, relayIdentity: senderIdentity },
 					} satisfies PreparedTx;
-				},
+				}),
 			);
 		});
 
@@ -145,81 +138,13 @@ export function createPlaceOrderAction(input: {
 		prepare(params) {
 			return prepareFn(params);
 		},
-		execute({ walletClient, waitForReceipt, autoApprove, ...params }) {
+		execute({ walletClient, waitForReceipt, ...params }) {
 			const owner = walletClient.account?.address;
 			const enrich = (r: TxResult): TxResult => (owner ? enrichWithOrderId(r, owner) : r);
 
-			return prepareFn(params).andThen((prepared) => {
-				const orderType = params.orderType;
-				const isPull = orderType === 1 || orderType === 2; // SELL or PAY
-				if (!isPull) {
-					return submitPreparedTx({
-						prepared,
-						walletClient,
-						publicClient,
-						waitForReceipt,
-					}).map(enrich);
-				}
-
-				if (!owner) {
-					return submitPreparedTx({
-						prepared,
-						walletClient,
-						publicClient,
-						waitForReceipt,
-					}).map(enrich);
-				}
-
-				return readUsdcAllowance({
-					publicClient,
-					usdcAddress: input.usdcAddress,
-					diamondAddress: input.diamondAddress,
-					params: { owner },
-				}).andThen((allowance) => {
-					if (allowance >= params.amount) {
-						return submitPreparedTx({
-							prepared,
-							walletClient,
-							publicClient,
-							waitForReceipt,
-						}).map(enrich);
-					}
-					if (!autoApprove) {
-						return errAsync(
-							new OrdersError("USDC allowance is insufficient", {
-								code: "ALLOWANCE_INSUFFICIENT",
-								context: {
-									required: params.amount.toString(),
-									current: allowance.toString(),
-								},
-							}),
-						);
-					}
-					const approveTx: PreparedTx = {
-						to: input.usdcAddress,
-						data: encodeFunctionData({
-							abi: erc20Abi,
-							functionName: "approve",
-							args: [input.diamondAddress, params.amount],
-						}),
-						value: 0n,
-					};
-					return submitPreparedTx({
-						prepared: approveTx,
-						walletClient,
-						publicClient,
-						waitForReceipt: true,
-					}).andThen((approveResult) =>
-						submitPreparedTx({
-							prepared,
-							walletClient,
-							publicClient,
-							waitForReceipt,
-							extraMeta: { approveTxHash: approveResult.hash },
-						}).map(enrich),
-					);
-				});
-			});
+			return prepareFn(params).andThen((prepared) =>
+				submitPreparedTx({ prepared, walletClient, publicClient, waitForReceipt }).map(enrich),
+			);
 		},
 	};
 }

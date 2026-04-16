@@ -5,6 +5,7 @@ export type { PublicClientLike } from "../types";
 export type {
 	GetBalancesParams,
 	TxLimitsParams,
+	UsdcAllowanceParams,
 	UsdcBalanceParams,
 } from "./validation";
 

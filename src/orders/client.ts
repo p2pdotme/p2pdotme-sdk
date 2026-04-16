@@ -2,11 +2,7 @@ import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { readFeeConfigMulticall, readOrderMulticall } from "../contracts/order-processor";
 import { noopLogger } from "../lib";
 import { validate } from "../validation";
-import {
-	type ApproveUsdcAction,
-	createApproveUsdcAction,
-	readUsdcAllowance,
-} from "./actions/approve-usdc";
+import { type ApproveUsdcAction, createApproveUsdcAction } from "./actions/approve-usdc";
 import { type CancelOrderAction, createCancelOrderAction } from "./actions/cancel-order";
 import { createPlaceOrderAction, type PlaceOrderAction } from "./actions/place-order";
 import { createRaiseDisputeAction, type RaiseDisputeAction } from "./actions/raise-dispute";
@@ -27,7 +23,6 @@ import type {
 	Order,
 	OrdersConfig,
 } from "./types";
-import type { ReadUsdcAllowanceParams } from "./validation";
 import {
 	ZodGetFeeConfigParamsSchema,
 	ZodGetOrderParamsSchema,
@@ -53,9 +48,6 @@ export interface OrdersClient {
 	 */
 	getFeeConfig(params: GetFeeConfigParams): ResultAsync<FeeConfig, OrdersError>;
 
-	/** Reads the current USDC allowance for `owner` → Diamond. */
-	readUsdcAllowance(params: ReadUsdcAllowanceParams): ResultAsync<bigint, OrdersError>;
-
 	// ── Writes (layered prepare/execute) ────────────────────────────────
 
 	readonly placeOrder: PlaceOrderAction;
@@ -66,10 +58,13 @@ export interface OrdersClient {
 }
 
 /**
- * Creates the unified orders client — reads (getOrder, getOrders, getFeeConfig,
- * readUsdcAllowance), circle-routing-backed writes (placeOrder, cancelOrder,
- * setSellOrderUpi, raiseDispute, approveUsdc), and internal circle selection.
- * The relay identity store defaults to in-memory when none is supplied.
+ * Creates the unified orders client — reads (getOrder, getOrders, getFeeConfig)
+ * and circle-routing-backed writes (placeOrder, cancelOrder, setSellOrderUpi,
+ * raiseDispute, approveUsdc). The relay identity store defaults to in-memory
+ * when none is supplied.
+ *
+ * For USDC balance / allowance reads use `@p2pdotme/sdk/profile` (those are
+ * user-scoped and live there).
  */
 export function createOrders(config: OrdersConfig): OrdersClient {
 	const { publicClient, diamondAddress, usdcAddress, subgraphUrl, relayIdentity } = config;
@@ -164,20 +159,10 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 				});
 		},
 
-		readUsdcAllowance(params) {
-			return readUsdcAllowance({
-				publicClient,
-				usdcAddress,
-				diamondAddress,
-				params,
-			});
-		},
-
 		// ── Writes ────────────────────────────────────────────────────────
 		placeOrder: createPlaceOrderAction({
 			publicClient,
 			diamondAddress,
-			usdcAddress,
 			orderRouter,
 			relayIdentityStore,
 			relayIdentity,

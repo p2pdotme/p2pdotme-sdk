@@ -7,6 +7,12 @@ export const ZodUsdcBalanceParamsSchema = z.object({
 
 export type UsdcBalanceParams = z.infer<typeof ZodUsdcBalanceParamsSchema>;
 
+export const ZodUsdcAllowanceParamsSchema = z.object({
+	owner: ZodAddressSchema,
+});
+
+export type UsdcAllowanceParams = z.infer<typeof ZodUsdcAllowanceParamsSchema>;
+
 export const ZodGetBalancesParamsSchema = z.object({
 	address: ZodAddressSchema,
 	currency: ZodCurrencySchema,

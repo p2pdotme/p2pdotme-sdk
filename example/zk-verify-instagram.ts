@@ -67,36 +67,32 @@ async function main(): Promise<void> {
 
 	// ── 2. Start the Reclaim flow ─────────────────────────────────────
 	step(2, "Start Reclaim session and wait for proof");
-	const proofResult = await createReclaimFlow(
-		{
-			appId: RECLAIM_APP_ID,
-			appSecret: RECLAIM_APP_SECRET,
-			providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
+	const proofResult = await createReclaimFlow({
+		appId: RECLAIM_APP_ID,
+		appSecret: RECLAIM_APP_SECRET,
+		providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
+		platform: PLATFORM,
+		walletAddress,
+		contextDescription: `example — ${PLATFORM} verification`,
+		onStatus: (s) => {
+			switch (s.type) {
+				case "session_created":
+					console.log(`   sessionId: ${s.sessionId}`);
+					console.log("   Scan this URL on your phone:");
+					console.log(`\n   ${s.requestUrl}\n`);
+					break;
+				case "polling_started":
+					console.log("   Waiting for proof… (Ctrl-C to abort)");
+					break;
+				case "proof_received":
+					console.log("   ✓ proof received");
+					break;
+				case "proof_transformed":
+					console.log("   ✓ proof transformed for on-chain use");
+					break;
+			}
 		},
-		{
-			platform: PLATFORM,
-			walletAddress,
-			contextDescription: `example — ${PLATFORM} verification`,
-			onStatus: (s) => {
-				switch (s.type) {
-					case "session_created":
-						console.log(`   sessionId: ${s.sessionId}`);
-						console.log("   Scan this URL on your phone:");
-						console.log(`\n   ${s.requestUrl}\n`);
-						break;
-					case "polling_started":
-						console.log("   Waiting for proof… (Ctrl-C to abort)");
-						break;
-					case "proof_received":
-						console.log("   ✓ proof received");
-						break;
-					case "proof_transformed":
-						console.log("   ✓ proof transformed for on-chain use");
-						break;
-				}
-			},
-		},
-	);
+	});
 
 	if (proofResult.isErr()) {
 		console.error(`   ✖ Reclaim flow failed (${proofResult.error.code}): ${proofResult.error.message}`);

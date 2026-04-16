@@ -11,6 +11,7 @@ export type {
 	ProfileConfig,
 	PublicClientLike,
 	TxLimitsParams,
+	UsdcAllowanceParams,
 	UsdcBalanceParams,
 } from "./types";
 
