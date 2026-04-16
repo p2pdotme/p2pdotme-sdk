@@ -11,10 +11,14 @@ import {
 	createSetSellOrderUpiAction,
 	type SetSellOrderUpiAction,
 } from "./actions/set-sell-order-upi";
+import {
+	decryptPaymentAddress as decryptPaymentAddressFn,
+	encryptPaymentAddress as encryptPaymentAddressFn,
+} from "./crypto/encryption";
 import { OrdersError } from "./errors";
 import { createOrderRouter } from "./internal/routing/client";
 import { normalizeContractOrder } from "./normalize";
-import { createInMemoryRelayStore } from "./relay-identity";
+import { createInMemoryRelayStore, resolveRelayIdentity } from "./relay-identity";
 import { getOrdersForUser } from "./subgraph";
 import type {
 	FeeConfig,
@@ -59,6 +63,26 @@ export interface OrdersClient {
 	readonly approveUsdc: ApproveUsdcAction;
 	readonly paidBuyOrder: PaidBuyOrderAction;
 	watchEvents: WatchEvents;
+
+	// ── Crypto helpers (resolve relay identity from store internally) ──────
+
+	/**
+	 * Decrypts an `encUpi` / `encMerchantUpi` ciphertext from an order using the
+	 * relay identity resolved from the configured store. Returns the plaintext
+	 * payment address.
+	 */
+	decryptPaymentAddress(params: { encrypted: string }): ResultAsync<string, OrdersError>;
+
+	/**
+	 * Signs `paymentAddress` with the resolved relay identity and ECIES-encrypts
+	 * the payload for `recipientPublicKey`. Returns the hex-stringified ciphertext
+	 * suitable for on-chain storage (e.g. as the merchant's encUpi when calling
+	 * `setSellOrderUpi`).
+	 */
+	encryptPaymentAddress(params: {
+		paymentAddress: string;
+		recipientPublicKey: string;
+	}): ResultAsync<string, OrdersError>;
 }
 
 /**
@@ -182,5 +206,22 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 		approveUsdc: createApproveUsdcAction({ publicClient, diamondAddress, usdcAddress }),
 		paidBuyOrder: createPaidBuyOrderAction({ publicClient, diamondAddress }),
 		watchEvents: createWatchEvents({ publicClient, diamondAddress }),
+
+		// ── Crypto helpers ───────────────────────────────────────────────
+		decryptPaymentAddress({ encrypted }) {
+			return resolveRelayIdentity({ relayIdentity, store: relayIdentityStore }).andThen(
+				(recipientIdentity) => decryptPaymentAddressFn({ encrypted, recipientIdentity }),
+			);
+		},
+		encryptPaymentAddress({ paymentAddress, recipientPublicKey }) {
+			return resolveRelayIdentity({ relayIdentity, store: relayIdentityStore }).andThen(
+				(senderIdentity) =>
+					encryptPaymentAddressFn({
+						paymentAddress,
+						recipientPublicKey,
+						senderIdentity,
+					}),
+			);
+		},
 	};
 }

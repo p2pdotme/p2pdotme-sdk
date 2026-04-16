@@ -101,6 +101,9 @@ export function normalizeContractOrder(
 		fixedFeePaid: details.fixedFeePaid,
 		tipsPaid: details.tipsPaid,
 		disputeStatus,
+		encUpi: raw.encUpi,
+		encMerchantUpi: raw.encMerchantUpi,
+		pubkey: raw.pubkey,
 	}));
 }
 
@@ -131,5 +134,10 @@ export function normalizeSubgraphOrder(raw: RawSubgraphOrder): Result<Order, Ord
 		fixedFeePaid: BigInt(raw.fixedFeePaid),
 		tipsPaid: BigInt(raw.tipsPaid),
 		disputeStatus,
+		// Subgraph entity does not currently expose these encryption fields;
+		// consumers needing them should fall back to the contract via getOrder.
+		encUpi: "",
+		encMerchantUpi: "",
+		pubkey: "",
 	}));
 }

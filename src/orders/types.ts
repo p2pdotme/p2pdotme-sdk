@@ -47,6 +47,20 @@ export interface Order {
 	tipsPaid: bigint;
 
 	disputeStatus: DisputeStatus;
+
+	/**
+	 * Encrypted UPI / payment address that the merchant published for this order
+	 * (set when the merchant accepts a buy order). Empty string until set.
+	 * Decrypt with `decryptPaymentAddress`.
+	 */
+	encUpi: string;
+	/**
+	 * Encrypted merchant UPI for the seller-side flow (set by `setSellOrderUpi`).
+	 * Empty string until set.
+	 */
+	encMerchantUpi: string;
+	/** Public key associated with the order, used for ECIES encryption setup. */
+	pubkey: string;
 }
 
 /**
