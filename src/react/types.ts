@@ -28,6 +28,7 @@ export interface SdkConfig {
 
 export interface Sdk {
 	readonly profile: import("../profile/client").Profile;
+	readonly prices: import("../prices/client").Prices;
 	readonly orders: OrdersClient;
 	readonly zkkyc?: import("../zkkyc/client").Zkkyc;
 	readonly fraudEngine?: FraudEngine;

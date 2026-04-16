@@ -67,6 +67,15 @@ export default defineConfig([
     },
   },
   {
+    entry: { prices: "src/prices/index.ts" },
+    format: ["cjs", "esm"],
+    dts: true,
+    sourcemap: true,
+    outExtension({ format }) {
+      return { js: format === "cjs" ? ".cjs" : ".mjs" };
+    },
+  },
+  {
     entry: { country: "src/country/index.ts" },
     format: ["cjs", "esm"],
     dts: true,

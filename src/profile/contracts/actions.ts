@@ -29,7 +29,14 @@ export function getBalances(
 			}),
 			getPriceConfig(publicClient, diamondAddress, {
 				currency: validated.currency,
-			}),
+			}).mapErr(
+				(cause) =>
+					new ProfileError("Failed to read price config for balance conversion", {
+						code: "CONTRACT_READ_ERROR",
+						cause,
+						context: { currency: validated.currency },
+					}),
+			),
 		]).map(([usdc, priceConfig]) => {
 			const usdcFormatted = Number(formatUnits(usdc, 6));
 			const sellPriceFormatted = Number(formatUnits(priceConfig.sellPrice, 6));

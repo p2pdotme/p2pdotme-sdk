@@ -39,6 +39,11 @@
       "import": "./dist/profile.mjs",
       "require": "./dist/profile.cjs"
     },
+    "./prices": {
+      "types": "./dist/prices.d.ts",
+      "import": "./dist/prices.mjs",
+      "require": "./dist/prices.cjs"
+    },
     "./country": {
       "types": "./dist/country.d.ts",
       "import": "./dist/country.mjs",
@@ -58,6 +63,7 @@
       "qr-parsers": ["./dist/qr-parsers.d.ts"],
       "fraud-engine": ["./dist/fraud-engine.d.ts"],
       "profile": ["./dist/profile.d.ts"],
+      "prices": ["./dist/prices.d.ts"],
       "country": ["./dist/country.d.ts"],
       "zkkyc": ["./dist/zkkyc.d.ts"]
     }

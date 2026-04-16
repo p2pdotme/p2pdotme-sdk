@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef }
 import { createFraudEngine } from "../fraud-engine/client";
 import type { FraudEngine } from "../fraud-engine/types";
 import { createOrders } from "../orders";
+import { createPrices } from "../prices/client";
 import { createProfile } from "../profile/client";
 import { createZkkyc } from "../zkkyc/client";
 import type { Sdk, SdkConfig } from "./types";
@@ -63,6 +64,10 @@ export function SdkProvider({ children, ...config }: SdkConfig & { readonly chil
 				diamondAddress: config.diamondAddress,
 				usdcAddress: config.usdcAddress,
 			}),
+			prices: createPrices({
+				publicClient,
+				diamondAddress: config.diamondAddress,
+			}),
 			orders: createOrders({
 				publicClient,
 				diamondAddress: config.diamondAddress,
@@ -106,6 +111,11 @@ export function useSdk(): Sdk {
 /** Returns the Profile instance from the nearest SdkProvider. */
 export function useProfile() {
 	return useSdk().profile;
+}
+
+/** Returns the Prices instance from the nearest SdkProvider. */
+export function usePrices() {
+	return useSdk().prices;
 }
 
 /** Returns the Orders instance from the nearest SdkProvider. */
