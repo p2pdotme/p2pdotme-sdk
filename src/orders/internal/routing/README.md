@@ -1,94 +1,35 @@
-# @p2pdotme/sdk/order-routing
+# routing (internal)
 
-Circle selection for P2P.me orders. Fetches circles from a subgraph, selects the best one via epsilon-greedy algorithm, and validates on-chain eligibility. Returns a `circleId` for consumers to use in their own `placeOrder` / `assignMerchants` calls.
+> **Not a public subpath.** This module is an internal implementation detail of `orders/actions/place-order.ts`. It used to be exported as `@p2pdotme/sdk/order-routing` but was folded back into orders once `placeOrder.execute` became the primary entry point. Consumers interact with it transparently via `orders.placeOrder` — there is no public API here.
 
-## Usage
+## What it does
 
-### React (recommended)
+Given an order intent (currency, user, amounts, type, preferred payment channel), it picks a circle to route the order through. Two stages:
 
-```tsx
-import { SdkProvider, useOrderRouter } from "@p2pdotme/sdk/react";
-import { parseUnits } from "viem";
+1. **Fetch circles** from the subgraph (GraphQL, with retries and a 10s timeout).
+2. **Select one** via epsilon-greedy weighting, then validate on-chain eligibility by reading `getAssignableMerchantsFromCircle` from the Diamond. Retries up to 3× if the first selection is ineligible, removing failed circles from the pool.
 
-function App() {
-  return (
-    <SdkProvider
-      publicClient={publicClient}
-      subgraphUrl={SUBGRAPH_URL}
-      diamondAddress={DIAMOND_ADDRESS}
-      usdcAddress={USDC_ADDRESS}
-    >
-      <OrderFlow />
-    </SdkProvider>
-  );
-}
+## Epsilon-greedy selection
 
-function OrderFlow() {
-  const router = useOrderRouter();
-
-  async function handleRoute() {
-    const result = await router.selectCircle({
-      currency: "INR",
-      user: "0xUserAddress",
-      usdtAmount: parseUnits("10", 6),
-      fiatAmount: parseUnits("850", 6),
-      orderType: 0n, // 0 = BUY, 1 = SELL, 2 = PAY
-      preferredPCConfigId: 0n,
-    });
-
-    result.match(
-      (circleId) => console.log("Selected circle:", circleId),
-      (error) => console.error(`[${error.code}] ${error.message}`),
-    );
-  }
-}
-```
-
-## API
-
-### `createOrderRouter(config)`
-
-Creates an `OrderRouter` instance.
-
-| Config | Type | Description |
-|--------|------|-------------|
-| `subgraphUrl` | `string` | GraphQL endpoint for circle data |
-| `publicClient` | `PublicClientLike` | viem public client (only needs `readContract`) |
-| `contractAddress` | `Address` | Diamond proxy address |
-| `logger` | `Logger` | Optional logger |
-
-### `router.selectCircle(params)`
-
-Returns `ResultAsync<bigint, OrderRoutingError>` — the selected circle ID.
-
-| Param | Type | Description |
-|-------|------|-------------|
-| `currency` | `string` | Currency code (e.g. `"INR"`, `"BRL"`) |
-| `user` | `Address` | User's wallet address |
-| `usdtAmount` | `bigint` | USDC amount (6 decimals) |
-| `fiatAmount` | `bigint` | Fiat amount (6 decimals) |
-| `orderType` | `bigint` | `0n` = BUY, `1n` = SELL, `2n` = PAY |
-| `preferredPCConfigId` | `bigint` | Preferred payment channel config ID |
-
-## Epsilon-Greedy Algorithm
-
-- **75% exploit** — pick from active circles, weighted by raw `circleScore`
+- **75% exploit** — pick from active circles only, weighted by raw `circleScore`.
 - **25% explore** — pick from all eligible circles with status-aware weights:
-  - `active` → score
-  - `bootstrap` → min(score, 25)
-  - `paused` → score × 0.3
-- Retries up to 3 times if on-chain eligibility check fails, removing failed circles from the pool
-- Subgraph fetches have a 10s timeout with 3 retries and linear backoff for transient failures
+  - `active` → `score`
+  - `bootstrap` → `min(score, 25)`
+  - `paused` → `score × 0.3`
 
-## Errors
+## Files
 
-All methods return `ResultAsync<T, OrderRoutingError>` — no thrown exceptions.
+| File | What |
+|------|------|
+| `client.ts` | `createOrderRouter({ publicClient, subgraphUrl, contractAddress, logger? })` → `OrderRouter` with a single method: `selectCircle(params)` → `ResultAsync<bigint, OrderRoutingError>`. |
+| `routing.ts` | `selectCircleForOrderAsync` — the epsilon-greedy core + eligibility retry loop. |
+| `subgraph/` | `getCirclesForRouting` — GraphQL fetch + validation. |
+| `validation.ts` | Zod schemas for `SelectCircleParams` + `CheckCircleEligibilityParams`. |
+| `types.ts` | `CircleForRouting`, `OrderRouter`, `OrderRoutingConfig`. |
+| `errors.ts` | `OrderRoutingError` with codes `NO_ELIGIBLE_CIRCLES` / `SUBGRAPH_ERROR` / `SUBGRAPH_NOT_CONFIGURED` / `VALIDATION_ERROR` / `CONTRACT_READ_ERROR`. These bubble up to `placeOrder` which wraps them as `OrdersError` with code `CIRCLE_SELECTION_FAILED`. |
 
-| Code | Description |
-|------|-------------|
-| `NO_ELIGIBLE_CIRCLES` | No circles match currency or pass validation |
-| `SUBGRAPH_ERROR` | GraphQL query failed or returned errors |
-| `SUBGRAPH_NOT_CONFIGURED` | Missing subgraph URL |
-| `VALIDATION_ERROR` | Input validation failed (Zod) |
-| `CONTRACT_READ_ERROR` | On-chain eligibility check failed |
+## If you're touching this code
 
+- The selection strategy is tuned for merchant assignment rates — changing the ε split or status weights affects real routing outcomes. Change with care and run the full test suite (`test/orders/internal/routing/`).
+- Subgraph schema drift is the main failure mode. The Zod schema in `validation.ts` is the canonical shape; update it and the GraphQL query together.
+- The module re-exports the internal type `OrderRouter` consumed by `actions/place-order.ts`. If its shape changes, update that consumer too.

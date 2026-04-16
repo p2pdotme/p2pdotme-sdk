@@ -1,90 +1,194 @@
 # @p2pdotme/sdk/orders
 
-Order reads for P2P.me. Three methods:
-
-- `getOrder({ orderId })` — single order read from the Diamond via multicall (with a parallel-`readContract` fallback).
-- `getOrders({ userAddress, skip?, limit? })` — paginated list of a user's orders from the subgraph, newest first.
-- `getFeeConfig({ currency })` — per-currency small-order threshold and fixed fee, read from the Diamond via multicall.
-
-Both sources normalize into a single `Order` shape: enum indices become string literals, the `bytes32` currency is decoded to a string, amounts stay as 6-decimal `bigint`s, and timestamps as unix-seconds `bigint`s.
+The full order surface for P2P.me — reads (contract + subgraph), writes (layered `prepare`/`execute`), USDC allowance helpers, ECIES crypto, and a storage-agnostic relay identity resolver. Circle-selection routing lives inside as an internal implementation detail of `placeOrder`.
 
 ## Usage
 
 ```ts
 import { createOrders } from "@p2pdotme/sdk/orders";
-import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
+import { createPublicClient, createWalletClient, http, parseUnits } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { baseSepolia } from "viem/chains";
 
-const publicClient = createPublicClient({ chain: base, transport: http(RPC_URL) });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http(RPC_URL) });
+const walletClient = createWalletClient({
+  chain: baseSepolia,
+  transport: http(RPC_URL),
+  account: privateKeyToAccount(PRIVATE_KEY),
+});
 
 const orders = createOrders({
   publicClient,
   diamondAddress: DIAMOND_ADDRESS,
+  usdcAddress: USDC_ADDRESS,
   subgraphUrl: SUBGRAPH_URL,
 });
 
-// Single order via contract multicall.
-const one = await orders.getOrder({ orderId: 42n });
-one.match(
-  (order) => console.log(order.status, order.usdcAmount),
-  (error) => console.error(`[${error.code}] ${error.message}`),
-);
+// Read
+const order = await orders.getOrder({ orderId: 42n });
 
-// User's orders via subgraph (newest first).
-const many = await orders.getOrders({
-  userAddress: "0xUser",
-  skip: 0,
-  limit: 20,
+// Write — BUY
+const placed = await orders.placeOrder.execute({
+  walletClient,
+  waitForReceipt: true,
+  orderType: 0, // 0 = BUY, 1 = SELL, 2 = PAY
+  currency: "INR",
+  user: account.address,
+  recipientAddr: account.address,
+  amount: parseUnits("10", 6),
+  fiatAmount: parseUnits("850", 6),
+  fiatAmountLimit: 0n,
 });
+// placed.value = { hash, receipt?, meta: { orderId, circleId, relayIdentity, ... } }
 ```
 
-## API
+## `createOrders(config)`
 
-### `createOrders(config)`
+| Config | Type | Required | Description |
+|--------|------|----------|-------------|
+| `publicClient` | `PublicClientLike` | ✓ | viem public client (`readContract`, `multicall`, `waitForTransactionReceipt`) |
+| `diamondAddress` | `Address` | ✓ | Diamond proxy |
+| `usdcAddress` | `Address` | ✓ | USDC token |
+| `subgraphUrl` | `string` | ✓ | GraphQL endpoint for order data |
+| `relayIdentityStore` | `RelayIdentityStore` | | Defaults to in-memory. Use `createLocalStorageRelayStore()` in browsers to persist. |
+| `relayIdentity` | `RelayIdentity` | | Pre-built identity; wins over the store. |
+| `logger` | `Logger` | | Optional logger. |
 
-| Config | Type | Description |
-|--------|------|-------------|
-| `publicClient` | `PublicClientLike` | viem public client (needs `readContract` + `multicall`) |
-| `diamondAddress` | `Address` | Diamond proxy address |
-| `subgraphUrl` | `string` | GraphQL endpoint for order data |
-| `logger` | `Logger` | Optional logger |
+## Reads
 
-### `orders.getOrder(params)`
+### `orders.getOrder(params)` → `ResultAsync<Order, OrdersError>`
 
-Returns `ResultAsync<Order, OrdersError>`.
+Single order via Diamond multicall (with a parallel-`readContract` fallback).
 
-| Param | Type | Description |
-|-------|------|-------------|
-| `orderId` | `bigint` | Positive order id |
+### `orders.getOrders(params)` → `ResultAsync<Order[], OrdersError>`
 
-Fails with `ORDER_NOT_FOUND` when the contract returns a zeroed struct; with `MALFORMED_ORDER` when a partially-zero struct is returned; with `CONTRACT_READ_FAILED` on transport errors.
+Paginated list of a user's orders from the subgraph, newest first.
 
-### `orders.getOrders(params)`
+| Param | Type | Default |
+|-------|------|---------|
+| `userAddress` | `Address` | — |
+| `skip` | `number` | `0` |
+| `limit` | `number` | `20` (max `100`) |
 
-Returns `ResultAsync<Order[], OrdersError>`. Orders are newest first.
+### `orders.getFeeConfig(params)` → `ResultAsync<FeeConfig, OrdersError>`
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `userAddress` | `Address` | — | User's wallet address |
-| `skip` | `number` | `0` | Pagination offset |
-| `limit` | `number` | `20` | Page size (max `100`) |
-
-### `orders.getFeeConfig(params)`
-
-Returns `ResultAsync<FeeConfig, OrdersError>`. Reads `getSmallOrderThreshold` and `getSmallOrderFixedFee` from the Diamond in a single multicall.
-
-| Param | Type | Description |
-|-------|------|-------------|
-| `currency` | `CurrencyType` | Supported currency symbol (e.g. `"INR"`, `"BRL"`) |
+Per-currency small-order threshold + fixed fee, read via multicall.
 
 ```ts
 interface FeeConfig {
-  smallOrderThreshold: bigint;  // 6 decimals; orders ≤ threshold are billed the fixed fee
+  smallOrderThreshold: bigint;  // orders ≤ this are billed the fixed fee
   smallOrderFixedFee: bigint;   // 6 decimals
 }
 ```
 
-Fails with `INVALID_FEE_CONFIG_PARAMS` when `currency` is not a supported symbol; with `CONTRACT_READ_FAILED` on transport errors.
+### `orders.readUsdcAllowance(params)` → `ResultAsync<bigint, OrdersError>`
+
+Current USDC allowance of `owner → diamond`.
+
+## Writes (layered `prepare` / `execute`)
+
+Every write action has two methods with matching params:
+
+- **`action.prepare(params)`** → `ResultAsync<PreparedTx, OrdersError>` where `PreparedTx = { to, data, value, meta? }`. Pure — no wallet.
+- **`action.execute({ walletClient, waitForReceipt?, ...params })`** → `ResultAsync<TxResult, OrdersError>` where `TxResult = { hash, receipt?, meta? }`. `prepare()` + `walletClient.sendTransaction` + optional `waitForTransactionReceipt`.
+
+### `orders.placeOrder`
+
+| Param | Type | Notes |
+|-------|------|-------|
+| `orderType` | `0 \| 1 \| 2` | 0 = BUY, 1 = SELL, 2 = PAY |
+| `currency` | `CurrencyType` | — |
+| `user` | `Address` | Placer |
+| `recipientAddr` | `Address` | Where USDC goes (BUY) / fiat recipient (SELL/PAY) |
+| `amount` | `bigint` | USDC (6 decimals) |
+| `fiatAmount` | `bigint` | Fiat (6 decimals) |
+| `fiatAmountLimit` | `bigint?` | Slippage bound; `0n` = disabled |
+| `preferredPaymentChannelConfigId` | `bigint?` | Optional channel pinning |
+| `pubKey` | `string?` | Overrides the auto-generated relay pubkey |
+
+**`execute` only:**
+- `autoApprove: boolean` (default `false`) — SELL/PAY only. When true and the current USDC allowance is short, the SDK submits an `approve(diamond, amount)` tx first (awaited to receipt), then the `placeOrder` tx; `meta.approveTxHash` is populated on the final result. With `autoApprove: false` + insufficient allowance → `ALLOWANCE_INSUFFICIENT`.
+
+**Meta on success:**
+- `meta.circleId` — circle selected by the internal epsilon-greedy router.
+- `meta.relayIdentity` — the identity that signed the payload.
+- `meta.orderId` — parsed from the `OrderPlaced` event in the receipt. **Requires `waitForReceipt: true`**; best-effort (decoding failures return the result unchanged, never an error).
+- `meta.approveTxHash` — set when `autoApprove` triggered an approve tx.
+
+### `orders.cancelOrder`
+
+| Param | Type |
+|-------|------|
+| `orderId` | `bigint` |
+
+### `orders.setSellOrderUpi`
+
+Used on SELL and PAY once the merchant has accepted. Encrypts `paymentAddress` with the merchant's pubkey before encoding calldata.
+
+| Param | Type |
+|-------|------|
+| `orderId` | `bigint` |
+| `paymentAddress` | `string` (plaintext, e.g. `"user@upi"`) |
+| `merchantPublicKey` | `string` (128 hex chars, no `0x04` prefix) |
+| `updatedAmount` | `bigint` (PAY only; `0n` keeps the original) |
+
+`meta.relayIdentity` is surfaced on the result.
+
+### `orders.raiseDispute`
+
+| Param | Type |
+|-------|------|
+| `orderId` | `bigint` |
+| `redactTransId` | `bigint` (evidence identifier — SDK doesn't interpret) |
+
+### `orders.approveUsdc`
+
+Convenience wrapper over `IERC20(usdc).approve(diamond, amount)` — so consumers don't need to encode ERC-20 themselves.
+
+| Param | Type |
+|-------|------|
+| `amount` | `bigint` |
+
+## Relay identity
+
+`createRelayIdentity()` is a pure function (no side effects). Persistence goes through a pluggable `RelayIdentityStore`:
+
+```ts
+interface RelayIdentityStore {
+  get(): Promise<RelayIdentity | null>;
+  set(identity: RelayIdentity): Promise<void>;
+}
+```
+
+Shipped adapters:
+
+```ts
+import {
+  createInMemoryRelayStore,     // default when no store is configured
+  createLocalStorageRelayStore, // browser-only, opt-in
+} from "@p2pdotme/sdk/orders";
+```
+
+Resolution order inside the SDK when an action needs a relay identity:
+
+1. `config.relayIdentity` — used as-is.
+2. `config.relayIdentityStore.get()` — used if non-null.
+3. Otherwise generate via `createRelayIdentity()`, call `store.set(identity)`, use it.
+
+Corrupt stored identity (fails Zod validation) → `RELAY_IDENTITY_CORRUPT`. The SDK never silently regenerates.
+
+## Crypto helpers
+
+```ts
+import {
+  encryptPaymentAddress,
+  decryptPaymentAddress,
+  cipherParse,
+  cipherStringify,
+} from "@p2pdotme/sdk/orders";
+```
+
+ECIES over secp256k1 with AES-GCM, wire-compatible with `eth-crypto`. `decryptPaymentAddress` returns just the plaintext message (the inner `{message, signature}` envelope is unwrapped for you).
 
 ## `Order` shape
 
@@ -118,6 +222,22 @@ interface Order {
 }
 ```
 
-## Error codes
+## `OrdersError` codes
 
-`INVALID_ORDER_ID` · `INVALID_GET_ORDERS_PARAMS` · `INVALID_FEE_CONFIG_PARAMS` · `ORDER_NOT_FOUND` · `MALFORMED_ORDER` · `CONTRACT_READ_FAILED` · `SUBGRAPH_REQUEST_FAILED` · `SUBGRAPH_VALIDATION_FAILED`
+Single unified error surface across reads and writes.
+
+| Code | Raised by |
+|------|-----------|
+| `VALIDATION_ERROR` | any |
+| `INVALID_ORDER_ID` · `INVALID_GET_ORDERS_PARAMS` · `INVALID_FEE_CONFIG_PARAMS` | reads |
+| `ORDER_NOT_FOUND` · `MALFORMED_ORDER` · `CONTRACT_READ_FAILED` | reads |
+| `SUBGRAPH_REQUEST_FAILED` · `SUBGRAPH_VALIDATION_FAILED` | `getOrders` |
+| `CIRCLE_SELECTION_FAILED` | `placeOrder` |
+| `ENCRYPTION_FAILED` | `setSellOrderUpi` |
+| `RELAY_IDENTITY_CORRUPT` · `RELAY_IDENTITY_STORE_FAILED` | `placeOrder` / `setSellOrderUpi` |
+| `ALLOWANCE_READ_FAILED` · `ALLOWANCE_INSUFFICIENT` | `placeOrder` (SELL/PAY), `readUsdcAllowance` |
+| `TX_SUBMISSION_FAILED` · `RECEIPT_TIMEOUT` · `TX_REVERTED` | any `execute()` |
+
+## Example
+
+See [`example/`](../../example/) for runnable BUY / SELL / PAY walkthroughs.

@@ -8,8 +8,8 @@ open one, edit the `CONFIG` block at the top, run it.
 From the repo root:
 
 ```bash
-bun run build                                  # build the SDK once
-bun run example/fetch-inr-price.ts        # or any other script
+bun run build                          # build the SDK once
+bun run example/fetch-inr-price.ts     # or any other script
 ```
 
 The scripts import from `@p2pdotme/sdk/*` subpaths, which resolve against the

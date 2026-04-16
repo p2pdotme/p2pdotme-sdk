@@ -39,7 +39,7 @@ The fraud engine pulls in `@fingerprintjs/fingerprintjs` and `@seontechnologies/
 
 ### React (recommended)
 
-Pass `fraudEngine` config to `SdkProvider` and read the instance via the no-arg `useFraudEngine()` hook. The SDK creates the instance once, calls `init()` on mount, and exposes it on context alongside `profile`, `orderRouter`, and `payload`.
+Pass `fraudEngine` config to `SdkProvider` and read the instance via the no-arg `useFraudEngine()` hook. The SDK creates the instance once, calls `init()` on mount, and exposes it on context alongside `profile`, `prices`, and `orders`.
 
 ```tsx
 import { SdkProvider, useFraudEngine } from "@p2pdotme/sdk/react";
@@ -153,4 +153,6 @@ type FraudEngineErrorCode =
 
 ## Example
 
-See the [example app](../../example/) for a working demo — run `bun run dev` from the `example/` folder.
+No fraud-engine-specific script ships with the SDK — wire it into your own
+buy flow following the React snippet above. See [`example/`](../../example/)
+for the plain order lifecycle scripts (no fraud engine).
