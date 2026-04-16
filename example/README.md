@@ -23,8 +23,8 @@ built `dist/` via the root `package.json` self-reference.
 | `fetch-order-status.ts`    | Fetches one order by id and prints its full state (read-only).                              |
 | `check-current-limits.ts`  | Prints buy/sell tx limits for a given address + currency (read-only).                       |
 | `make-buy-order.ts`        | Fraud-checks (INR only), places a BUY order, waits for a merchant, pauses for fiat, completes. |
-| `make-sell-order.ts`       | Places a SELL order (autoApprove), sends encrypted payment address on acceptance, completes.|
-| `make-pay-order.ts`        | Places a PAY order (autoApprove), sends encrypted payee address on acceptance, completes.   |
+| `make-sell-order.ts`       | Approves USDC, places a SELL order, sends encrypted payment address on acceptance, completes.|
+| `make-pay-order.ts`        | Approves USDC, places a PAY order, sends encrypted payee address on acceptance, completes.  |
 | `zk-verify-instagram.ts`   | Runs a Reclaim Instagram verification flow and prepares/submits `socialVerify` on-chain.    |
 
 ## Configuration

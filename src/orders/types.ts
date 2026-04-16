@@ -87,7 +87,6 @@ export interface PreparedTx {
 }
 
 export interface TxResultMeta extends PreparedTxMeta {
-	readonly approveTxHash?: `0x${string}`;
 	/**
 	 * Populated on `placeOrder.execute({ waitForReceipt: true })` — the orderId
 	 * parsed from the `OrderPlaced` event in the receipt's logs. Undefined when

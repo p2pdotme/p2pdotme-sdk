@@ -10,7 +10,7 @@ QR code parsers for P2P.me payment networks. Extracts payment addresses and amou
 | IDR      | Indonesia   | QRIS            | EMVCo TLV       |
 | BRL      | Brazil      | PIX             | EMVCo TLV + CRC |
 | ARS      | Argentina   | MercadoPago     | EMVCo TLV + CRC |
-| VEN      | Venezuela   | Pago Movil      | Base64 payload   |
+| VEN      | Venezuela   | Pago Movil      | Base64 payload  |
 
 ## Installation
 
@@ -23,11 +23,11 @@ bun add @p2pdotme/sdk
 ```ts
 import { parseQR } from "@p2pdotme/sdk/qr-parsers";
 
-const result = await parseQR(
-  "upi://pay?pa=merchant@upi&am=500&pn=Store",
-  "INR",
-  85, // sellPrice: 1 USDC = 85 INR
-);
+const result = await parseQR({
+  qrData: "upi://pay?pa=merchant@upi&am=500&pn=Store",
+  currency: "INR",
+  sellPrice: 85, // 1 USDC = 85 INR
+});
 
 if (result.isOk()) {
   console.log(result.value.paymentAddress); // "merchant@upi"
@@ -40,10 +40,13 @@ if (result.isOk()) {
 
 ### PIX (BRL) — Dynamic QR codes
 
-PIX QR codes can contain a URL that points to dynamic payment data. To resolve these, pass a `proxyUrl` (and optionally `orderId` for tracking):
+PIX QR codes can contain a URL that points to dynamic payment data. To resolve these, pass `proxyUrl` (and optionally `orderId` for tracking):
 
 ```ts
-const result = await parseQR(qrData, "BRL", 5.5, {
+const result = await parseQR({
+  qrData,
+  currency: "BRL",
+  sellPrice: 5.5,
   proxyUrl: "https://pix-proxy.example.com",
   orderId: "order-123",
 });
@@ -53,28 +56,34 @@ The proxy receives `GET /pix?locationUrl=<url>&orderId=<id>` and should return t
 
 ## API
 
-### `parseQR(qrData, currency, sellPrice, config?)`
+### `parseQR(params)`
 
-| Param       | Type                | Description                            |
-| ----------- | ------------------- | -------------------------------------- |
-| `qrData`    | `string`            | Raw QR code content                    |
+Takes a single `ParseQRParams` object:
+
+| Field       | Type                | Description                                 |
+| ----------- | ------------------- | ------------------------------------------- |
+| `qrData`    | `string`            | Raw QR code content                         |
 | `currency`  | `SupportedCurrency` | `"INR" \| "IDR" \| "BRL" \| "ARS" \| "VEN"` |
-| `sellPrice` | `number`            | Exchange rate: 1 USDC = X fiat         |
-| `config`    | `ParseQRConfig`     | Optional. `{ proxyUrl?, orderId? }`    |
+| `sellPrice` | `number`            | Exchange rate: 1 USDC = X fiat              |
+| `proxyUrl?` | `string`            | Only for dynamic PIX (BRL)                  |
+| `orderId?`  | `string`            | Forwarded to the PIX proxy for tracking     |
 
 **Returns** `Promise<Result<ParsedQR, QRParserError>>` ([neverthrow](https://github.com/supermacro/neverthrow))
 
 ### Types
 
 ```ts
+interface ParseQRParams {
+  qrData: string;
+  currency: SupportedCurrency;
+  sellPrice: number;
+  proxyUrl?: string;
+  orderId?: string;
+}
+
 interface ParsedQR {
   paymentAddress: string;
   amount?: { usdc: number; fiat: number };
-}
-
-interface ParseQRConfig {
-  proxyUrl?: string; // Required for dynamic PIX QR codes
-  orderId?: string;  // Forwarded to proxy for tracking
 }
 
 type QRParserErrorCode =

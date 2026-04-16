@@ -16,6 +16,7 @@ export {
 	formatCompoundPaymentIdForDisplay,
 	serializeCompoundPaymentId,
 	validateArgentinePaymentId,
+	validateColombianPaymentId,
 	validateIndonesianPhoneNumber,
 	validateMexicanPaymentId,
 	validateNigerianAccountNumber,

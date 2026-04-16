@@ -4,7 +4,8 @@
  *   bun run example/make-sell-order.ts
  *
  * The SELL user journey:
- *   1. Approve USDC (auto-approved by the SDK if allowance is short).
+ *   1. Approve USDC — explicit tx via orders.approveUsdc (SELL/PAY pull USDC
+ *      via transferFrom, so the Diamond needs an allowance).
  *   2. Place the order on-chain — the contract pulls your USDC into escrow.
  *   3. Wait for a merchant to accept.
  *   4. Send the merchant the ECIES-encrypted destination for your fiat payout
@@ -104,12 +105,24 @@ async function main(): Promise<void> {
 	kv("Fiat amount", FIAT_AMOUNT.toString());
 	kv("Payment address", PAYMENT_ADDRESS);
 
-	// ── 2. Place the order (with auto-approve) ────────────────────────
-	step(2, "Place SELL order (autoApprove handles USDC allowance if short)");
+	// ── 2. Approve USDC ───────────────────────────────────────────────
+	step(2, "Approve USDC for the Diamond");
+	const approve = await orders.approveUsdc.execute({
+		walletClient,
+		waitForReceipt: true,
+		amount: USDC_AMOUNT,
+	});
+	if (approve.isErr()) {
+		console.error(`   ✖ approveUsdc failed (${approve.error.code}): ${approve.error.message}`);
+		process.exit(1);
+	}
+	kv("approve tx", approve.value.hash);
+
+	// ── 3. Place the order ────────────────────────────────────────────
+	step(3, "Place SELL order");
 	const place = await orders.placeOrder.execute({
 		walletClient,
 		waitForReceipt: true,
-		autoApprove: true,
 		orderType: 1, // SELL
 		currency: CURRENCY,
 		user: account.address,
@@ -127,22 +140,19 @@ async function main(): Promise<void> {
 		console.error("   ✖ orderId missing from receipt — aborting");
 		process.exit(1);
 	}
-	if (place.value.meta?.approveTxHash) {
-		kv("approve tx", place.value.meta.approveTxHash);
-	}
 	kv("place tx", place.value.hash);
 	kv("orderId", orderId.toString());
 	kv("circleId", place.value.meta?.circleId?.toString() ?? "—");
 
-	// ── 3. Wait for merchant to accept ────────────────────────────────
-	step(3, "Wait for merchant acceptance");
+	// ── 4. Wait for merchant to accept ────────────────────────────────
+	step(4, "Wait for merchant acceptance");
 	const accepted = await waitForStatus(orders, orderId, "accepted");
 	console.log();
 	kv("Merchant", accepted.acceptedMerchant);
 	kv("Accepted at", new Date(Number(accepted.acceptedAt) * 1000).toISOString());
 
-	// ── 4. Send encrypted payment address ─────────────────────────────
-	step(4, "Send encrypted payment address to merchant (setSellOrderUpi)");
+	// ── 5. Send encrypted payment address ─────────────────────────────
+	step(5, "Send encrypted payment address to merchant (setSellOrderUpi)");
 	console.log(`   Encrypting "${PAYMENT_ADDRESS}" with the merchant's pubkey…`);
 	const set = await orders.setSellOrderUpi.execute({
 		walletClient,
@@ -158,16 +168,16 @@ async function main(): Promise<void> {
 	}
 	kv("tx hash", set.value.hash);
 
-	// ── 5. Wait for fiat / completion ─────────────────────────────────
-	step(5, "Wait for merchant to pay you off-chain and complete the order");
+	// ── 6. Wait for fiat / completion ─────────────────────────────────
+	step(6, "Wait for merchant to pay you off-chain and complete the order");
 	console.log("   The merchant now sends fiat to the address you just shared.");
 	console.log("   Once they receive it they'll call completeOrder on-chain.");
 	await pressEnterToContinue("Press Enter to start polling for completion…");
 
 	const final = await waitForStatus(orders, orderId, "completed");
 
-	// ── 6. Done ───────────────────────────────────────────────────────
-	step(6, "Done");
+	// ── 7. Done ───────────────────────────────────────────────────────
+	step(7, "Done");
 	kv("Final status", final.status);
 	kv("USDC sent", final.actualUsdcAmount.toString());
 	kv("Fiat received", final.actualFiatAmount.toString());

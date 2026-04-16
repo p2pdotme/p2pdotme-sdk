@@ -16,7 +16,6 @@ import {
 import { ZodCurrencySchema } from "../../../src/validation";
 
 const DIAMOND = "0x000000000000000000000000000000000000beef" as const;
-const USDC = "0x000000000000000000000000000000000000cafe" as const;
 const USER = "0x0000000000000000000000000000000000000001" as const;
 const CURRENCY = ZodCurrencySchema.parse("INR");
 
@@ -33,7 +32,6 @@ describe("placeOrder.prepare (BUY)", () => {
 		const action = createPlaceOrderAction({
 			publicClient: {} as never,
 			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
 			orderRouter,
 			relayIdentityStore: createInMemoryRelayStore(),
 		});
@@ -67,7 +65,6 @@ describe("placeOrder.prepare (SELL)", () => {
 		const action = createPlaceOrderAction({
 			publicClient: {} as never,
 			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
 			orderRouter,
 			relayIdentityStore: createInMemoryRelayStore(),
 		});
@@ -93,15 +90,12 @@ describe("placeOrder.prepare — circle selection failure", () => {
 	it("surfaces CIRCLE_SELECTION_FAILED", async () => {
 		const { errAsync } = await import("neverthrow");
 		const orderRouter = {
-			selectCircle: vi.fn().mockReturnValue(
-				errAsync(new Error("no circles")),
-			),
+			selectCircle: vi.fn().mockReturnValue(errAsync(new Error("no circles"))),
 			getCircles: vi.fn(),
 		} as never;
 		const action = createPlaceOrderAction({
 			publicClient: {} as never,
 			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
 			orderRouter,
 			relayIdentityStore: createInMemoryRelayStore(),
 		});
@@ -119,98 +113,6 @@ describe("placeOrder.prepare — circle selection failure", () => {
 	});
 });
 
-describe("placeOrder.execute — autoApprove", () => {
-	const buildHarness = (allowance: bigint, opts: { sellFails?: boolean } = {}) => {
-		const readContract = vi.fn().mockResolvedValue(allowance);
-		const waitForTransactionReceipt = vi
-			.fn()
-			.mockResolvedValue({ status: "success", blockNumber: 1n });
-		const publicClient = { readContract, waitForTransactionReceipt } as never;
-		const hashes: string[] = [];
-		const sendTransaction = vi.fn(async () => {
-			const hash = `0xhash${hashes.length}`;
-			hashes.push(hash);
-			if (opts.sellFails && hashes.length === 2) throw new Error("nope");
-			return hash;
-		});
-		const walletClient = {
-			account: { address: USER },
-			chain: undefined,
-			sendTransaction,
-		} as never;
-		const orderRouter = makeOrderRouter();
-		const action = createPlaceOrderAction({
-			publicClient,
-			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
-			orderRouter,
-			relayIdentityStore: createInMemoryRelayStore(),
-		});
-		return { action, sendTransaction, walletClient, readContract };
-	};
-
-	const sellParams = () => ({
-		orderType: 1 as const,
-		currency: CURRENCY,
-		user: USER,
-		amount: parseUnits("10", 6),
-		fiatAmount: parseUnits("830", 6),
-		fiatAmountLimit: 0n,
-		recipientAddr: USER,
-	});
-
-	it("errors with ALLOWANCE_INSUFFICIENT by default when short", async () => {
-		const { action, walletClient } = buildHarness(0n);
-		const result = await action.execute({ walletClient, ...sellParams() });
-		expect(result.isErr()).toBe(true);
-		expect(result._unsafeUnwrapErr().code).toBe("ALLOWANCE_INSUFFICIENT");
-	});
-
-	it("submits approve + placeOrder when autoApprove is true and allowance is short", async () => {
-		const { action, walletClient, sendTransaction } = buildHarness(0n);
-		const result = await action.execute({
-			walletClient,
-			autoApprove: true,
-			...sellParams(),
-		});
-		expect(result.isOk()).toBe(true);
-		expect(sendTransaction).toHaveBeenCalledTimes(2);
-		expect(result._unsafeUnwrap().meta?.approveTxHash).toBe("0xhash0");
-		expect(result._unsafeUnwrap().hash).toBe("0xhash1");
-	});
-
-	it("skips approve when allowance is sufficient", async () => {
-		const { action, walletClient, sendTransaction } = buildHarness(
-			parseUnits("1000", 6),
-		);
-		const result = await action.execute({
-			walletClient,
-			autoApprove: true,
-			...sellParams(),
-		});
-		expect(result.isOk()).toBe(true);
-		expect(sendTransaction).toHaveBeenCalledTimes(1);
-		expect(result._unsafeUnwrap().meta?.approveTxHash).toBeUndefined();
-	});
-
-	it("skips allowance check for BUY orders", async () => {
-		const { action, walletClient, readContract } = buildHarness(0n);
-		const result = await action.execute({
-			walletClient,
-			autoApprove: true,
-			orderType: 0,
-			currency: CURRENCY,
-			user: USER,
-			amount: parseUnits("10", 6),
-			fiatAmount: parseUnits("830", 6),
-			fiatAmountLimit: 0n,
-			recipientAddr: USER,
-		});
-		expect(result.isOk()).toBe(true);
-		expect(readContract).not.toHaveBeenCalled();
-	});
-});
-
 describe("placeOrder.execute — orderId extraction from receipt", () => {
 	// Build a synthetic OrderPlaced log via the same ABI the action uses.
 	function makeOrderPlacedLog(orderId: bigint, userAddress: `0x${string}`) {
@@ -219,7 +121,6 @@ describe("placeOrder.execute — orderId extraction from receipt", () => {
 			eventName: "OrderPlaced",
 			args: { orderId, user: userAddress, merchant: zeroAddress },
 		});
-		// Non-indexed portion: amount, orderType, placedTimestamp, _order (all-zero tuple).
 		const orderStructType = {
 			type: "tuple",
 			components: [
@@ -330,7 +231,6 @@ describe("placeOrder.execute — orderId extraction from receipt", () => {
 		const action = createPlaceOrderAction({
 			publicClient,
 			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
 			orderRouter: makeOrderRouter(),
 			relayIdentityStore: createInMemoryRelayStore(),
 		});
@@ -366,7 +266,6 @@ describe("placeOrder.execute — orderId extraction from receipt", () => {
 		const action = createPlaceOrderAction({
 			publicClient,
 			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
 			orderRouter: makeOrderRouter(),
 			relayIdentityStore: createInMemoryRelayStore(),
 		});
@@ -400,7 +299,6 @@ describe("placeOrder.execute — orderId extraction from receipt", () => {
 		const action = createPlaceOrderAction({
 			publicClient,
 			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
 			orderRouter: makeOrderRouter(),
 			relayIdentityStore: createInMemoryRelayStore(),
 		});
@@ -421,3 +319,6 @@ describe("placeOrder.execute — orderId extraction from receipt", () => {
 		expect(result._unsafeUnwrap().meta?.orderId).toBeUndefined();
 	});
 });
+
+// Ensure createRelayIdentity is kept in scope (used by relay-identity branch tests elsewhere).
+void createRelayIdentity;

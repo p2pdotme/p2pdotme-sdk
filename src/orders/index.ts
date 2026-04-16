@@ -32,7 +32,6 @@ export type {
 	GetOrdersParams,
 	PlaceOrderParams,
 	RaiseDisputeParams,
-	ReadUsdcAllowanceParams,
 	SetSellOrderUpiParams,
 } from "./validation";
 

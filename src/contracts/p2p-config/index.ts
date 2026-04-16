@@ -1,12 +1,9 @@
 import { ResultAsync } from "neverthrow";
 import { type Address, stringToHex } from "viem";
 import { PricesError } from "../../prices/errors";
-import type { PriceConfig, RpPerUsdtLimit } from "../../prices/types";
-import type { GetPriceConfigParams, GetRpPerUsdtLimitParams } from "../../prices/validation";
-import {
-	ZodGetPriceConfigParamsSchema,
-	ZodGetRpPerUsdtLimitParamsSchema,
-} from "../../prices/validation";
+import type { PriceConfig, ReputationLimit } from "../../prices/types";
+import type { CurrencyScopedParams } from "../../prices/validation";
+import { ZodCurrencyScopedParamsSchema } from "../../prices/validation";
 import type { PublicClientLike } from "../../types";
 import { validate } from "../../validation";
 import { ABIS } from "../abis";
@@ -15,10 +12,10 @@ import { ABIS } from "../abis";
 export function getPriceConfig(
 	publicClient: PublicClientLike,
 	diamondAddress: Address,
-	params: GetPriceConfigParams,
+	params: CurrencyScopedParams,
 ): ResultAsync<PriceConfig, PricesError> {
 	return validate(
-		ZodGetPriceConfigParamsSchema,
+		ZodCurrencyScopedParamsSchema,
 		params,
 		(message, cause, data) =>
 			new PricesError(message, {
@@ -44,14 +41,17 @@ export function getPriceConfig(
 	);
 }
 
-/** Reads the RP-to-USDC limit ratio for a given currency from the Diamond contract. */
-export function getRpPerUsdtLimitRational(
+/**
+ * Reads the per-currency USDC transaction limit granted per Reputation Point (RP).
+ * Default is 1 RP = 2 USDC everywhere except INR.
+ */
+export function getReputationPerUsdcLimit(
 	publicClient: PublicClientLike,
 	diamondAddress: Address,
-	params: GetRpPerUsdtLimitParams,
-): ResultAsync<RpPerUsdtLimit, PricesError> {
+	params: CurrencyScopedParams,
+): ResultAsync<ReputationLimit, PricesError> {
 	return validate(
-		ZodGetRpPerUsdtLimitParamsSchema,
+		ZodCurrencyScopedParamsSchema,
 		params,
 		(message, cause, data) =>
 			new PricesError(message, {
@@ -68,7 +68,7 @@ export function getRpPerUsdtLimitRational(
 				args: [stringToHex(validated.currency, { size: 32 })],
 			}) as Promise<readonly [bigint, bigint]>,
 			(error) =>
-				new PricesError("Failed to read RP per USDT limit rational", {
+				new PricesError("Failed to read reputation-per-USDC limit", {
 					code: "CONTRACT_READ_ERROR",
 					cause: error,
 					context: { currency: validated.currency, diamondAddress },

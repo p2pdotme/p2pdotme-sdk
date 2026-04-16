@@ -55,13 +55,11 @@ const prices = createPrices({
 | `publicClient` | `PublicClientLike` | viem public client (needs `readContract`) |
 | `diamondAddress` | `Address` | Diamond proxy address |
 
-### `prices.getPriceConfig(params)` → `ResultAsync<PriceConfig, PricesError>`
+All methods take the same `CurrencyScopedParams = { currency }`.
+
+### `prices.getPriceConfig({ currency })` → `ResultAsync<PriceConfig, PricesError>`
 
 Buy/sell price config for a currency.
-
-| Param | Type |
-|-------|------|
-| `currency` | `CurrencyType` (e.g. `"INR"`, `"BRL"`) |
 
 ```ts
 interface PriceConfig {
@@ -74,19 +72,15 @@ interface PriceConfig {
 
 All fields are 6-decimal `bigint`s.
 
-### `prices.getRpPerUsdtLimitRational(params)` → `ResultAsync<RpPerUsdtLimit, PricesError>`
+### `prices.getReputationPerUsdcLimit({ currency })` → `ResultAsync<ReputationLimit, PricesError>`
 
-RP-to-USDC limit ratio for a currency.
-
-| Param | Type |
-|-------|------|
-| `currency` | `CurrencyType` |
+Per-currency USDC transaction limit granted per Reputation Point (RP). Default is **1 RP = 2 USDC** everywhere except **INR**, which uses its own on-chain multiplier.
 
 ```ts
-interface RpPerUsdtLimit {
+interface ReputationLimit {
   readonly numerator: bigint;
   readonly denominator: bigint;
-  /** denominator / numerator, as a number. 0 when numerator is 0n. */
+  /** USDC per RP: denominator / numerator. */
   readonly multiplier: number;
 }
 ```

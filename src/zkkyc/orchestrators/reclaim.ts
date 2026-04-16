@@ -1,14 +1,13 @@
 import { ResultAsync } from "neverthrow";
 import { ZkkycError } from "../errors";
-import type { ReclaimConfig, ReclaimFlowOptions, ReclaimProofResult } from "./types";
+import type { ReclaimFlowParams, ReclaimProofResult } from "./types";
 import { SOCIAL_PLATFORM_NAMES } from "./types";
 
 const RECLAIM_SESSION_API = "https://api.reclaimprotocol.org/api/sdk/session";
 
 /** Runs the Reclaim social verification flow and returns proof data for on-chain submission. */
 export function createReclaimFlow(
-	config: ReclaimConfig,
-	options: ReclaimFlowOptions,
+	params: ReclaimFlowParams,
 ): ResultAsync<ReclaimProofResult, ZkkycError> {
 	return ResultAsync.fromPromise(
 		(async () => {
@@ -22,6 +21,9 @@ export function createReclaimFlow(
 			const { ReclaimProofRequest, transformForOnchain } = mod;
 
 			const {
+				appId,
+				appSecret,
+				providerIds,
 				platform,
 				walletAddress,
 				redirectUrl,
@@ -30,22 +32,19 @@ export function createReclaimFlow(
 				onStatus,
 				signal,
 				pollingIntervalMs = 5000,
-			} = options;
+			} = params;
 
 			const socialName = SOCIAL_PLATFORM_NAMES[platform];
-			const providerId = config.providerIds[platform];
+			const providerId = providerIds[platform];
 
 			let sessionId: string;
 
 			if (existingSessionId) {
 				sessionId = existingSessionId;
 			} else {
-				const reclaimProofRequest = await ReclaimProofRequest.init(
-					config.appId,
-					config.appSecret,
-					providerId,
-					{ launchOptions: { canUseDeferredDeepLinksFlow: true } },
-				);
+				const reclaimProofRequest = await ReclaimProofRequest.init(appId, appSecret, providerId, {
+					launchOptions: { canUseDeferredDeepLinksFlow: true },
+				});
 
 				const statusUrl = reclaimProofRequest.getStatusUrl();
 				sessionId = statusUrl.split("/").pop() || "";

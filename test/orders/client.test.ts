@@ -19,7 +19,6 @@ describe("createOrders", () => {
 		expect(typeof client.getOrder).toBe("function");
 		expect(typeof client.getOrders).toBe("function");
 		expect(typeof client.getFeeConfig).toBe("function");
-		expect(typeof client.readUsdcAllowance).toBe("function");
 
 		// Writes (layered prepare/execute)
 		expect(typeof client.placeOrder.prepare).toBe("function");
