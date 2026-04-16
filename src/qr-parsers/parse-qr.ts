@@ -1,4 +1,4 @@
-import { CURRENCY } from "../constants";
+import { CURRENCY } from "../country";
 import { parseMercadoPago } from "./parsers/ars";
 import { parsePIX } from "./parsers/brl";
 import { parseQRIS } from "./parsers/idr";
