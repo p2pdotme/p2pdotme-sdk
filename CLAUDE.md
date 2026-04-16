@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `@p2pdotme/sdk` — a multi-module TypeScript SDK for P2P.me. Published as a single package with subpath exports:
 
-- `@p2pdotme/sdk/orders` — full order surface: reads (`getOrder`, `getOrders`, `getFeeConfig`) + writes via `prepare`/`execute` pairs (`placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc`). Circle-selection routing lives inside as an internal implementation detail.
+- `@p2pdotme/sdk/orders` — full order surface: reads (`getOrder`, `getOrders`, `getFeeConfig`) + writes via `prepare`/`execute` pairs (`placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc`, `paidBuyOrder`) + event subscriptions (`watchEvents`). Circle-selection routing lives inside as an internal implementation detail.
 - `@p2pdotme/sdk/prices` — currency price config reads: `getPriceConfig`, `getReputationPerUsdcLimit`.
 - `@p2pdotme/sdk/profile` — user-scoped reads: USDC balance, USDC allowance, tx limits, combined fiat balances.
 - `@p2pdotme/sdk/react` — unified React provider (`SdkProvider`) + hooks (`useOrders`, `usePrices`, `useProfile`, `useZkkyc`, `useFraudEngine`, `useSdk`).
