@@ -105,3 +105,38 @@ export interface ExecuteBase {
 	readonly walletClient: WalletClient;
 	readonly waitForReceipt?: boolean;
 }
+
+export type OrderEvent =
+	| {
+			readonly type: "placed";
+			readonly orderId: bigint;
+			readonly user: Address;
+			readonly orderType: 0 | 1 | 2;
+			readonly blockNumber: bigint;
+			readonly txHash: `0x${string}`;
+	  }
+	| {
+			readonly type: "accepted";
+			readonly orderId: bigint;
+			readonly merchant: Address;
+			readonly blockNumber: bigint;
+			readonly txHash: `0x${string}`;
+	  }
+	| {
+			readonly type: "paid";
+			readonly orderId: bigint;
+			readonly blockNumber: bigint;
+			readonly txHash: `0x${string}`;
+	  }
+	| {
+			readonly type: "completed";
+			readonly orderId: bigint;
+			readonly blockNumber: bigint;
+			readonly txHash: `0x${string}`;
+	  }
+	| {
+			readonly type: "cancelled";
+			readonly orderId: bigint;
+			readonly blockNumber: bigint;
+			readonly txHash: `0x${string}`;
+	  };
