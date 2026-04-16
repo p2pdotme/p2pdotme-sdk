@@ -1,8 +1,8 @@
 # @p2pdotme/sdk/profile
 
-User-scoped reads for P2P.me: USDC balance, combined balances (USDC + fiat-equivalent), and per-address tx limits.
+User-scoped reads for P2P.me: USDC balance, USDC allowance to the Diamond, combined balances (USDC + fiat equivalent), and per-address tx limits.
 
-Currency/protocol config (price config, RP ↔ USDC ratio) lives in [`@p2pdotme/sdk/prices`](../prices/README.md).
+Currency/protocol config (price config, reputation-per-USDC ratio) lives in [`@p2pdotme/sdk/prices`](../prices/README.md).
 
 ## Usage
 
@@ -63,22 +63,17 @@ const profile = createProfile({
 | `diamondAddress` | `Address` | Diamond proxy address |
 | `usdcAddress` | `Address` | USDC token address |
 
-### `profile.getUsdcBalance(params)` → `ResultAsync<bigint, ProfileError>`
+### `profile.getUsdcBalance({ address })` → `ResultAsync<bigint, ProfileError>`
 
 Raw USDC balance (6 decimals).
 
-| Param | Type |
-|-------|------|
-| `address` | `Address` |
+### `profile.getUsdcAllowance({ owner })` → `ResultAsync<bigint, ProfileError>`
 
-### `profile.getBalances(params)` → `ResultAsync<Balances, ProfileError>`
+Raw USDC allowance `owner → diamond` (6 decimals). Useful as a pre-flight before a SELL/PAY order — if the allowance is less than `amount`, call `orders.approveUsdc.execute({ amount })` first.
+
+### `profile.getBalances({ address, currency })` → `ResultAsync<Balances, ProfileError>`
 
 Parallel USDC + price read with fiat conversion done for you.
-
-| Param | Type |
-|-------|------|
-| `address` | `Address` |
-| `currency` | `CurrencyType` |
 
 ```ts
 interface Balances {
@@ -88,14 +83,9 @@ interface Balances {
 }
 ```
 
-### `profile.getTxLimits(params)` → `ResultAsync<TxLimits, ProfileError>`
+### `profile.getTxLimits({ address, currency })` → `ResultAsync<TxLimits, ProfileError>`
 
-Per-user buy/sell transaction limits.
-
-| Param | Type |
-|-------|------|
-| `address` | `Address` |
-| `currency` | `CurrencyType` |
+Per-user buy/sell transaction limits (numbers, 6-decimal formatted).
 
 ```ts
 interface TxLimits {
@@ -103,6 +93,8 @@ interface TxLimits {
   readonly sellLimit: number;
 }
 ```
+
+`currency` is a `CurrencyCode` — any of the supported currency symbols (`"INR"`, `"BRL"`, `"IDR"`, …).
 
 ## Errors
 

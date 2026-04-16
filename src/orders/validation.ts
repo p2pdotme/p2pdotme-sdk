@@ -65,11 +65,6 @@ export const ZodApproveUsdcParamsSchema = z.object({
 });
 export type ApproveUsdcParams = z.infer<typeof ZodApproveUsdcParamsSchema>;
 
-export const ZodReadUsdcAllowanceParamsSchema = z.object({
-	owner: ZodAddressSchema,
-});
-export type ReadUsdcAllowanceParams = z.infer<typeof ZodReadUsdcAllowanceParamsSchema>;
-
 // ── Subgraph response (internal) ────────────────────────────────────────
 
 const HexString = z.string().regex(/^0x[0-9a-fA-F]*$/, "Expected 0x-prefixed hex");

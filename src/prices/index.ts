@@ -5,11 +5,10 @@ export { createPrices, type Prices } from "./client";
 // ── Types ───────────────────────────────────────────────────────────────
 
 export type {
-	GetPriceConfigParams,
-	GetRpPerUsdtLimitParams,
+	CurrencyScopedParams,
 	PriceConfig,
 	PricesConfig,
-	RpPerUsdtLimit,
+	ReputationLimit,
 } from "./types";
 
 // ── Errors ──────────────────────────────────────────────────────────────

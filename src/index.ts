@@ -5,7 +5,7 @@ export const VERSION: string = __SDK_VERSION__;
 
 // ── Shared types ─────────────────────────────────────────────────────────
 
-export type { CurrencyType, PublicClientLike } from "./types";
+export type { CurrencyCode, PublicClientLike } from "./types";
 
 // ── Shared errors ────────────────────────────────────────────────────────
 
