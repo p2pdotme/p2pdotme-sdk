@@ -31,18 +31,14 @@ import { baseSepolia } from "viem/chains";
 
 // 1. Run the Reclaim UX flow — user scans the deep link on their phone and
 //    completes the verification; the promise resolves with the proof.
-const proofResult = await createReclaimFlow(
-  {
-    appId: RECLAIM_APP_ID,
-    appSecret: RECLAIM_APP_SECRET,
-    providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
-  },
-  {
-    platform: "github",
-    walletAddress: account.address,
-    onStatus: (s) => console.log(s),
-  },
-);
+const proofResult = await createReclaimFlow({
+  appId: RECLAIM_APP_ID,
+  appSecret: RECLAIM_APP_SECRET,
+  providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
+  platform: "github",
+  walletAddress: account.address,
+  onStatus: (s) => console.log(s),
+});
 if (proofResult.isErr()) throw proofResult.error;
 
 // 2. Prepare the on-chain calldata.
@@ -83,18 +79,17 @@ Returns:
 
 All three are pure encoders; no network, no wallet.
 
-### `createReclaimFlow(config, options)` → `ResultAsync<ReclaimProofResult, ZkkycError>`
+### `createReclaimFlow(params)` → `ResultAsync<ReclaimProofResult, ZkkycError>`
 
 Runs the full Reclaim flow: initializes a session, surfaces the request URL via `onStatus` so the consumer can display a QR / deep-link, polls the Reclaim API until a proof arrives, transforms the proof for on-chain use, and returns it.
 
-| Config | Type |
-|--------|------|
-| `appId` | `string` |
-| `appSecret` | `string` |
-| `providerIds` | `Record<SocialPlatform, string>` — use `DEFAULT_RECLAIM_PROVIDER_IDS` for sensible defaults |
+Single-object `ReclaimFlowParams` (app-level config + per-call options merged):
 
-| Option | Type | Notes |
-|--------|------|-------|
+| Param | Type | Notes |
+|-------|------|-------|
+| `appId` | `string` | Reclaim app id |
+| `appSecret` | `string` | Reclaim app secret |
+| `providerIds` | `Record<SocialPlatform, string>` | Use `DEFAULT_RECLAIM_PROVIDER_IDS` for sensible defaults |
 | `platform` | `"linkedin" \| "github" \| "x" \| "instagram" \| "facebook"` | — |
 | `walletAddress` | `Address` | Bound into the Reclaim context |
 | `redirectUrl` | `string?` | Appends `?sessionId=…&socialPlatform=…` |
@@ -106,16 +101,20 @@ Runs the full Reclaim flow: initializes a session, surfaces the request URL via 
 
 Errors: `PEER_DEPENDENCY_MISSING`, `RECLAIM_POLLING_ABORTED`, `RECLAIM_PROOF_INVALID`, `VALIDATION_ERROR`, `ENCODING_ERROR`.
 
-### `createZkPassportFlow(config, options)` → `ResultAsync<ZkPassportProofResult, ZkkycError>`
+### `createZkPassportFlow(params)` → `ResultAsync<ZkPassportProofResult, ZkkycError>`
 
 Runs the ZKPassport verification flow.
 
-| Config | Type | Notes |
-|--------|------|-------|
+Single-object `ZkPassportFlowParams`:
+
+| Param | Type | Notes |
+|-------|------|-------|
 | `domain` | `string` | **Required.** Your app's domain. No default — prevents impersonation. |
 | `name` | `string?` | App name shown in ZKPassport UI. Defaults to `"ZKPassport"`. |
 | `logo` | `string?` | Logo URL |
 | `purpose` | `string?` | Defaults to `"Prove your personhood"` |
+| `walletAddress` | `Address` | Bound into the ZKPassport request |
+| `onStatus` | `(status) => void` | Status callback across the flow |
 
 Needs `@zkpassport/sdk` installed as a peer dep.
 
