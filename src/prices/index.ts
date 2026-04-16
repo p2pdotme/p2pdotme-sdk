@@ -1,19 +1,17 @@
 // ── Main entry point ────────────────────────────────────────────────────
 
-export { createProfile, type Profile } from "./client";
+export { createPrices, type Prices } from "./client";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
-export type { TxLimits } from "../contracts/tx-limits";
 export type {
-	Balances,
-	GetBalancesParams,
-	ProfileConfig,
-	PublicClientLike,
-	TxLimitsParams,
-	UsdcBalanceParams,
+	GetPriceConfigParams,
+	GetRpPerUsdtLimitParams,
+	PriceConfig,
+	PricesConfig,
+	RpPerUsdtLimit,
 } from "./types";
 
 // ── Errors ──────────────────────────────────────────────────────────────
 
-export { ProfileError, type ProfileErrorCode } from "./errors";
+export { PricesError, type PricesErrorCode } from "./errors";

@@ -7,6 +7,7 @@ export { SdkProvider } from "./sdk-provider";
 export {
 	useFraudEngine,
 	useOrders,
+	usePrices,
 	useProfile,
 	useSdk,
 	useZkkyc,

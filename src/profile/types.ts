@@ -4,7 +4,6 @@ import type { PublicClientLike } from "../types";
 export type { PublicClientLike } from "../types";
 export type {
 	GetBalancesParams,
-	PriceConfigParams,
 	TxLimitsParams,
 	UsdcBalanceParams,
 } from "./validation";
@@ -26,13 +25,4 @@ export interface Balances {
 	readonly fiat: number;
 	/** The sell price used for conversion. */
 	readonly sellPrice: number;
-}
-
-// ── Price config types ──────────────────────────────────────────────────
-
-export interface PriceConfig {
-	readonly buyPrice: bigint;
-	readonly sellPrice: bigint;
-	readonly buyPriceOffset: bigint;
-	readonly baseSpread: bigint;
 }
