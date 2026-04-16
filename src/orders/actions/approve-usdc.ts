@@ -1,0 +1,97 @@
+import { ResultAsync } from "neverthrow";
+import { type Address, encodeFunctionData, erc20Abi } from "viem";
+import type { PublicClientLike } from "../../types";
+import { validate } from "../../validation";
+import { OrdersError } from "../errors";
+import { submitPreparedTx } from "../tx";
+import type { ExecuteBase, PreparedTx, TxResult } from "../types";
+import {
+	type ApproveUsdcParams,
+	type ReadUsdcAllowanceParams,
+	ZodApproveUsdcParamsSchema,
+	ZodReadUsdcAllowanceParamsSchema,
+} from "../validation";
+
+export interface ApproveUsdcAction {
+	prepare(params: ApproveUsdcParams): ResultAsync<PreparedTx, OrdersError>;
+	execute(params: ApproveUsdcParams & ExecuteBase): ResultAsync<TxResult, OrdersError>;
+}
+
+/**
+ * Creates an approveUsdc action that encodes `IERC20.approve(diamond, amount)` targeting
+ * the USDC contract in `prepare` and submits it via the consumer's WalletClient in `execute`.
+ */
+export function createApproveUsdcAction(input: {
+	readonly publicClient: PublicClientLike;
+	readonly diamondAddress: Address;
+	readonly usdcAddress: Address;
+}): ApproveUsdcAction {
+	const { publicClient, diamondAddress, usdcAddress } = input;
+
+	const prepareFn = (params: ApproveUsdcParams) =>
+		validate(
+			ZodApproveUsdcParamsSchema,
+			params,
+			(message, cause, data) =>
+				new OrdersError(message, {
+					code: "VALIDATION_ERROR",
+					cause,
+					context: { data },
+				}),
+		).map<PreparedTx>(({ amount }) => ({
+			to: usdcAddress,
+			data: encodeFunctionData({
+				abi: erc20Abi,
+				functionName: "approve",
+				args: [diamondAddress, amount],
+			}),
+			value: 0n,
+		}));
+
+	return {
+		prepare(params) {
+			return prepareFn(params).asyncMap(async (tx) => tx);
+		},
+		execute({ walletClient, waitForReceipt, ...params }) {
+			return prepareFn(params).asyncAndThen((prepared) =>
+				submitPreparedTx({ prepared, walletClient, publicClient, waitForReceipt }),
+			);
+		},
+	};
+}
+
+/**
+ * Reads `allowance(owner, diamond)` from the USDC contract. Returns the raw bigint
+ * allowance or `ALLOWANCE_READ_FAILED` if the RPC call fails.
+ */
+export function readUsdcAllowance(input: {
+	readonly publicClient: PublicClientLike;
+	readonly usdcAddress: Address;
+	readonly diamondAddress: Address;
+	readonly params: ReadUsdcAllowanceParams;
+}): ResultAsync<bigint, OrdersError> {
+	return validate(
+		ZodReadUsdcAllowanceParamsSchema,
+		input.params,
+		(message, cause, data) =>
+			new OrdersError(message, {
+				code: "VALIDATION_ERROR",
+				cause,
+				context: { data },
+			}),
+	).asyncAndThen(({ owner }) =>
+		ResultAsync.fromPromise(
+			input.publicClient.readContract({
+				address: input.usdcAddress,
+				abi: erc20Abi,
+				functionName: "allowance",
+				args: [owner, input.diamondAddress],
+			}) as Promise<bigint>,
+			(cause) =>
+				new OrdersError("Failed to read USDC allowance", {
+					code: "ALLOWANCE_READ_FAILED",
+					cause,
+				}),
+		),
+	);
+}

@@ -1,12 +1,18 @@
 import type { Address } from "viem";
 import type { FraudEngine } from "../fraud-engine/types";
 import type { Logger } from "../lib";
+import type { OrdersClient, RelayIdentity, RelayIdentityStore } from "../orders";
 import type { PublicClientLike } from "../types";
 
 export interface FraudEngineSdkConfig {
 	readonly apiUrl: string;
 	readonly encryptionKey: string;
 	readonly seonRegion?: string;
+}
+
+export interface OrdersSdkConfig {
+	readonly relayIdentityStore?: RelayIdentityStore;
+	readonly relayIdentity?: RelayIdentity;
 }
 
 export interface SdkConfig {
@@ -16,13 +22,13 @@ export interface SdkConfig {
 	readonly usdcAddress: Address;
 	readonly reputationManagerAddress?: Address;
 	readonly fraudEngine?: FraudEngineSdkConfig;
+	readonly orders?: OrdersSdkConfig;
 	readonly logger?: Logger;
 }
 
 export interface Sdk {
 	readonly profile: import("../profile/client").Profile;
-	readonly orderRouter: import("../order-routing/client").OrderRouter;
-	readonly payload: import("../payload/client").PayloadGenerator;
+	readonly orders: OrdersClient;
 	readonly zkkyc?: import("../zkkyc/client").Zkkyc;
 	readonly fraudEngine?: FraudEngine;
 }
