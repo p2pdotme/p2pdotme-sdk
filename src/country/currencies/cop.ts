@@ -47,6 +47,6 @@ export const COP_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: ["CO"],
 	precision: 2,
 	isAlpha: true,
-	disabled: true,
+	disabled: false,
 	disabledPaymentTypes: ["PAY"],
 };
