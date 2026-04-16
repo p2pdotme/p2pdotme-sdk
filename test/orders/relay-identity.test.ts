@@ -6,6 +6,7 @@ import {
 	resolveRelayIdentity,
 	ZodRelayIdentitySchema,
 } from "../../src/orders/relay-identity";
+import { RelayIdentityCorruptError } from "../../src/orders/relay-identity/stores";
 
 describe("createRelayIdentity", () => {
 	it("returns a valid keypair with no side effects", () => {
@@ -87,5 +88,30 @@ describe("resolveRelayIdentity", () => {
 		const result = await resolveRelayIdentity({ store });
 		expect(result.isErr()).toBe(true);
 		expect(result._unsafeUnwrapErr().code).toBe("RELAY_IDENTITY_STORE_FAILED");
+	});
+
+	it("maps RelayIdentityCorruptError from store.get to RELAY_IDENTITY_CORRUPT", async () => {
+		const store = {
+			get: async () => {
+				throw new RelayIdentityCorruptError(new SyntaxError("unexpected end"));
+			},
+			set: async () => {},
+		};
+		const result = await resolveRelayIdentity({ store });
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().code).toBe("RELAY_IDENTITY_CORRUPT");
+	});
+
+	it("deduplicates concurrent resolutions so both callers share one identity", async () => {
+		const store = createInMemoryRelayStore();
+		const setSpy = vi.spyOn(store, "set");
+		const [a, b] = await Promise.all([
+			resolveRelayIdentity({ store }),
+			resolveRelayIdentity({ store }),
+		]);
+		expect(a.isOk() && b.isOk()).toBe(true);
+		expect(a._unsafeUnwrap()).toEqual(b._unsafeUnwrap());
+		expect(setSpy).toHaveBeenCalledTimes(1);
+		expect(await store.get()).toEqual(a._unsafeUnwrap());
 	});
 });

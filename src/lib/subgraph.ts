@@ -30,7 +30,11 @@ export interface SubgraphQueryParams {
 }
 
 function isTransient(error: unknown): boolean {
-	if (error instanceof SubgraphError) return false;
+	if (error instanceof SubgraphError) {
+		if (error.code !== "HTTP_ERROR") return false;
+		const status = (error.context as { status?: number } | undefined)?.status;
+		return typeof status === "number" && status >= 500;
+	}
 	if (error instanceof DOMException && error.name === "AbortError") return true;
 	if (error instanceof TypeError) return true;
 	return false;

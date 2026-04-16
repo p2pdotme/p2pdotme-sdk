@@ -6,6 +6,19 @@ export interface RelayIdentityStore {
 }
 
 /**
+ * Thrown by a store's `get()` when the persisted payload is unreadable
+ * (e.g. malformed JSON). Recognised by `resolveRelayIdentity` and remapped
+ * to `RELAY_IDENTITY_CORRUPT` so callers can distinguish a corrupt entry
+ * from a transient store failure.
+ */
+export class RelayIdentityCorruptError extends Error {
+	constructor(cause?: unknown) {
+		super("Stored relay identity is corrupt", { cause });
+		this.name = "RelayIdentityCorruptError";
+	}
+}
+
+/**
  * Ephemeral in-process store. Lost on process restart. Used as the default
  * when the consumer doesn't supply one.
  */
@@ -33,7 +46,11 @@ export function createLocalStorageRelayStore(options: { key?: string } = {}): Re
 		async get() {
 			const raw = localStorage.getItem(key);
 			if (!raw) return null;
-			return JSON.parse(raw) as RelayIdentity;
+			try {
+				return JSON.parse(raw) as RelayIdentity;
+			} catch (cause) {
+				throw new RelayIdentityCorruptError(cause);
+			}
 		},
 		async set(identity) {
 			localStorage.setItem(key, JSON.stringify(identity));
