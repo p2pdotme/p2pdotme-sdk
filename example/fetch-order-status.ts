@@ -8,12 +8,12 @@
  */
 
 import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import { createOrders } from "@p2pdotme/sdk/orders";
 
 // ── CONFIG (edit these) ─────────────────────────────────────────────────
-const RPC_URL = "https://sepolia.base.org";
-const CHAIN = baseSepolia;
+const RPC_URL = "https://mainnet.base.org";
+const CHAIN = base;
 const DIAMOND_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const USDC_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const SUBGRAPH_URL = "https://example.com/subgraph";

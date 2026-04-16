@@ -32,9 +32,11 @@ built `dist/` via the root `package.json` self-reference.
 Each script has a clearly-marked `CONFIG` block at the top. Edit those
 constants before running. None of the scripts read environment variables.
 
-**Use a testnet.** The order scripts and `zk-verify-instagram.ts` send real
-on-chain transactions when `PRIVATE_KEY` is filled in. Point `CHAIN` at
-`baseSepolia` (or similar) before aiming at anything with real funds.
+**This runs on Base mainnet.** The order scripts and `zk-verify-instagram.ts`
+send real on-chain transactions when `PRIVATE_KEY` is filled in. Fund the
+account with real USDC + gas on Base before running. To dry-run on a
+testnet instead, swap `base` for `baseSepolia` (and the RPC URL) at the
+top of the script.
 
 ## Fraud engine (INR buy orders)
 

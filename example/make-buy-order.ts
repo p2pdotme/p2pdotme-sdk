@@ -12,7 +12,8 @@
  *   5. Send the fiat off-chain (UPI, PIX, bank transfer, …). Confirm when done.
  *   6. The merchant marks the order completed on-chain → you receive USDC.
  *
- * Edit the CONFIG block below before running. Use a testnet account.
+ * Edit the CONFIG block below before running. Use a funded account — this
+ * targets Base mainnet.
  *
  * ⚠ The fraud engine is designed for browsers — it collects device
  * fingerprints + SEON session signals from `window` / `navigator`. In a Node
@@ -26,19 +27,19 @@ import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { createPublicClient, createWalletClient, http, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import { createOrders } from "@p2pdotme/sdk/orders";
 import type { Order, OrderStatus, OrdersClient } from "@p2pdotme/sdk/orders";
 import { createFraudEngine } from "@p2pdotme/sdk/fraud-engine";
 import type { FraudEngineSigner } from "@p2pdotme/sdk/fraud-engine";
 
 // ── CONFIG (edit these) ─────────────────────────────────────────────────
-const RPC_URL = "https://sepolia.base.org";
-const CHAIN = baseSepolia;
+const RPC_URL = "https://mainnet.base.org";
+const CHAIN = base;
 const DIAMOND_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const USDC_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const SUBGRAPH_URL = "https://example.com/subgraph";
-const PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000" as const; // testnet only
+const PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000" as const; // fund this account; runs on mainnet
 const CURRENCY = "INR";
 const USDC_AMOUNT = parseUnits("1", 6);
 const FIAT_AMOUNT = parseUnits("85", 6);

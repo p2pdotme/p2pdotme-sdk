@@ -15,12 +15,13 @@
  * Peer dependency: install `@reclaimprotocol/js-sdk` in the repo root
  * (`bun add -d @reclaimprotocol/js-sdk`) before running this script.
  *
- * Edit the CONFIG block below before running. Use a testnet account.
+ * Edit the CONFIG block below before running. Use a funded account — this
+ * targets Base mainnet.
  */
 
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import {
 	createReclaimFlow,
 	createZkkyc,
@@ -34,15 +35,15 @@ const RECLAIM_APP_ID = "";
 const RECLAIM_APP_SECRET = "";
 const PLATFORM: SocialPlatform = "instagram"; // linkedin | github | x | instagram | facebook
 
-const PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000" as const; // testnet only
+const PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000" as const; // fund this account; runs on mainnet
 
 /** Set to null to stop after receiving the proof (no prepare + no submit). */
 const REPUTATION_MANAGER_ADDRESS: `0x${string}` | null = null;
 
 /** Set to true to also submit the tx. Needs REPUTATION_MANAGER_ADDRESS above. */
 const SUBMIT_TX = false;
-const RPC_URL = "https://sepolia.base.org";
-const CHAIN = baseSepolia;
+const RPC_URL = "https://mainnet.base.org";
+const CHAIN = base;
 // ────────────────────────────────────────────────────────────────────────
 
 // Tiny logging helpers
