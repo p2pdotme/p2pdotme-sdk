@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { ZodAddressSchema, ZodCurrencySchema } from "../validation";
 
+// ── Read params ─────────────────────────────────────────────────────────
+
 export const ZodGetOrderParamsSchema = z.object({
 	orderId: z.bigint().positive(),
 });
@@ -23,6 +25,52 @@ export const ZodGetOrdersParamsSchema = z.object({
 // `z.input`: `skip`/`limit` have defaults, so callers may omit them — the public
 // type must reflect that, whereas `z.infer` would mark them as required.
 export type GetOrdersParams = z.input<typeof ZodGetOrdersParamsSchema>;
+
+// ── Write params ────────────────────────────────────────────────────────
+
+export const ZodPlaceOrderParamsSchema = z.object({
+	orderType: z.number().int().min(0).max(2),
+	currency: ZodCurrencySchema,
+	user: ZodAddressSchema,
+	amount: z.bigint(),
+	fiatAmount: z.bigint(),
+	fiatAmountLimit: z.bigint().optional().default(0n),
+	recipientAddr: ZodAddressSchema,
+	preferredPaymentChannelConfigId: z.bigint().optional(),
+	pubKey: z.string().optional(),
+});
+export type PlaceOrderParams = z.input<typeof ZodPlaceOrderParamsSchema>;
+
+export const ZodCancelOrderParamsSchema = z.object({
+	orderId: z.bigint().nonnegative(),
+});
+export type CancelOrderParams = z.infer<typeof ZodCancelOrderParamsSchema>;
+
+export const ZodSetSellOrderUpiParamsSchema = z.object({
+	orderId: z.bigint().nonnegative(),
+	paymentAddress: z.string().min(1),
+	merchantPublicKey: z.string().min(1),
+	updatedAmount: z.bigint(),
+});
+export type SetSellOrderUpiParams = z.infer<typeof ZodSetSellOrderUpiParamsSchema>;
+
+export const ZodRaiseDisputeParamsSchema = z.object({
+	orderId: z.bigint().nonnegative(),
+	redactTransId: z.bigint().nonnegative(),
+});
+export type RaiseDisputeParams = z.infer<typeof ZodRaiseDisputeParamsSchema>;
+
+export const ZodApproveUsdcParamsSchema = z.object({
+	amount: z.bigint().nonnegative(),
+});
+export type ApproveUsdcParams = z.infer<typeof ZodApproveUsdcParamsSchema>;
+
+export const ZodReadUsdcAllowanceParamsSchema = z.object({
+	owner: ZodAddressSchema,
+});
+export type ReadUsdcAllowanceParams = z.infer<typeof ZodReadUsdcAllowanceParamsSchema>;
+
+// ── Subgraph response (internal) ────────────────────────────────────────
 
 const HexString = z.string().regex(/^0x[0-9a-fA-F]*$/, "Expected 0x-prefixed hex");
 

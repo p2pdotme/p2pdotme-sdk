@@ -82,4 +82,14 @@ export const orderProcessorFacetAbi = [
 		inputs: [{ name: "currency", type: "bytes32" }],
 		outputs: [{ name: "", type: "uint256" }],
 	},
+	{
+		type: "function",
+		name: "raiseDispute",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "_orderId", type: "uint256" },
+			{ name: "redactTransId", type: "uint256" },
+		],
+		outputs: [],
+	},
 ] as const;

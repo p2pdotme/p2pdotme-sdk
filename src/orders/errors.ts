@@ -1,6 +1,9 @@
 import { SdkError } from "../validation";
 
 export type OrdersErrorCode =
+	// Shared
+	| "VALIDATION_ERROR"
+	// Reads
 	| "INVALID_ORDER_ID"
 	| "INVALID_GET_ORDERS_PARAMS"
 	| "INVALID_FEE_CONFIG_PARAMS"
@@ -8,7 +11,17 @@ export type OrdersErrorCode =
 	| "CONTRACT_READ_FAILED"
 	| "SUBGRAPH_REQUEST_FAILED"
 	| "SUBGRAPH_VALIDATION_FAILED"
-	| "MALFORMED_ORDER";
+	| "MALFORMED_ORDER"
+	// Writes
+	| "CIRCLE_SELECTION_FAILED"
+	| "ENCRYPTION_FAILED"
+	| "RELAY_IDENTITY_CORRUPT"
+	| "RELAY_IDENTITY_STORE_FAILED"
+	| "ALLOWANCE_READ_FAILED"
+	| "ALLOWANCE_INSUFFICIENT"
+	| "TX_SUBMISSION_FAILED"
+	| "RECEIPT_TIMEOUT"
+	| "TX_REVERTED";
 
 export class OrdersError extends SdkError<OrdersErrorCode> {
 	constructor(

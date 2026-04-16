@@ -2,8 +2,22 @@ import { errAsync, okAsync, type ResultAsync } from "neverthrow";
 import { readFeeConfigMulticall, readOrderMulticall } from "../contracts/order-processor";
 import { noopLogger } from "../lib";
 import { validate } from "../validation";
+import {
+	type ApproveUsdcAction,
+	createApproveUsdcAction,
+	readUsdcAllowance,
+} from "./actions/approve-usdc";
+import { type CancelOrderAction, createCancelOrderAction } from "./actions/cancel-order";
+import { createPlaceOrderAction, type PlaceOrderAction } from "./actions/place-order";
+import { createRaiseDisputeAction, type RaiseDisputeAction } from "./actions/raise-dispute";
+import {
+	createSetSellOrderUpiAction,
+	type SetSellOrderUpiAction,
+} from "./actions/set-sell-order-upi";
 import { OrdersError } from "./errors";
+import { createOrderRouter } from "./internal/routing/client";
 import { normalizeContractOrder } from "./normalize";
+import { createInMemoryRelayStore } from "./relay-identity";
 import { getOrdersForUser } from "./subgraph";
 import type {
 	FeeConfig,
@@ -13,6 +27,7 @@ import type {
 	Order,
 	OrdersConfig,
 } from "./types";
+import type { ReadUsdcAllowanceParams } from "./validation";
 import {
 	ZodGetFeeConfigParamsSchema,
 	ZodGetOrderParamsSchema,
@@ -20,31 +35,56 @@ import {
 } from "./validation";
 
 export interface OrdersClient {
+	// ── Reads ───────────────────────────────────────────────────────────
+
 	/** Reads a single order by id from the Diamond contract. */
 	getOrder(params: GetOrderParams): ResultAsync<Order, OrdersError>;
+
 	/**
 	 * Lists orders created by `userAddress` from the subgraph, newest first.
 	 * Defaults: `skip = 0`, `limit = 20`. Max `limit` is 100.
 	 */
 	getOrders(params: GetOrdersParams): ResultAsync<Order[], OrdersError>;
+
 	/**
 	 * Reads the per-currency small-order fee config from the Diamond via
 	 * multicall: threshold (below which the fixed fee applies) and the fixed
 	 * fee itself. Both are 6-decimal bigints.
 	 */
 	getFeeConfig(params: GetFeeConfigParams): ResultAsync<FeeConfig, OrdersError>;
+
+	/** Reads the current USDC allowance for `owner` → Diamond. */
+	readUsdcAllowance(params: ReadUsdcAllowanceParams): ResultAsync<bigint, OrdersError>;
+
+	// ── Writes (layered prepare/execute) ────────────────────────────────
+
+	readonly placeOrder: PlaceOrderAction;
+	readonly cancelOrder: CancelOrderAction;
+	readonly setSellOrderUpi: SetSellOrderUpiAction;
+	readonly raiseDispute: RaiseDisputeAction;
+	readonly approveUsdc: ApproveUsdcAction;
 }
 
 /**
- * Creates an orders client with `getOrder` (contract multicall) and
- * `getOrders` (subgraph, paginated) backed by the given viem client and
- * subgraph URL.
+ * Creates the unified orders client — reads (getOrder, getOrders, getFeeConfig,
+ * readUsdcAllowance), circle-routing-backed writes (placeOrder, cancelOrder,
+ * setSellOrderUpi, raiseDispute, approveUsdc), and internal circle selection.
+ * The relay identity store defaults to in-memory when none is supplied.
  */
 export function createOrders(config: OrdersConfig): OrdersClient {
-	const { publicClient, diamondAddress, subgraphUrl } = config;
+	const { publicClient, diamondAddress, usdcAddress, subgraphUrl, relayIdentity } = config;
 	const logger = config.logger ?? noopLogger;
+	const relayIdentityStore = config.relayIdentityStore ?? createInMemoryRelayStore();
+
+	const orderRouter = createOrderRouter({
+		publicClient,
+		subgraphUrl,
+		contractAddress: diamondAddress,
+		logger,
+	});
 
 	return {
+		// ── Reads ─────────────────────────────────────────────────────────
 		getOrder(params) {
 			return validate(
 				ZodGetOrderParamsSchema,
@@ -123,5 +163,33 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 					return config;
 				});
 		},
+
+		readUsdcAllowance(params) {
+			return readUsdcAllowance({
+				publicClient,
+				usdcAddress,
+				diamondAddress,
+				params,
+			});
+		},
+
+		// ── Writes ────────────────────────────────────────────────────────
+		placeOrder: createPlaceOrderAction({
+			publicClient,
+			diamondAddress,
+			usdcAddress,
+			orderRouter,
+			relayIdentityStore,
+			relayIdentity,
+		}),
+		cancelOrder: createCancelOrderAction({ publicClient, diamondAddress }),
+		setSellOrderUpi: createSetSellOrderUpiAction({
+			publicClient,
+			diamondAddress,
+			relayIdentityStore,
+			relayIdentity,
+		}),
+		raiseDispute: createRaiseDisputeAction({ publicClient, diamondAddress }),
+		approveUsdc: createApproveUsdcAction({ publicClient, diamondAddress, usdcAddress }),
 	};
 }

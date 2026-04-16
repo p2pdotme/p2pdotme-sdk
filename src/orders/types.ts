@@ -1,12 +1,15 @@
-import type { Address } from "viem";
+import type { Address, TransactionReceipt, WalletClient } from "viem";
 import type { Logger } from "../lib";
 import type { PublicClientLike } from "../types";
+import type { RelayIdentity, RelayIdentityStore } from "./relay-identity";
 
 export type {
 	GetFeeConfigParams,
 	GetOrderParams,
 	GetOrdersParams,
 } from "./validation";
+
+// ── Domain types ────────────────────────────────────────────────────────
 
 export type OrderType = "buy" | "sell" | "pay";
 
@@ -57,9 +60,49 @@ export interface FeeConfig {
 	smallOrderFixedFee: bigint;
 }
 
+// ── Client config ───────────────────────────────────────────────────────
+
 export interface OrdersConfig {
-	publicClient: PublicClientLike;
-	diamondAddress: Address;
-	subgraphUrl: string;
-	logger?: Logger;
+	readonly publicClient: PublicClientLike;
+	readonly diamondAddress: Address;
+	readonly usdcAddress: Address;
+	readonly subgraphUrl: string;
+	readonly relayIdentityStore?: RelayIdentityStore;
+	readonly relayIdentity?: RelayIdentity;
+	readonly logger?: Logger;
+}
+
+// ── Tx envelope (writes) ────────────────────────────────────────────────
+
+export interface PreparedTxMeta {
+	readonly circleId?: bigint;
+	readonly relayIdentity?: RelayIdentity;
+}
+
+export interface PreparedTx {
+	readonly to: `0x${string}`;
+	readonly data: `0x${string}`;
+	readonly value: bigint;
+	readonly meta?: PreparedTxMeta;
+}
+
+export interface TxResultMeta extends PreparedTxMeta {
+	readonly approveTxHash?: `0x${string}`;
+	/**
+	 * Populated on `placeOrder.execute({ waitForReceipt: true })` — the orderId
+	 * parsed from the `OrderPlaced` event in the receipt's logs. Undefined when
+	 * `waitForReceipt` is not set (no receipt means no logs to parse).
+	 */
+	readonly orderId?: bigint;
+}
+
+export interface TxResult {
+	readonly hash: `0x${string}`;
+	readonly receipt?: TransactionReceipt;
+	readonly meta?: TxResultMeta;
+}
+
+export interface ExecuteBase {
+	readonly walletClient: WalletClient;
+	readonly waitForReceipt?: boolean;
 }
