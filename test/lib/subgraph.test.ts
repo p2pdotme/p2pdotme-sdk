@@ -47,6 +47,18 @@ describe("querySubgraph", () => {
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
 
+	it("does not retry on HTTP 404", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(jsonResponse({}, 404));
+
+		const result = await querySubgraph(URL, PARAMS);
+
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().code).toBe("HTTP_ERROR");
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
 	it("does not retry on GraphQL errors", async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
@@ -86,6 +98,46 @@ describe("querySubgraph", () => {
 		expect(result.isOk()).toBe(true);
 		expect(result._unsafeUnwrap()).toEqual({ ok: true });
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
+	it("retries on HTTP 503 and succeeds", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValueOnce(jsonResponse({}, 503))
+			.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
+
+		const result = await querySubgraph(URL, PARAMS);
+
+		expect(result.isOk()).toBe(true);
+		expect(result._unsafeUnwrap()).toEqual({ ok: true });
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
+	it("retries on HTTP 500/502/504 gateway errors", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValueOnce(jsonResponse({}, 500))
+			.mockResolvedValueOnce(jsonResponse({}, 502))
+			.mockResolvedValueOnce(jsonResponse({}, 504))
+			.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
+
+		const result = await querySubgraph(URL, PARAMS);
+
+		expect(result.isOk()).toBe(true);
+		expect(fetchSpy).toHaveBeenCalledTimes(4);
+	});
+
+	it("gives up after MAX_RETRIES persistent HTTP 500 responses", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(jsonResponse({}, 500));
+
+		const result = await querySubgraph(URL, PARAMS);
+
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().code).toBe("HTTP_ERROR");
+		// 1 initial + 3 retries = 4 total attempts
+		expect(fetchSpy).toHaveBeenCalledTimes(4);
 	});
 
 	it("retries on AbortError (timeout) and succeeds", async () => {
@@ -154,7 +206,7 @@ describe("querySubgraph", () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
 			.mockRejectedValueOnce(new TypeError("Failed to fetch"))
-			.mockResolvedValueOnce(jsonResponse({}, 500));
+			.mockResolvedValueOnce(jsonResponse({}, 400));
 
 		const result = await querySubgraph(URL, PARAMS);
 
