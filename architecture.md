@@ -16,7 +16,7 @@ High-level shape of `@p2pdotme/sdk`. For deeper per-module docs, see the READMEs
 ```
 @p2pdotme/sdk
 ├── /orders           # reads + write actions (placeOrder, cancel, setSellOrderUpi, raiseDispute, approveUsdc)
-├── /prices           # getPriceConfig, getRpPerUsdtLimitRational
+├── /prices           # getPriceConfig, getReputationPerUsdcLimit
 ├── /profile          # getUsdcBalance, getTxLimits, getBalances
 ├── /qr-parsers       # parseQR for INR/IDR/BRL/ARS/VEN
 ├── /fraud-engine     # processBuyOrder, checkBuyOrder, logFingerprint, init
@@ -62,11 +62,11 @@ src/orders/
 ├── internal/
 │   └── routing/        # Epsilon-greedy circle selection + eligibility check (not exported)
 ├── actions/
-│   ├── place-order.ts        # autoApprove + OrderPlaced event parsing
+│   ├── place-order.ts        # OrderPlaced event parsing
 │   ├── cancel-order.ts
 │   ├── set-sell-order-upi.ts # ECIES-encrypts paymentAddress for the merchant
 │   ├── raise-dispute.ts
-│   └── approve-usdc.ts       # + readUsdcAllowance export
+│   └── approve-usdc.ts
 ├── relay-identity/
 │   ├── identity.ts     # Pure createRelayIdentity()
 │   ├── stores.ts       # createInMemoryRelayStore, createLocalStorageRelayStore
@@ -86,7 +86,7 @@ Every write action on `OrdersClient` exposes two methods with matching params:
 Particular behaviors worth noting:
 
 - **`placeOrder.execute({ waitForReceipt: true })`** parses the `OrderPlaced` event out of the receipt logs and populates `meta.orderId`. Best-effort: decoding failures return the result unchanged, never an error.
-- **`placeOrder.execute({ autoApprove: true })`** on SELL/PAY reads the user's USDC allowance. If short, it submits an approve tx first (awaited to receipt), then places the order, and surfaces `meta.approveTxHash`. BUY orders skip the allowance check entirely.
+- **SELL / PAY require explicit USDC approval first** — the Diamond pulls USDC via `transferFrom`. Consumers call `orders.approveUsdc.execute({ amount })` (or check allowance via `profile.getUsdcAllowance({ owner })`) before `placeOrder`. There is no auto-approve flag; the hidden second tx made logging and error-handling ambiguous.
 - **`setSellOrderUpi.prepare`** ECIES-encrypts `paymentAddress` with the merchant's pubkey before encoding calldata. The sender relay identity used for signing is surfaced in `meta.relayIdentity`.
 
 ### Relay identity
