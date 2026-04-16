@@ -13,6 +13,8 @@ export {
 	useZkkyc,
 } from "./sdk-provider";
 
+export { useWatchOrders } from "./use-watch-orders";
+
 // ── Fraud Engine Hooks ──────────────────────────────────────────────────
 
 export { useFingerprint } from "../fraud-engine/react/use-fingerprint";

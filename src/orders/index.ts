@@ -13,6 +13,7 @@ export type {
 	ExecuteBase,
 	FeeConfig,
 	Order,
+	OrderEvent,
 	OrderStatus,
 	OrdersConfig,
 	OrderType,
@@ -30,10 +31,19 @@ export type {
 	GetFeeConfigParams,
 	GetOrderParams,
 	GetOrdersParams,
+	PaidBuyOrderParams,
 	PlaceOrderParams,
 	RaiseDisputeParams,
 	SetSellOrderUpiParams,
 } from "./validation";
+
+// ── Action types ────────────────────────────────────────────────────────
+
+export type { PaidBuyOrderAction } from "./actions/paid-buy-order";
+
+// ── Watch events ────────────────────────────────────────────────────────
+
+export type { WatchEventsParams } from "./watch-events";
 
 // ── Relay identity ──────────────────────────────────────────────────────
 
