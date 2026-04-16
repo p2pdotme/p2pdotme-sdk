@@ -8,9 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `@p2pdotme/sdk` — a multi-module TypeScript SDK for P2P.me. Published as a single package with subpath exports:
 
-- `@p2pdotme/sdk/orders` — full order surface: reads (`getOrder`, `getOrders`, `getFeeConfig`, `readUsdcAllowance`) + writes via `prepare`/`execute` pairs (`placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc`). Circle-selection routing lives inside as an internal implementation detail.
-- `@p2pdotme/sdk/prices` — currency price config reads: `getPriceConfig`, `getRpPerUsdtLimitRational`.
-- `@p2pdotme/sdk/profile` — user-scoped reads: USDC balance, tx limits, combined fiat balances.
+- `@p2pdotme/sdk/orders` — full order surface: reads (`getOrder`, `getOrders`, `getFeeConfig`) + writes via `prepare`/`execute` pairs (`placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc`). Circle-selection routing lives inside as an internal implementation detail.
+- `@p2pdotme/sdk/prices` — currency price config reads: `getPriceConfig`, `getReputationPerUsdcLimit`.
+- `@p2pdotme/sdk/profile` — user-scoped reads: USDC balance, USDC allowance, tx limits, combined fiat balances.
 - `@p2pdotme/sdk/react` — unified React provider (`SdkProvider`) + hooks (`useOrders`, `usePrices`, `useProfile`, `useZkkyc`, `useFraudEngine`, `useSdk`).
 - `@p2pdotme/sdk/qr-parsers` — QR code parsers for payment networks (UPI, PIX, QRIS, MercadoPago, Pago Móvil).
 - `@p2pdotme/sdk/fraud-engine` — fraud detection, device fingerprinting (FingerprintJS), SEON session signals, encrypted activity logging.
@@ -53,7 +53,7 @@ src/
 │   ├── abis/               # ABI fragments (order-flow, order-processor, p2p-config, reputation-manager)
 │   ├── order-flow/         # checkCircleEligibility
 │   ├── order-processor/    # readOrderMulticall, readFeeConfigMulticall
-│   ├── p2p-config/         # getPriceConfig, getRpPerUsdtLimitRational
+│   ├── p2p-config/         # getPriceConfig, getReputationPerUsdcLimit
 │   ├── tx-limits/          # getTxLimits
 │   ├── usdc/               # getUsdcBalance
 │   └── reputation-manager/
@@ -95,7 +95,7 @@ Each top-level module is a separate tsup entry point producing its own `.mjs`, `
 - **`ResultAsync<T, Error>` everywhere** — no thrown exceptions in the public API. QR parsers return sync `Result`.
 - **Wallet-agnostic reads, optional walletClient for writes** — every write action has `prepare(params)` (pure — no wallet) and `execute({ walletClient, waitForReceipt?, ...params })` (signs + submits). Consumers pick the layer.
 - **`placeOrder.execute` receipt parsing** — with `waitForReceipt: true`, the `OrderPlaced` event is parsed out of the receipt logs and `meta.orderId` is populated. Best-effort: never an error mode.
-- **`autoApprove` on SELL/PAY** — when true, `placeOrder.execute` reads the USDC allowance; if short, submits an approve tx first (and awaits its receipt), then submits placeOrder. Surfaces `meta.approveTxHash`.
+- **No auto-approve on SELL/PAY** — the SDK never submits a hidden approve tx. Consumers explicitly call `orders.approveUsdc.execute({ amount })` (or pre-flight via `profile.getUsdcAllowance({ owner })`) before `placeOrder`. Keeps logging, fees, and error paths unambiguous.
 - **Storage-agnostic relay identity** — `createRelayIdentity()` is pure. Persistence goes through a pluggable `RelayIdentityStore` adapter (`createInMemoryRelayStore` default, `createLocalStorageRelayStore` shipped opt-in).
 - **Centralized contracts** — every ABI + read function lives in `src/contracts/`, organized by facet. Modules never duplicate ABIs.
 - **Zod v4 validation at boundaries** — every public function validates inputs via `validate()` which returns a `Result`.
@@ -151,8 +151,8 @@ SEON and FingerprintJS are direct deps — the SDK owns their lifecycle. Browser
 - **`prepareZkPassportRegister()`** — encodes calldata for ZK Passport registration.
 
 **UX flow orchestrators** (return proof data before tx preparation):
-- **`createReclaimFlow(config, options)`** — Reclaim social verification flow. Requires `@reclaimprotocol/js-sdk` peer dep.
-- **`createZkPassportFlow(config, options)`** — ZKPassport verification flow. Requires `@zkpassport/sdk` peer dep. `config.domain` is **required** — no default, to prevent impersonation.
+- **`createReclaimFlow(params)`** — Reclaim social verification flow. Single-object params (app config + per-call options merged). Requires `@reclaimprotocol/js-sdk` peer dep.
+- **`createZkPassportFlow(params)`** — ZKPassport verification flow. Single-object params. Requires `@zkpassport/sdk` peer dep. `params.domain` is **required** — no default, to prevent impersonation.
 
 ## Git hooks
 

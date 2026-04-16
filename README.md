@@ -25,9 +25,9 @@ bun add @zkpassport/sdk                  # only for zkkyc ZK Passport flow
 | Import | Description |
 |--------|-------------|
 | `@p2pdotme/sdk` | Shared types, `SdkError`, `VERSION` |
-| `@p2pdotme/sdk/orders` | [Order reads + writes](./src/orders/README.md) — `getOrder`, `getOrders`, `getFeeConfig`, `readUsdcAllowance`, and `prepare`/`execute` pairs for `placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc` |
-| `@p2pdotme/sdk/prices` | [Currency price config](./src/prices/README.md) — `getPriceConfig`, `getRpPerUsdtLimitRational` |
-| `@p2pdotme/sdk/profile` | [User-scoped reads](./src/profile/README.md) — USDC balance, fiat conversion, tx limits |
+| `@p2pdotme/sdk/orders` | [Order reads + writes](./src/orders/README.md) — `getOrder`, `getOrders`, `getFeeConfig`, and `prepare`/`execute` pairs for `placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc` |
+| `@p2pdotme/sdk/prices` | [Currency price config](./src/prices/README.md) — `getPriceConfig`, `getReputationPerUsdcLimit` |
+| `@p2pdotme/sdk/profile` | [User-scoped reads](./src/profile/README.md) — USDC balance, USDC allowance, fiat conversion, tx limits |
 | `@p2pdotme/sdk/qr-parsers` | [QR code parsers](./src/qr-parsers/README.md) for UPI, QRIS, PIX, MercadoPago, Pago Movil |
 | `@p2pdotme/sdk/fraud-engine` | [Fraud detection](./src/fraud-engine/README.md), device fingerprinting, SEON integration |
 | `@p2pdotme/sdk/zkkyc` | [ZK KYC](./src/zkkyc/README.md) — Reclaim, Anon Aadhaar, ZK Passport |
@@ -96,7 +96,7 @@ function BuyFlow() {
 }
 ```
 
-SELL and PAY follow the same shape — pass `autoApprove: true` so the SDK approves USDC on your behalf when the allowance is short. After the order is accepted, call `orders.setSellOrderUpi.execute({...})` to hand off the (ECIES-encrypted) payment destination to the merchant.
+SELL and PAY follow the same shape, but the Diamond pulls USDC via `transferFrom`, so you must approve first — call `orders.approveUsdc.execute({ amount })` (pre-flight the current allowance with `profile.getUsdcAllowance({ owner })` if you want to skip redundant approvals). After the order is accepted, call `orders.setSellOrderUpi.execute({...})` to hand off the (ECIES-encrypted) payment destination to the merchant.
 
 See [example/](./example/) for runnable walkthroughs of each flow.
 
