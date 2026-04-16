@@ -4,6 +4,7 @@ import { noopLogger } from "../lib";
 import { validate } from "../validation";
 import { type ApproveUsdcAction, createApproveUsdcAction } from "./actions/approve-usdc";
 import { type CancelOrderAction, createCancelOrderAction } from "./actions/cancel-order";
+import { createPaidBuyOrderAction, type PaidBuyOrderAction } from "./actions/paid-buy-order";
 import { createPlaceOrderAction, type PlaceOrderAction } from "./actions/place-order";
 import { createRaiseDisputeAction, type RaiseDisputeAction } from "./actions/raise-dispute";
 import {
@@ -28,6 +29,7 @@ import {
 	ZodGetOrderParamsSchema,
 	ZodGetOrdersParamsSchema,
 } from "./validation";
+import { createWatchEvents, type WatchEvents } from "./watch-events";
 
 export interface OrdersClient {
 	// ── Reads ───────────────────────────────────────────────────────────
@@ -55,6 +57,8 @@ export interface OrdersClient {
 	readonly setSellOrderUpi: SetSellOrderUpiAction;
 	readonly raiseDispute: RaiseDisputeAction;
 	readonly approveUsdc: ApproveUsdcAction;
+	readonly paidBuyOrder: PaidBuyOrderAction;
+	watchEvents: WatchEvents;
 }
 
 /**
@@ -176,5 +180,7 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 		}),
 		raiseDispute: createRaiseDisputeAction({ publicClient, diamondAddress }),
 		approveUsdc: createApproveUsdcAction({ publicClient, diamondAddress, usdcAddress }),
+		paidBuyOrder: createPaidBuyOrderAction({ publicClient, diamondAddress }),
+		watchEvents: createWatchEvents({ publicClient, diamondAddress }),
 	};
 }

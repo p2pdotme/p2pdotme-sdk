@@ -19,7 +19,8 @@ export type OrdersErrorCode =
 	| "RELAY_IDENTITY_STORE_FAILED"
 	| "TX_SUBMISSION_FAILED"
 	| "RECEIPT_TIMEOUT"
-	| "TX_REVERTED";
+	| "TX_REVERTED"
+	| "EVENT_WATCH_FAILED";
 
 export class OrdersError extends SdkError<OrdersErrorCode> {
 	constructor(
