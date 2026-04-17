@@ -13,6 +13,38 @@ import {
 	encryptWithPublicKey,
 } from "./ecies";
 
+/**
+ * Older merchant-app builds encrypted payment addresses with eth-crypto and
+ * stored the raw `Encrypted` shape as `JSON.stringify(...)` instead of the
+ * SDK's compact hex format. We detect that on read so on-chain `encUpi`
+ * payloads from those builds remain decryptable.
+ */
+function tryParseLegacyEthCryptoEnvelope(input: string): Encrypted | undefined {
+	if (input.charCodeAt(0) !== 0x7b /* "{" */) return undefined;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(input);
+	} catch {
+		return undefined;
+	}
+	if (!parsed || typeof parsed !== "object") return undefined;
+	const o = parsed as Record<string, unknown>;
+	if (
+		typeof o.iv !== "string" ||
+		typeof o.ephemPublicKey !== "string" ||
+		typeof o.ciphertext !== "string" ||
+		typeof o.mac !== "string"
+	) {
+		return undefined;
+	}
+	return {
+		iv: o.iv,
+		ephemPublicKey: o.ephemPublicKey,
+		ciphertext: o.ciphertext,
+		mac: o.mac,
+	};
+}
+
 export interface EncryptPaymentAddressInput {
 	readonly paymentAddress: string;
 	readonly recipientPublicKey: string;
@@ -81,6 +113,8 @@ export function decryptPaymentAddress(
 	input: DecryptPaymentAddressInput,
 ): ResultAsync<string, OrdersError> {
 	return safeTry<string, OrdersError>(async function* () {
+		const legacyEnvelope = tryParseLegacyEthCryptoEnvelope(input.encrypted);
+
 		const safeCipherParse = Result.fromThrowable(
 			(s: string) => cipherParse(s),
 			(cause) =>
@@ -90,7 +124,7 @@ export function decryptPaymentAddress(
 				}),
 		);
 
-		const encryptedData = yield* safeCipherParse(input.encrypted);
+		const encryptedData = legacyEnvelope ?? (yield* safeCipherParse(input.encrypted));
 
 		const plaintext = yield* ResultAsync.fromPromise(
 			decryptWithPrivateKey(input.recipientIdentity.privateKey, encryptedData),
@@ -100,6 +134,12 @@ export function decryptPaymentAddress(
 					cause,
 				}),
 		);
+
+		// Legacy eth-crypto path: the merchant app encrypted the raw payment
+		// address string (no signature envelope). Return plaintext directly.
+		if (legacyEnvelope) {
+			return ok(plaintext);
+		}
 
 		const safeJsonParse = Result.fromThrowable(
 			(s: string) => JSON.parse(s) as unknown,
