@@ -1,6 +1,6 @@
 {
   "name": "@p2pdotme/sdk",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "P2P.me SDK",
   "license": "MIT",
   "type": "module",
@@ -14,10 +14,10 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
-    "./order-routing": {
-      "types": "./dist/order-routing.d.ts",
-      "import": "./dist/order-routing.mjs",
-      "require": "./dist/order-routing.cjs"
+    "./orders": {
+      "types": "./dist/orders.d.ts",
+      "import": "./dist/orders.mjs",
+      "require": "./dist/orders.cjs"
     },
     "./react": {
       "types": "./dist/react.d.ts",
@@ -34,15 +34,15 @@
       "import": "./dist/fraud-engine.mjs",
       "require": "./dist/fraud-engine.cjs"
     },
-    "./payload": {
-      "types": "./dist/payload.d.ts",
-      "import": "./dist/payload.mjs",
-      "require": "./dist/payload.cjs"
-    },
     "./profile": {
       "types": "./dist/profile.d.ts",
       "import": "./dist/profile.mjs",
       "require": "./dist/profile.cjs"
+    },
+    "./prices": {
+      "types": "./dist/prices.d.ts",
+      "import": "./dist/prices.mjs",
+      "require": "./dist/prices.cjs"
     },
     "./country": {
       "types": "./dist/country.d.ts",
@@ -58,12 +58,12 @@
   "typesVersions": {
     "*": {
       ".": ["./dist/index.d.ts"],
-      "order-routing": ["./dist/order-routing.d.ts"],
+      "orders": ["./dist/orders.d.ts"],
       "react": ["./dist/react.d.ts"],
       "qr-parsers": ["./dist/qr-parsers.d.ts"],
       "fraud-engine": ["./dist/fraud-engine.d.ts"],
-      "payload": ["./dist/payload.d.ts"],
       "profile": ["./dist/profile.d.ts"],
+      "prices": ["./dist/prices.d.ts"],
       "country": ["./dist/country.d.ts"],
       "zkkyc": ["./dist/zkkyc.d.ts"]
     }

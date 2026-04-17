@@ -2,7 +2,7 @@ export { QRParserError, type QRParserErrorCode } from "./errors";
 export { parseQR } from "./parse-qr";
 export type {
 	ParsedQR,
-	ParseQRConfig,
+	ParseQRParams,
 	ParseResult,
 	SupportedCurrency,
 } from "./types";

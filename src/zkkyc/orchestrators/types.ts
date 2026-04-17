@@ -18,13 +18,18 @@ export const SOCIAL_PLATFORM_NAMES: Record<SocialPlatform, string> = {
 
 // ── Reclaim (Social Verification) ────────────────────────────────────────────
 
-export interface ReclaimConfig {
+/**
+ * Single-object params for `createReclaimFlow`. Merges the app-level config
+ * (appId, appSecret, providerIds) with the per-call options (platform,
+ * walletAddress, callbacks, …) into one argument.
+ */
+export interface ReclaimFlowParams {
+	// ── App-level config ──────────────────────────────────────────────
 	readonly appId: string;
 	readonly appSecret: string;
 	readonly providerIds: Record<SocialPlatform, string>;
-}
 
-export interface ReclaimFlowOptions {
+	// ── Per-call options ──────────────────────────────────────────────
 	readonly platform: SocialPlatform;
 	readonly walletAddress: Address;
 	/** Base URL for redirect after Reclaim flow. SDK appends ?sessionId={id}&socialPlatform={Name}. */
@@ -61,7 +66,12 @@ export interface ReclaimProofResult {
 
 // ── ZK Passport ──────────────────────────────────────────────────────────────
 
-export interface ZkPassportConfig {
+/**
+ * Single-object params for `createZkPassportFlow`. Merges app-level config
+ * (domain, name, logo, purpose) with per-call options (walletAddress, onStatus).
+ */
+export interface ZkPassportFlowParams {
+	// ── App-level config ──────────────────────────────────────────────
 	/** Domain for ZKPassport initialization (e.g. "app.yourproject.com"). Required — no default is provided to avoid impersonating another app. */
 	readonly domain: string;
 	/** App name shown in ZKPassport UI. Defaults to "ZKPassport". */
@@ -70,9 +80,8 @@ export interface ZkPassportConfig {
 	readonly logo?: string;
 	/** Purpose text shown in ZKPassport UI. Defaults to "Prove your personhood". */
 	readonly purpose?: string;
-}
 
-export interface ZkPassportFlowOptions {
+	// ── Per-call options ──────────────────────────────────────────────
 	readonly walletAddress: Address;
 	/** Called with status updates during the flow. */
 	readonly onStatus?: (status: ZkPassportStatus) => void;

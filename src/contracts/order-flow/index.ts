@@ -1,9 +1,9 @@
 import { ResultAsync } from "neverthrow";
 import type { Address } from "viem";
 import { noopLogger } from "../../lib";
-import { OrderRoutingError } from "../../order-routing/errors";
-import type { CheckCircleEligibilityParams, Logger } from "../../order-routing/types";
-import { ZodCheckCircleEligibilityParamsSchema } from "../../order-routing/validation";
+import { OrderRoutingError } from "../../orders/internal/routing/errors";
+import type { CheckCircleEligibilityParams, Logger } from "../../orders/internal/routing/types";
+import { ZodCheckCircleEligibilityParamsSchema } from "../../orders/internal/routing/validation";
 import type { PublicClientLike } from "../../types";
 import { validate } from "../../validation";
 import { ABIS } from "../abis";
