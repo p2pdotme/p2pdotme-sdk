@@ -1,13 +1,13 @@
 import { err, ok, type Result } from "neverthrow";
 import { isAddress } from "viem";
 import { z } from "zod";
-import { CURRENCY } from "../constants";
+import { CURRENCY_CODES } from "../country/currency";
 
 export const ZodAddressSchema = z
 	.string()
 	.refine((s) => isAddress(s), { message: "Invalid Ethereum address" });
 
-export const ZodCurrencySchema = z.enum(Object.values(CURRENCY) as [string, ...string[]]);
+export const ZodCurrencySchema = z.enum(CURRENCY_CODES);
 
 export function validate<S extends z.ZodType, E>(
 	schema: S,
