@@ -1,8 +1,8 @@
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef } from "react";
 import { createFraudEngine } from "../fraud-engine/client";
 import type { FraudEngine } from "../fraud-engine/types";
-import { createOrderRouter } from "../order-routing/client";
-import { createPayloadGenerator } from "../payload/client";
+import { createOrders } from "../orders";
+import { createPrices } from "../prices/client";
 import { createProfile } from "../profile/client";
 import { createZkkyc } from "../zkkyc/client";
 import type { Sdk, SdkConfig } from "./types";
@@ -10,7 +10,7 @@ import type { Sdk, SdkConfig } from "./types";
 const SdkContext = createContext<Sdk | null>(null);
 
 /**
- * Provides Profile, OrderRouter, PayloadGenerator, Zkkyc, and FraudEngine instances to all children.
+ * Provides Profile, Orders, Zkkyc, and FraudEngine instances to all children.
  *
  * Object props (`publicClient`, `logger`) are captured on mount and do **not** trigger
  * re-instantiation on subsequent renders. To swap them (e.g. switching chains), remount
@@ -54,22 +54,29 @@ export function SdkProvider({ children, ...config }: SdkConfig & { readonly chil
 		fraudEngine.init();
 	}, [fraudEngine]);
 
-	const sdk = useMemo<Sdk>(() => {
-		const orderRouter = createOrderRouter({
-			publicClient,
-			subgraphUrl: config.subgraphUrl,
-			contractAddress: config.diamondAddress,
-			logger,
-		});
+	const relayIdentityStore = config.orders?.relayIdentityStore;
+	const relayIdentity = config.orders?.relayIdentity;
 
+	const sdk = useMemo<Sdk>(() => {
 		return {
 			profile: createProfile({
 				publicClient,
 				diamondAddress: config.diamondAddress,
 				usdcAddress: config.usdcAddress,
 			}),
-			orderRouter,
-			payload: createPayloadGenerator({ orderRouter }),
+			prices: createPrices({
+				publicClient,
+				diamondAddress: config.diamondAddress,
+			}),
+			orders: createOrders({
+				publicClient,
+				diamondAddress: config.diamondAddress,
+				usdcAddress: config.usdcAddress,
+				subgraphUrl: config.subgraphUrl,
+				relayIdentityStore,
+				relayIdentity,
+				logger,
+			}),
 			zkkyc: config.reputationManagerAddress
 				? createZkkyc({
 						reputationManagerAddress: config.reputationManagerAddress,
@@ -83,6 +90,8 @@ export function SdkProvider({ children, ...config }: SdkConfig & { readonly chil
 		config.diamondAddress,
 		config.usdcAddress,
 		config.reputationManagerAddress,
+		relayIdentityStore,
+		relayIdentity,
 		logger,
 		fraudEngine,
 	]);
@@ -104,14 +113,14 @@ export function useProfile() {
 	return useSdk().profile;
 }
 
-/** Returns the OrderRouter instance from the nearest SdkProvider. */
-export function useOrderRouter() {
-	return useSdk().orderRouter;
+/** Returns the Prices instance from the nearest SdkProvider. */
+export function usePrices() {
+	return useSdk().prices;
 }
 
-/** Returns the PayloadGenerator instance from the nearest SdkProvider. */
-export function usePayloadGenerator() {
-	return useSdk().payload;
+/** Returns the Orders instance from the nearest SdkProvider. */
+export function useOrders() {
+	return useSdk().orders;
 }
 
 /** Returns the Zkkyc instance from the nearest SdkProvider. */

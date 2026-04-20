@@ -18,13 +18,11 @@ export {
 } from "./orchestrators/constants";
 export { createReclaimFlow } from "./orchestrators/reclaim";
 export type {
-	ReclaimConfig,
-	ReclaimFlowOptions,
+	ReclaimFlowParams,
 	ReclaimProofResult,
 	ReclaimStatus,
 	SocialPlatform,
-	ZkPassportConfig,
-	ZkPassportFlowOptions,
+	ZkPassportFlowParams,
 	ZkPassportProofResult,
 	ZkPassportSession,
 	ZkPassportStatus,

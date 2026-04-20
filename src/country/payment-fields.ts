@@ -1,4 +1,4 @@
-import type { CurrencyType } from "../types";
+import type { CurrencyCode } from "../types";
 import {
 	ARS_PAYMENT_FIELDS,
 	BRL_PAYMENT_FIELDS,
@@ -14,7 +14,7 @@ import {
 import type { PaymentIdFieldConfig } from "./types";
 
 /** Payment ID field configuration for each supported currency. */
-export const PAYMENT_ID_FIELDS: Record<CurrencyType, PaymentIdFieldConfig[]> = {
+export const PAYMENT_ID_FIELDS: Record<CurrencyCode, PaymentIdFieldConfig[]> = {
 	INR: INR_PAYMENT_FIELDS,
 	IDR: IDR_PAYMENT_FIELDS,
 	BRL: BRL_PAYMENT_FIELDS,

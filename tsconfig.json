@@ -20,6 +20,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src", "test"],
+  "include": ["src", "test", "example"],
   "exclude": ["node_modules", "dist"]
 }
