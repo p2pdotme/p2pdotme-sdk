@@ -36,9 +36,6 @@ const USDC_AMOUNT = parseUnits("1", 6);
 const FIAT_AMOUNT = parseUnits("85", 6);
 const FIAT_AMOUNT_LIMIT = 0n;
 const POLL_INTERVAL_MS = 2000;
-/** Merchant's ECIES pubkey (128 hex chars, no 0x04 prefix). Fetch out-of-band. */
-const MERCHANT_PUBLIC_KEY =
-	"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 /** Payee's plaintext destination to encrypt for the merchant. */
 const PAYEE_ADDRESS = "payee@upi";
 // ────────────────────────────────────────────────────────────────────────
@@ -150,6 +147,11 @@ async function main(): Promise<void> {
 	console.log();
 	kv("Merchant", accepted.acceptedMerchant);
 	kv("Accepted at", new Date(Number(accepted.acceptedAt) * 1000).toISOString());
+	if (!accepted.pubkey) {
+		console.error("   ✖ merchant pubkey missing from accepted order — aborting");
+		process.exit(1);
+	}
+	kv("Merchant pubkey", `${accepted.pubkey.slice(0, 16)}…`);
 
 	// ── 5. Send encrypted payee destination ───────────────────────────
 	step(5, "Send encrypted payee destination to merchant (setSellOrderUpi)");
@@ -159,7 +161,7 @@ async function main(): Promise<void> {
 		waitForReceipt: true,
 		orderId,
 		paymentAddress: PAYEE_ADDRESS,
-		merchantPublicKey: MERCHANT_PUBLIC_KEY,
+		merchantPublicKey: accepted.pubkey,
 		updatedAmount: 0n,
 	});
 	if (set.isErr()) {
