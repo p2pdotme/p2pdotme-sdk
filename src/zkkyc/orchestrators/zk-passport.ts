@@ -1,16 +1,10 @@
 import { ResultAsync } from "neverthrow";
 import { ZkkycError } from "../errors";
-import type {
-	ZkPassportConfig,
-	ZkPassportFlowOptions,
-	ZkPassportProofResult,
-	ZkPassportSession,
-} from "./types";
+import type { ZkPassportFlowParams, ZkPassportProofResult, ZkPassportSession } from "./types";
 
 /** Initializes a ZK Passport verification flow and returns a session. */
 export function createZkPassportFlow(
-	config: ZkPassportConfig,
-	options: ZkPassportFlowOptions,
+	params: ZkPassportFlowParams,
 ): ResultAsync<ZkPassportSession, ZkkycError> {
 	return ResultAsync.fromPromise(
 		(async () => {
@@ -23,12 +17,12 @@ export function createZkPassportFlow(
 			});
 			const { ZKPassport } = mod;
 
-			const zkPassport = new ZKPassport(config.domain);
+			const zkPassport = new ZKPassport(params.domain);
 
 			const queryBuilder = await zkPassport.request({
-				name: config.name ?? "ZKPassport",
-				logo: config.logo,
-				purpose: config.purpose ?? "Prove your personhood",
+				name: params.name ?? "ZKPassport",
+				logo: params.logo,
+				purpose: params.purpose ?? "Prove your personhood",
 				scope: "personhood",
 				mode: "compressed-evm",
 			});
@@ -45,10 +39,10 @@ export function createZkPassportFlow(
 				.gte("age", 18)
 				.disclose("document_type")
 				.disclose("nationality")
-				.bind("user_address", options.walletAddress)
+				.bind("user_address", params.walletAddress)
 				.done();
 
-			options.onStatus?.({ type: "request_created", url });
+			params.onStatus?.({ type: "request_created", url });
 
 			let aborted = false;
 
@@ -57,17 +51,17 @@ export function createZkPassportFlow(
 
 				onRequestReceived(() => {
 					if (aborted) return;
-					options.onStatus?.({ type: "request_received" });
+					params.onStatus?.({ type: "request_received" });
 				});
 
 				onGeneratingProof(() => {
 					if (aborted) return;
-					options.onStatus?.({ type: "generating_proof" });
+					params.onStatus?.({ type: "generating_proof" });
 				});
 
 				onProofGenerated(async (result: unknown) => {
 					if (aborted) return;
-					options.onStatus?.({ type: "proof_generated" });
+					params.onStatus?.({ type: "proof_generated" });
 					proof = result;
 				});
 
@@ -82,7 +76,7 @@ export function createZkPassportFlow(
 						verified: boolean;
 					}) => {
 						if (aborted) return;
-						options.onStatus?.({ type: "result_received" });
+						params.onStatus?.({ type: "result_received" });
 
 						if (!verified || !proof || !uniqueIdentifier) {
 							reject(
@@ -115,7 +109,7 @@ export function createZkPassportFlow(
 				);
 
 				onReject(() => {
-					options.onStatus?.({ type: "rejected" });
+					params.onStatus?.({ type: "rejected" });
 					reject(
 						new ZkkycError("User rejected ZK Passport verification", {
 							code: "ZK_PASSPORT_REJECTED",

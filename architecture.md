@@ -1,169 +1,134 @@
-# Order Routing SDK
+# Architecture
 
-# `@p2pdotme/core/order-routing` SDK
+High-level shape of `@p2pdotme/sdk`. For deeper per-module docs, see the READMEs under `src/*/`. For contributor/LLM guidance, see [`CLAUDE.md`](./CLAUDE.md).
 
-## 1. What We're Building
+## Principles
 
-A standalone TypeScript SDK that encapsulates the **full order routing flow**: fetching circles from subgraph, selecting the best circle and validating on-chain eligibility. Framework-agnostic core with React bindings. Wallet-agnostic (consumers bring their own viem client).
+1. **Framework-agnostic core, optional React layer.** The main API is pure factory functions (`createOrders`, `createPrices`, `createProfile`, etc.) that return plain objects. `@p2pdotme/sdk/react` is a thin `<SdkProvider>` + hooks layer on top — never a dependency of the core.
+2. **Wallet-agnostic reads, optional walletClient for writes.** Every public function takes viem's `PublicClient`-shaped `readContract`. Write actions (only in `orders`) take an optional `WalletClient` on the `execute()` variant; `prepare()` stays wallet-free and returns a ready-to-send `{ to, data, value }` tx request.
+3. **No thrown exceptions in the public API.** All methods return `Result` / `ResultAsync` via [neverthrow](https://github.com/supermacro/neverthrow). QR parsers return sync `Result`; everything else returns `ResultAsync`.
+4. **Centralized contract layer.** Every ABI fragment and raw read helper lives in `src/contracts/`, keyed by facet. Feature modules never re-declare ABIs or duplicate read logic.
+5. **Zod v4 at boundaries.** Every public function validates its params through `validate()`. Param types are inferred from the schemas (`z.infer` or `z.input`), not hand-duplicated.
+6. **No environment variable reads.** All config is passed through factory functions — this is documented in the module READMEs.
 
----
-
-## 2. Architecture
+## Public surface
 
 ```
-@p2pdotme/order-routing
-├── core/                     # Framework-agnostic, zero React dependency
-│   ├── client.ts             # OrderRoutingClient — main entry point
-│   ├── routing.ts            # Epsilon-greedy selection algorithm
-│   ├── subgraph/             # Circle data fetching
-│   │   ├── client.ts         # GraphQL client (fetch-based)
-│   │   └── queries.ts        # CirclesForRouting query
-│   ├── contracts/            # On-chain interactions (viem-based)
-│   │   ├── abis.ts           # Circle & OrderFlow ABIs
-│   │   └── actions.ts        # checkEligibility (on-chain read)
-│   ├── validation.ts         # Zod schemas for all params
-│   ├── types.ts              # All public types
-│   └── errors.ts             # SDK error types
-├── react/                    # React bindings (optional import)
-│   ├── provider.tsx          # <OrderRoutingProvider config={...}>
-│   ├── use-order-routing.ts  # useOrderRouting() hook
-│   └── index.ts
-└── index.ts                  # Public API re-exports
+@p2pdotme/sdk
+├── /orders           # reads + write actions (placeOrder, cancel, setSellOrderUpi, raiseDispute, approveUsdc)
+├── /prices           # getPriceConfig, getReputationPerUsdcLimit
+├── /profile          # getUsdcBalance, getTxLimits, getBalances
+├── /qr-parsers       # parseQR for INR/IDR/BRL/ARS/VEN
+├── /fraud-engine     # processBuyOrder, checkBuyOrder, logFingerprint, init
+├── /zkkyc            # createZkkyc (tx calldata) + createReclaimFlow + createZkPassportFlow
+├── /country          # COUNTRY_OPTIONS, PAYMENT_ID_FIELDS, per-currency validators
+└── /react            # <SdkProvider> + useOrders/usePrices/useProfile/useZkkyc/useFraudEngine
 ```
 
----
+Internal (not exported): circle-selection routing (inside `orders/internal/routing/`), shared `lib/` helpers, shared constants.
 
-## 3. Key Design Decisions
+## Module layout
 
-| Decision | Rationale |
-| --- | --- |
-| **viem as the chain abstraction** | Already used internally. Consumers pass a `PublicClient` for reads (eligibility checks). Works with ethers via viem adapters, wagmi natively, thirdweb via its viem compatibility. |
-| **Subgraph built-in** | SDK owns the GraphQL query and fetch. Consumer only provides the subgraph URL. |
-| **neverthrow for Result types** | Matches current codebase. All SDK methods return `ResultAsync<T, OrderRoutingError>`. |
-
----
-
-## 4. Public API Surface
-
-### Core (vanilla TS)
-
-```tsx
-// Initialize 
-const router = createOrderRouter({
-  subgraphUrl: "https://...",
-  publicClient: viemPublicClient,      // for reads (eligibility check)
-  contractAddress: "0x...",            // Diamond contract
-});
-
-// Full flow: fetch circles → select → validate → return circleId
-const result = await router.selectCircle({
-  currency: "INR",
-  user: "0x...",
-  usdtAmount: 100n,
-  fiatAmount: 8300n,
-  orderType: 1n,
-  preferredPCConfigId: 0n,
-});
-// Result<bigint, OrderRoutingError>
-// Use the circleId in user-app-spa for placeOrder, assignMerchants, etc.
+```
+src/
+├── types/              # PublicClientLike (shared across modules)
+├── constants/          # CURRENCY, ORDER_TYPE, ORDER_STATUS (internal only)
+├── lib/                # encoding, logger, sleep, subgraph client (internal only)
+├── contracts/          # Centralized ABIs + read helpers by facet
+├── validation/         # SdkError + shared Zod schemas
+├── orders/             # reads + writes + routing (internal) + ECIES + relay identity
+├── prices/             # currency price config reads
+├── profile/            # user-scoped reads
+├── qr-parsers/
+├── fraud-engine/
+├── zkkyc/
+├── country/
+└── react/
 ```
 
-### React Bindings
+## `orders` in detail
 
-```tsx
-import { OrderRoutingProvider, useOrderRouting } from "@p2pdotme/order-routing/react";
+Because orders owns both the read and the write side, it's the largest module and deserves a closer look:
 
-// App.tsx
-<OrderRoutingProvider config={{ subgraphUrl, publicClient, contractAddress }}>
-  <OrderPage />
-</OrderRoutingProvider>
-
-// OrderPage.tsx
-const { selectCircle } = useOrderRouting();
+```
+src/orders/
+├── client.ts           # createOrders() — composes everything into OrdersClient
+├── types.ts            # Order, OrderStatus, OrdersConfig, PreparedTx, TxResult, ExecuteBase
+├── validation.ts       # Zod schemas for every read + write param shape
+├── errors.ts           # Unified OrdersError with read + write code union
+├── normalize.ts        # contract & subgraph → public Order shape
+├── tx.ts               # submitPreparedTx (walletClient.sendTransaction + optional receipt wait)
+├── subgraph/           # OrdersForUser GraphQL query
+├── internal/
+│   └── routing/        # Epsilon-greedy circle selection + eligibility check (not exported)
+├── actions/
+│   ├── place-order.ts        # OrderPlaced event parsing
+│   ├── cancel-order.ts
+│   ├── set-sell-order-upi.ts # ECIES-encrypts paymentAddress for the merchant
+│   ├── raise-dispute.ts
+│   └── approve-usdc.ts
+├── relay-identity/
+│   ├── identity.ts     # Pure createRelayIdentity()
+│   ├── stores.ts       # createInMemoryRelayStore, createLocalStorageRelayStore
+│   └── resolve.ts      # config > store > generate+persist (surfaces RELAY_IDENTITY_CORRUPT, etc.)
+└── crypto/
+    ├── ecies.ts        # ECIES encrypt/decrypt via @noble/*
+    └── encryption.ts   # encryptPaymentAddress / decryptPaymentAddress
 ```
 
----
+### Layered writes
 
-## 5. What Stays in `user-app-spa`
+Every write action on `OrdersClient` exposes two methods with matching params:
 
-- Thirdweb-specific adapter layer (wallet signing, tx submission)
-- `placeOrder`, `assignMerchants` contract interactions (use circleId from SDK)
-- All non-order-routing contract interactions
+- **`prepare(params)`** → `ResultAsync<PreparedTx, OrdersError>` where `PreparedTx = { to, data, value, meta? }`. Pure — no wallet. Use for gasless relayers, multisigs, server-side signing, or any non-viem wallet flow.
+- **`execute({ walletClient, waitForReceipt?, ...params })`** → `ResultAsync<TxResult, OrdersError>` where `TxResult = { hash, receipt?, meta? }`. `prepare()` + `walletClient.sendTransaction` + optional `waitForTransactionReceipt`.
 
----
+Particular behaviors worth noting:
 
-## 6. Dependencies
+- **`placeOrder.execute({ waitForReceipt: true })`** parses the `OrderPlaced` event out of the receipt logs and populates `meta.orderId`. Best-effort: decoding failures return the result unchanged, never an error.
+- **SELL / PAY require explicit USDC approval first** — the Diamond pulls USDC via `transferFrom`. Consumers call `orders.approveUsdc.execute({ amount })` (or check allowance via `profile.getUsdcAllowance({ owner })`) before `placeOrder`. There is no auto-approve flag; the hidden second tx made logging and error-handling ambiguous.
+- **`setSellOrderUpi.prepare`** ECIES-encrypts `paymentAddress` with the merchant's pubkey before encoding calldata. The sender relay identity used for signing is surfaced in `meta.relayIdentity`.
 
-```json
-{
-  "dependencies": {
-    "viem": "^2.x",
-    "neverthrow": "^7.x",
-    "zod": "^3.x"
-  },
-  "peerDependencies": {
-    "react": "^18 || ^19"
-  }
+### Relay identity
+
+`createRelayIdentity()` is a pure function (generates a fresh keypair via viem). Persistence goes through a pluggable `RelayIdentityStore` interface:
+
+```ts
+interface RelayIdentityStore {
+  get(): Promise<RelayIdentity | null>;
+  set(identity: RelayIdentity): Promise<void>;
 }
 ```
 
----
+The SDK ships two adapters:
+- `createInMemoryRelayStore()` — default when no store is configured.
+- `createLocalStorageRelayStore({ key? })` — browser-only, opt-in.
 
-## 7. Phases
+Consumers on RN / SSR / encrypted storage implement the two-method interface themselves. Corrupt stored identities surface `RELAY_IDENTITY_CORRUPT` — the SDK never silently regenerates.
 
-### Phase 1 — Core extraction (MVP)
+## React integration
 
-- [ ]  New repo `@p2pdotme/order-routing`
-- [ ]  Extract routing algorithm (epsilon-greedy)
-- [ ]  Extract subgraph client + circle query
-- [ ]  Extract contract ABIs + `checkCircleEligibility` (read-only)
-- [ ]  Extract validation schemas
-- [ ]  `createOrderRouter()` factory function
-- [ ]  Unit tests for epsilon-greedy strategy
-- [ ]  Integration test with mocked subgraph + contract reads
-- [ ]  Publish to npm (or private registry)
+`@p2pdotme/sdk/react` wraps the factories in a single `<SdkProvider>` + hooks. The provider memoizes each module on mount — primitive config keys trigger re-instantiation; object refs are captured once.
 
-### Phase 2 — React bindings
-
-- [ ]  `OrderRoutingProvider` + `useOrderRouting` hook
-- [ ]  Migrate `user-app-spa` to consume SDK
-- [ ]  Remove duplicated code from `user-app-spa`
-
-### Phase 3 — Extensibility
-
-- [ ]  Event hooks: `onCircleSelected`, `onValidationFailed`, `onRetry`
-- [ ]  Configurable retry policy (currently hardcoded to 3 attempts)
-- [ ]  Logging abstraction (replace `console.log` with injectable logger)
-
----
-
-## 8. Repo & Build Setup
-
-| Concern | Choice |
-| --- | --- |
-| **Monorepo vs standalone** | Standalone repo |
-| **Build tool** | `tsup` (esbuild-based, ESM + CJS dual output) |
-| **Testing** | `vitest` |
-| **Package manager** | `bun` |
-| **Linting** | `biome` |
-| **CI** | None — releases are published manually (see [docs/publishing.md](./docs/publishing.md)) |
-| **Versioning** | `changesets` for semver + changelogs |
-
-### Package exports
-
-```jsx
-  {
-    "exports": {
-      ".": {
-        "import": "./dist/index.mjs",
-        "require": "./dist/index.cjs",
-        "types": "./dist/index.d.ts"
-      },
-      "./react": {
-        "import": "./dist/react.mjs",
-        "require": "./dist/react.cjs",
-        "types": "./dist/react.d.ts"
-      }
-    }
-  }
+```tsx
+<SdkProvider
+  publicClient={publicClient}
+  subgraphUrl={SUBGRAPH_URL}
+  diamondAddress={DIAMOND_ADDRESS}
+  usdcAddress={USDC_ADDRESS}
+  reputationManagerAddress={REP_MANAGER} // only enables useZkkyc()
+  fraudEngine={{ apiUrl, encryptionKey }} // only enables useFraudEngine()
+  orders={{                                // optional:
+    relayIdentityStore: createLocalStorageRelayStore(),
+    relayIdentity,                         // pre-built identity (overrides store)
+  }}
+>
 ```
+
+## Build & release
+
+- **Build**: `tsup` with one entry per public subpath, outputting CJS + ESM + DTS to `dist/`. `@noble/*` is bundled into `orders/` + `react/` to insulate consumers from version skew.
+- **Lint/format**: `biome`.
+- **Tests**: `vitest`.
+- **Versioning**: `changesets`.
+- **CI**: none. Releases are published manually — see [docs/publishing.md](./docs/publishing.md).

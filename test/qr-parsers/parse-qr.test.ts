@@ -18,32 +18,40 @@ function unwrap<T, E>(r: { isOk(): boolean; isErr(): boolean; value?: T; error?:
 
 describe("parseQR dispatcher", () => {
 	it("dispatches INR to UPI parser", async () => {
-		const data = unwrap(await parseQR("upi://pay?pa=m@b&am=800", "INR", 80));
+		const data = unwrap(
+			await parseQR({ qrData: "upi://pay?pa=m@b&am=800", currency: "INR", sellPrice: 80 }),
+		);
 		expect(data.paymentAddress).toBe("m@b");
 		expect(data.amount?.fiat).toBe(800);
 	});
 
 	it("dispatches IDR to QRIS parser", async () => {
 		const qr = `000201${tlv("59", "STORE")}${tlv("54", "16000")}`;
-		const data = unwrap(await parseQR(qr, "IDR", 16000));
+		const data = unwrap(await parseQR({ qrData: qr, currency: "IDR", sellPrice: 16000 }));
 		expect(data.paymentAddress).toBe("STORE");
 	});
 
 	it("dispatches BRL to PIX parser (static)", async () => {
 		const inner = `${tlv("00", "01")}${tlv("59", "LOJA")}${tlv("54", "10.00")}`;
-		const data = unwrap(await parseQR(withCrc(inner), "BRL", 5));
+		const data = unwrap(
+			await parseQR({ qrData: withCrc(inner), currency: "BRL", sellPrice: 5 }),
+		);
 		expect(data.paymentAddress).toBe("LOJA");
 		expect(data.amount).toEqual({ fiat: 10, usdc: 2 });
 	});
 
 	it("dispatches ARS to MercadoPago parser", async () => {
 		const inner = `${tlv("00", "01")}${tlv("58", "AR")}${tlv("59", "SHOP")}`;
-		const data = unwrap(await parseQR(withCrc(inner), "ARS", 1000));
+		const data = unwrap(
+			await parseQR({ qrData: withCrc(inner), currency: "ARS", sellPrice: 1000 }),
+		);
 		expect(data.paymentAddress).toBe("SHOP");
 	});
 
 	it("dispatches VEN to PagoMovil parser", async () => {
-		const data = unwrap(await parseQR("SGVsbG8=?x=1", "VEN", 40));
+		const data = unwrap(
+			await parseQR({ qrData: "SGVsbG8=?x=1", currency: "VEN", sellPrice: 40 }),
+		);
 		expect(data.paymentAddress).toBe("SGVsbG8=?x=1");
 	});
 
@@ -51,13 +59,17 @@ describe("parseQR dispatcher", () => {
 		["empty", ""],
 		["whitespace", "   "],
 	])("returns INVALID_QR for %s regardless of currency", async (_label, input) => {
-		const result = await parseQR(input, "INR", 80);
+		const result = await parseQR({ qrData: input, currency: "INR", sellPrice: 80 });
 		expect(result.isErr()).toBe(true);
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 
 	it("returns INVALID_CURRENCY for unsupported currency", async () => {
-		const result = await parseQR("any", "USD" as unknown as SupportedCurrency, 1);
+		const result = await parseQR({
+			qrData: "any",
+			currency: "USD" as unknown as SupportedCurrency,
+			sellPrice: 1,
+		});
 		expect(result.isErr()).toBe(true);
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_CURRENCY");
 	});
