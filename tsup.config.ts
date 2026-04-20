@@ -19,10 +19,11 @@ export default defineConfig([
     },
   },
   {
-    entry: { "order-routing": "src/order-routing/index.ts" },
+    entry: { orders: "src/orders/index.ts" },
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,
+    noExternal: NOBLE_NO_EXTERNAL,
     outExtension({ format }) {
       return { js: format === "cjs" ? ".cjs" : ".mjs" };
     },
@@ -57,17 +58,16 @@ export default defineConfig([
     },
   },
   {
-    entry: { payload: "src/payload/index.ts" },
+    entry: { profile: "src/profile/index.ts" },
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,
-    noExternal: NOBLE_NO_EXTERNAL,
     outExtension({ format }) {
       return { js: format === "cjs" ? ".cjs" : ".mjs" };
     },
   },
   {
-    entry: { profile: "src/profile/index.ts" },
+    entry: { prices: "src/prices/index.ts" },
     format: ["cjs", "esm"],
     dts: true,
     sourcemap: true,

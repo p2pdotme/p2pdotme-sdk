@@ -1,4 +1,4 @@
-import { CURRENCY } from "../../constants";
+import { CURRENCY } from "../currency";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const IDR_PLACEHOLDER = "8123456789";
