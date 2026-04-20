@@ -1,4 +1,4 @@
-import { CURRENCY } from "../../constants";
+import { CURRENCY } from "../currency";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 import { EUR_PLACEHOLDER, EUR_VALIDATION_ERROR, validateRevolutId } from "./eur";
 

@@ -55,11 +55,12 @@ bun add @p2pdotme/sdk
 ```
 
 ```ts
-import { createOrderRouter } from "@p2pdotme/sdk/order-routing";
+import { createOrders } from "@p2pdotme/sdk/orders";
+import { createPrices } from "@p2pdotme/sdk/prices";
 import { createProfile } from "@p2pdotme/sdk/profile";
-import { createPayloadGenerator } from "@p2pdotme/sdk/payload";
 import { createFraudEngine } from "@p2pdotme/sdk/fraud-engine";
-import { SdkProvider, useOrderRouter } from "@p2pdotme/sdk/react";
+import { createZkkyc } from "@p2pdotme/sdk/zkkyc";
+import { SdkProvider, useOrders } from "@p2pdotme/sdk/react";
 import { parseQR } from "@p2pdotme/sdk/qr-parsers";
 ```
 

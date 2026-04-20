@@ -1,4 +1,4 @@
-import type { CurrencyType } from "../types";
+import type { CurrencyCode } from "../types";
 
 export interface PaymentIdFieldConfig {
 	readonly key: string;
@@ -11,7 +11,7 @@ export interface PaymentIdFieldConfig {
 
 export interface CountryOption {
 	readonly country: string;
-	readonly currency: CurrencyType;
+	readonly currency: CurrencyCode;
 	readonly internationalFormat?: string;
 	readonly symbolNative: string;
 	readonly locale: string;

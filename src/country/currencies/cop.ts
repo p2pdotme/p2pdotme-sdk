@@ -1,4 +1,4 @@
-import { CURRENCY } from "../../constants";
+import { CURRENCY } from "../currency";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const COP_PLACEHOLDER = "juan.perez@nequi.com.co";
