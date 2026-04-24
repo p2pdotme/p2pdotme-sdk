@@ -1,4 +1,6 @@
 export * from "./abis";
+export * from "./error-messages";
+export * from "./errors";
 export * from "./order-flow";
 export * from "./order-processor";
 export * from "./p2p-config";
