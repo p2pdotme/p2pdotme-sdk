@@ -107,6 +107,38 @@ Every write action exposes two methods:
 - **`action.prepare(params)`** — returns a `ResultAsync<PreparedTx, OrdersError>`, where `PreparedTx` is `{ to, data, value, meta }`. No wallet needed. Use this for gasless relayers, multisigs, server-side signing, or anything not wagmi/viem.
 - **`action.execute({ walletClient, waitForReceipt?, ...params })`** — `prepare()` + `walletClient.sendTransaction` + optional `waitForTransactionReceipt`. The fast path when you're signing directly with viem.
 
+## Contract errors
+
+Every revert from the P2P.me Diamond can be decoded to a typed code and a ready-to-display English string.
+
+```ts
+import {
+  parseContractError,
+  getContractErrorMessage,
+} from "@p2pdotme/sdk/orders";
+
+// 1. Decode a raw revert (viem error, hex selector, or nested cause)
+//    → returns a ContractErrorCode string, or null if unknown
+const code = parseContractError(err);
+// e.g. "USERNAME_ALREADY_VERIFIED"
+
+// 2. Get the English UI string for a code (with optional fallback)
+const message = getContractErrorMessage(code);
+// "The social media account's username is already verified"
+
+// Combined — typical usage in an error handler:
+orders.placeOrder.execute(params).match(
+  ({ hash }) => console.log("placed", hash),
+  (err) => {
+    const code    = parseContractError(err.cause);
+    const message = getContractErrorMessage(code);
+    showToast(message); // ready for display
+  },
+);
+```
+
+All three exports — `contractErrors` (name → code map), `hexContractErrors` (4-byte selector → code), and `contractErrorMessages` (code → English string) — are also exported for advanced use cases such as building per-locale translation tables on top.
+
 ## React hooks
 
 All hooks read from the nearest `<SdkProvider>`:

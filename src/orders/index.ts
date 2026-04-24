@@ -4,6 +4,16 @@ export { createOrders, type OrdersClient } from "./client";
 
 // ── Errors ──────────────────────────────────────────────────────────────
 
+export {
+	contractErrorMessages,
+	getContractErrorMessage,
+} from "../contracts/error-messages";
+export {
+	type ContractErrorCode,
+	contractErrors,
+	hexContractErrors,
+	parseContractError,
+} from "../contracts/errors";
 export { OrdersError, type OrdersErrorCode } from "./errors";
 
 // ── Domain types ────────────────────────────────────────────────────────
