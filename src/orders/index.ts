@@ -5,6 +5,10 @@ export { createOrders, type OrdersClient } from "./client";
 // ── Errors ──────────────────────────────────────────────────────────────
 
 export {
+	contractErrorMessages,
+	getContractErrorMessage,
+} from "../contracts/error-messages";
+export {
 	type ContractErrorCode,
 	contractErrors,
 	hexContractErrors,
