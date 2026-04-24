@@ -53,5 +53,5 @@ export const NGN_COUNTRY_OPTION: CountryOption = {
 	precision: 2,
 	isAlpha: true,
 	disabled: false,
-	disabledPaymentTypes: ["PAY"],
+	disabledPaymentTypes: [],
 };
