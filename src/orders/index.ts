@@ -4,6 +4,12 @@ export { createOrders, type OrdersClient } from "./client";
 
 // ── Errors ──────────────────────────────────────────────────────────────
 
+export {
+	type ContractErrorCode,
+	contractErrors,
+	hexContractErrors,
+	parseContractError,
+} from "../contracts/errors";
 export { OrdersError, type OrdersErrorCode } from "./errors";
 
 // ── Domain types ────────────────────────────────────────────────────────
