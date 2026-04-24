@@ -5,7 +5,7 @@ import type { SolidityVerifierParameters } from "../validation";
 
 // ── Social Platform ──────────────────────────────────────────────────────────
 
-export type SocialPlatform = "linkedin" | "github" | "x" | "instagram" | "facebook";
+export type SocialPlatform = "linkedin" | "github" | "x" | "instagram" | "facebook" | "binance";
 
 /** Maps SocialPlatform to the capitalized name the contract expects for _socialName. */
 export const SOCIAL_PLATFORM_NAMES: Record<SocialPlatform, string> = {
@@ -14,6 +14,7 @@ export const SOCIAL_PLATFORM_NAMES: Record<SocialPlatform, string> = {
 	x: "X",
 	instagram: "Instagram",
 	facebook: "Facebook",
+	binance: "Binance",
 };
 
 // ── Reclaim (Social Verification) ────────────────────────────────────────────
