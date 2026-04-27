@@ -1,19 +1,21 @@
 import { CURRENCY } from "../currency";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
-export const COP_PLACEHOLDER = "juan.perez@nequi.com.co";
+export const COP_PLACEHOLDER = "3001234567 / juan.perez@nequi.com.co / @alias";
 export const COP_VALIDATION_ERROR =
-	"Please enter a valid Nequi or Daviplata ID (e.g., 3001234567 or email)";
+	"Please enter a valid Colombian payment ID (e.g., 3001234567, email, or @alias)";
 
 /**
- * Validates Colombian payment ID for Nequi or Daviplata.
- * Accepts a 10-digit phone number starting with 3, or a valid email address.
+ * Validates Colombian payment ID for Nequi, Daviplata, or Bre-B.
+ * Accepts a 10-digit phone number starting with 3, a valid email address,
+ * or a Bre-B alias starting with @ (e.g. @juanperez).
  */
 export function validateColombianPaymentId(paymentId: string): boolean {
 	if (!paymentId || paymentId.trim().length === 0) return false;
 	const trimmed = paymentId.trim();
 	if (/^3\d{9}$/.test(trimmed)) return true;
 	if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return true;
+	if (/^@\S+$/.test(trimmed)) return true;
 	return false;
 }
 
@@ -23,7 +25,7 @@ export const COP_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 		key: "alias",
 		label: "ALIAS_TRANSFERENCIA",
 		placeholder: COP_PLACEHOLDER,
-		displayLabel: "Nequi / Daviplata",
+		displayLabel: "Nequi / Daviplata / Bre-B",
 		validate: validateColombianPaymentId,
 		validationErrorMessage: COP_VALIDATION_ERROR,
 	},
