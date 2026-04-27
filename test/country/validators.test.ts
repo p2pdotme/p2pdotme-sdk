@@ -250,6 +250,11 @@ describe("validateColombianPaymentId (COP)", () => {
 		["Daviplata phone", "3241234567"],
 		["email address", "juan.perez@nequi.com.co"],
 		["simple email", "user@example.com"],
+		["Bre-B alias", "@juanperez"],
+		["Bre-B alias with dots", "@juan.perez"],
+		["Bre-B alias with underscores", "@juan_perez"],
+		["Bre-B alias with hyphens", "@juan-perez"],
+		["Bre-B alias with numbers", "@juan123"],
 	])("accepts %s", (_label, input) => {
 		expect(validateColombianPaymentId(input)).toBe(true);
 	});
@@ -262,6 +267,8 @@ describe("validateColombianPaymentId (COP)", () => {
 		["phone starting with 3 but 11 digits", "30012345678"],
 		["invalid email (no @)", "juannequi.com"],
 		["invalid email (no domain)", "juan@"],
+		["@ sign alone", "@"],
+		["@ with spaces", "@ juanperez"],
 	])("rejects %s", (_label, input) => {
 		expect(validateColombianPaymentId(input)).toBe(false);
 	});
