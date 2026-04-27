@@ -48,7 +48,7 @@ export const VEN_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 		key: "rif",
 		label: "RIF_LABEL",
 		placeholder: VEN_PLACEHOLDER_RIF,
-		displayLabel: "Cédula",
+		displayLabel: "Cédula (V)",
 		validate: validateVenezuelanRif,
 		validationErrorMessage: VEN_VALIDATION_ERROR_RIF,
 	},
