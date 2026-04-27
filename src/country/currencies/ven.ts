@@ -6,7 +6,7 @@ export const VEN_PLACEHOLDER_RIF = "V12345678";
 export const VEN_PLACEHOLDER_BANK = "Banesco";
 
 export const VEN_VALIDATION_ERROR = "Please enter a valid phone number (e.g., 04121234567)";
-export const VEN_VALIDATION_ERROR_RIF = "Please enter a valid RIF (e.g., V12345678)";
+export const VEN_VALIDATION_ERROR_RIF = "Please enter a valid Cédula (e.g., V12345678)";
 export const VEN_VALIDATION_ERROR_BANK = "Please enter a bank name";
 
 /**
@@ -25,13 +25,13 @@ export function validateVenezuelanPhoneNumber(phoneNumber: string): boolean {
 }
 
 /**
- * Validates Venezuelan RIF (Registro de Informacion Fiscal).
- * Format: One letter (J/V/E/G/C) followed by 7-9 digits.
+ * Validates Venezuelan Cédula. Format: "V" followed by digits.
+ * Only natural-person cédulas (V) are accepted; legal-entity RIFs are not.
  */
 export function validateVenezuelanRif(rif: string): boolean {
 	if (!rif || rif.trim().length === 0) return false;
 	const trimmed = rif.trim().toUpperCase();
-	return /^[JVEGC]\d{7,9}$/.test(trimmed);
+	return /^V\d+$/.test(trimmed);
 }
 
 /** Payment ID field configuration for VEN (Venezuela, Pago Móvil). */
@@ -48,7 +48,7 @@ export const VEN_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 		key: "rif",
 		label: "RIF_LABEL",
 		placeholder: VEN_PLACEHOLDER_RIF,
-		displayLabel: "RIF",
+		displayLabel: "Cédula",
 		validate: validateVenezuelanRif,
 		validationErrorMessage: VEN_VALIDATION_ERROR_RIF,
 	},
