@@ -1,6 +1,7 @@
 import { errAsync, ResultAsync } from "neverthrow";
 import { type Logger, noopLogger } from "../lib";
 import { getDeviceDetails } from "./device";
+import { getOrCreateDeviceHash } from "./device-hash";
 import { encryptPayload } from "./encryption";
 import { FraudEngineError } from "./errors";
 import { getFingerprint as getFingerprintResult, loadFingerprintAgent } from "./fingerprint";
@@ -285,6 +286,8 @@ export function createFraudEngine(config: FraudEngineConfig): FraudEngine {
 						return null;
 					}
 
+					const localstorageHash = getOrCreateDeviceHash();
+
 					const signedHeaders = await getSignedHeaders(params.signer, "fingerprint-log");
 
 					const normalizedAddress = params.signer.address.toLowerCase();
@@ -292,6 +295,7 @@ export function createFraudEngine(config: FraudEngineConfig): FraudEngine {
 
 					const payload = JSON.stringify({
 						fingerprint_id: fingerprintResult.visitorId,
+						localstorage_hash: localstorageHash,
 					});
 
 					// AAD format: "fingerprint|user_address|timestamp"

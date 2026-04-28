@@ -30,6 +30,7 @@ export { FraudEngineError, type FraudEngineErrorCode } from "./errors";
 // ── Low-level exports (for advanced use) ────────────────────────────────
 
 export { fetchIpAddress, getBasicDeviceDetails, getDeviceDetails } from "./device";
+export { getOrCreateDeviceHash } from "./device-hash";
 export { encryptPayload } from "./encryption";
 export { getFingerprint, loadFingerprintAgent } from "./fingerprint";
 export { cleanupSeonStorage, getSeonSession, initSeon } from "./seon";
