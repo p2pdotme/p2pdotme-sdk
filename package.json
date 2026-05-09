@@ -118,7 +118,7 @@
   "peerDependencies": {
     "react": "18 || ^19",
     "@reclaimprotocol/js-sdk": "^4",
-    "@zkpassport/sdk": "^0.12.4"
+    "@zkpassport/sdk": ">=0.12.4 <0.15.0"
   },
   "peerDependenciesMeta": {
     "@reclaimprotocol/js-sdk": {
