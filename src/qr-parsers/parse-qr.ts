@@ -1,6 +1,7 @@
 import { CURRENCY } from "../country";
 import { parseMercadoPago } from "./parsers/ars";
 import { parsePIX } from "./parsers/brl";
+import { parseCOP } from "./parsers/cop";
 import { parseQRIS } from "./parsers/idr";
 import { parseUPI } from "./parsers/inr";
 import { parseNGN } from "./parsers/ngn";
@@ -38,6 +39,8 @@ export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 			return parsePagoMovil(qrData, sellPrice);
 		case CURRENCY.NGN:
 			return parseNGN(qrData, sellPrice);
+		case CURRENCY.COP:
+			return parseCOP(qrData, sellPrice);
 		default:
 			return failure("INVALID_CURRENCY", `Currency "${currency}" is not supported`);
 	}
