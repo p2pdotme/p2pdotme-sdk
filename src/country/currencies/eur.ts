@@ -49,6 +49,6 @@ export const EUR_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: [],
 	precision: 2,
 	isAlpha: true,
-	disabled: false,
+	disabled: true,
 	disabledPaymentTypes: ["PAY"],
 };
