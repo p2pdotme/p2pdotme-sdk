@@ -35,6 +35,6 @@ export const USD_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: ["US"],
 	precision: 2,
 	isAlpha: true,
-	disabled: false,
+	disabled: true,
 	disabledPaymentTypes: ["PAY"],
 };
