@@ -44,7 +44,7 @@ export const COP_COUNTRY_OPTION: CountryOption = {
 	flag: "🇨🇴",
 	flagUrl: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f1e8-1f1f4.png",
 	phoneCode: "+57",
-	telegramSupportChannel: "https://t.me/p2pmeColombia",
+	telegramSupportChannel: "https://t.me/p2pmecolombiaclientes",
 	twitterUsername: "p2pmeColombia",
 	smsCountryCodes: ["CO"],
 	precision: 2,

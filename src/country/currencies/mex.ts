@@ -47,7 +47,7 @@ export const MEX_COUNTRY_OPTION: CountryOption = {
 	flag: "🇲🇽",
 	flagUrl: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f1f2-1f1fd.png",
 	phoneCode: "+52",
-	telegramSupportChannel: "https://t.me/p2pmemexico",
+	telegramSupportChannel: "https://t.me/p2pdotmex",
 	twitterUsername: "p2pmemexico",
 	smsCountryCodes: ["MX"],
 	precision: 2,
