@@ -47,7 +47,7 @@ export const NGN_COUNTRY_OPTION: CountryOption = {
 	flag: "🇳🇬",
 	flagUrl: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f1f3-1f1ec.png",
 	phoneCode: "+234",
-	telegramSupportChannel: "https://t.me/p2pmeNigeria",
+	telegramSupportChannel: "https://t.me/p2pmengn",
 	twitterUsername: "p2pmeNigeria",
 	smsCountryCodes: ["NG"],
 	precision: 2,
