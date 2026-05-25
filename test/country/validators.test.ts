@@ -6,7 +6,7 @@ import { validateRevolutId } from "../../src/country/currencies/eur";
 import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr";
 import { validateUPIId } from "../../src/country/currencies/inr";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
-import { validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
+import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
 import { validateVenezuelanPhoneNumber, validateVenezuelanRif } from "../../src/country/currencies/ven";
 
 // ── INR ─────────────────────────────────────────────────────────────────────
@@ -238,6 +238,30 @@ describe("validateNigerianAccountNumber (NGN)", () => {
 		["contains letters", "012345678a"],
 	])("rejects %s", (_label, input) => {
 		expect(validateNigerianAccountNumber(input)).toBe(false);
+	});
+});
+
+describe("validateNigerianAccountName (NGN)", () => {
+	it.each([
+		["single first + last", "Chinedu Okafor"],
+		["three names", "Aisha Bola Adekunle"],
+		["name with hyphen", "Ngozi Eze-Okeke"],
+		["name with apostrophe", "O'Brien Adeyemi"],
+		["name with period (initial)", "J. Okonkwo"],
+		["surrounding whitespace (trimmed)", "  Tunde Bakare  "],
+	])("accepts %s", (_label, input) => {
+		expect(validateNigerianAccountName(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["single character", "A"],
+		["leading digit", "1Chinedu"],
+		["contains digits", "Chinedu1"],
+		["disallowed special char", "Chinedu@Okafor"],
+	])("rejects %s", (_label, input) => {
+		expect(validateNigerianAccountName(input)).toBe(false);
 	});
 });
 
