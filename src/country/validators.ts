@@ -3,6 +3,7 @@ export {
 	validateColombianPaymentId,
 	validateIndonesianPhoneNumber,
 	validateMexicanPaymentId,
+	validateNigerianAccountName,
 	validateNigerianAccountNumber,
 	validatePIXId,
 	validateRevolutId,

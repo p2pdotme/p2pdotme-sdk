@@ -3,7 +3,10 @@ import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const NGN_PLACEHOLDER = "0123456789";
 export const NGN_PLACEHOLDER_BANK = "Bank Name";
+export const NGN_PLACEHOLDER_ACCOUNT_NAME = "Account Name";
 export const NGN_VALIDATION_ERROR = "Please enter a valid 10-digit account number";
+export const NGN_BANK_NAME_VALIDATION_ERROR = "Please enter a valid bank name";
+export const NGN_ACCOUNT_NAME_VALIDATION_ERROR = "Please enter a valid account name";
 
 /**
  * Validates Nigerian bank account number (NUBAN format, 10 digits).
@@ -12,6 +15,14 @@ export function validateNigerianAccountNumber(accountNumber: string): boolean {
 	if (!accountNumber || accountNumber.trim().length === 0) return false;
 	const cleaned = accountNumber.trim().replace(/\D/g, "");
 	return /^\d{10}$/.test(cleaned);
+}
+
+/**
+ * Validates a Nigerian bank account holder name (non-empty, letters/spaces/.'- only).
+ */
+export function validateNigerianAccountName(accountName: string): boolean {
+	if (!accountName || accountName.trim().length === 0) return false;
+	return /^[A-Za-z][A-Za-z .'-]{1,}$/.test(accountName.trim());
 }
 
 /** Payment ID field configuration for NGN (Nigeria, NIP). */
@@ -30,7 +41,15 @@ export const NGN_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 		placeholder: NGN_PLACEHOLDER_BANK,
 		displayLabel: "Bank Name",
 		validate: (v: string) => v.trim().length > 0,
-		validationErrorMessage: NGN_VALIDATION_ERROR,
+		validationErrorMessage: NGN_BANK_NAME_VALIDATION_ERROR,
+	},
+	{
+		key: "account-name",
+		label: "ACCOUNT_NAME",
+		placeholder: NGN_PLACEHOLDER_ACCOUNT_NAME,
+		displayLabel: "Account Name",
+		validate: validateNigerianAccountName,
+		validationErrorMessage: NGN_ACCOUNT_NAME_VALIDATION_ERROR,
 	},
 ];
 
