@@ -20,6 +20,7 @@ export interface SdkConfig {
 	readonly subgraphUrl: string;
 	readonly diamondAddress: Address;
 	readonly usdcAddress: Address;
+	readonly p2pTokenAddress: Address;
 	readonly reputationManagerAddress?: Address;
 	readonly fraudEngine?: FraudEngineSdkConfig;
 	readonly orders?: OrdersSdkConfig;

@@ -2,6 +2,7 @@ import type { Address, TransactionReceipt, WalletClient } from "viem";
 import type { PublicClientLike } from "../types";
 
 export type {
+	GetP2pTokenBalanceParams,
 	GetStakeBoostConfigParams,
 	GetUserStakeParams,
 	StakeParams,
@@ -13,6 +14,7 @@ export type {
 export interface StakeConfig {
 	readonly publicClient: PublicClientLike;
 	readonly diamondAddress: Address;
+	readonly p2pTokenAddress: Address;
 }
 
 // ── Domain types ────────────────────────────────────────────────────────

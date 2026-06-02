@@ -6,6 +6,7 @@ export { createStake, type StakeClient } from "./client";
 
 export type {
 	ExecuteBase,
+	GetP2pTokenBalanceParams,
 	GetStakeBoostConfigParams,
 	GetUserStakeParams,
 	PreparedTx,

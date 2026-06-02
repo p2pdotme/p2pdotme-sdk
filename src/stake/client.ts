@@ -1,5 +1,10 @@
 import type { ResultAsync } from "neverthrow";
-import { getStakeBoostConfig, getStakeBoostGlobals, getUserStake } from "../contracts/p2p-stake";
+import {
+	getP2pTokenBalance,
+	getStakeBoostConfig,
+	getStakeBoostGlobals,
+	getUserStake,
+} from "../contracts/p2p-stake";
 import { type ClaimUnstakeAction, createClaimUnstakeAction } from "./actions/claim-unstake";
 import {
 	createRequestUnstakeAction,
@@ -10,7 +15,11 @@ import { createTopUpAction, type TopUpAction } from "./actions/top-up";
 import type { StakeError } from "./errors";
 import { normalizeStakeBoostGlobals, normalizeUserStake } from "./normalize";
 import type { StakeBoostConfig, StakeBoostGlobals, StakeConfig, UserStake } from "./types";
-import type { GetStakeBoostConfigParams, GetUserStakeParams } from "./validation";
+import type {
+	GetP2pTokenBalanceParams,
+	GetStakeBoostConfigParams,
+	GetUserStakeParams,
+} from "./validation";
 
 export interface StakeClient {
 	// ── Reads ───────────────────────────────────────────────────────────
@@ -26,6 +35,9 @@ export interface StakeClient {
 	/** Reads global stake boost configuration (token addr, cooldowns, totals). */
 	getStakeBoostGlobals(): ResultAsync<StakeBoostGlobals, StakeError>;
 
+	/** Reads the P2P token (ERC20) balance for a given address (raw bigint). */
+	getP2pTokenBalance(params: GetP2pTokenBalanceParams): ResultAsync<bigint, StakeError>;
+
 	// ── Writes (layered prepare/execute) ────────────────────────────────
 
 	readonly stake: StakeAction;
@@ -39,7 +51,7 @@ export interface StakeClient {
  * prepare/execute write pairs for stake, topUp, requestUnstake, and claimUnstake.
  */
 export function createStake(config: StakeConfig): StakeClient {
-	const { publicClient, diamondAddress } = config;
+	const { publicClient, diamondAddress, p2pTokenAddress } = config;
 
 	return {
 		getUserStake: (params) =>
@@ -49,6 +61,8 @@ export function createStake(config: StakeConfig): StakeClient {
 
 		getStakeBoostGlobals: () =>
 			getStakeBoostGlobals(publicClient, diamondAddress).map(normalizeStakeBoostGlobals),
+
+		getP2pTokenBalance: (params) => getP2pTokenBalance(publicClient, p2pTokenAddress, params),
 
 		stake: createStakeAction({ publicClient, diamondAddress }),
 		topUp: createTopUpAction({ publicClient, diamondAddress }),
