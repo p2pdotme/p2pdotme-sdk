@@ -44,6 +44,11 @@
       "import": "./dist/prices.mjs",
       "require": "./dist/prices.cjs"
     },
+    "./stake": {
+      "types": "./dist/stake.d.ts",
+      "import": "./dist/stake.mjs",
+      "require": "./dist/stake.cjs"
+    },
     "./country": {
       "types": "./dist/country.d.ts",
       "import": "./dist/country.mjs",
@@ -64,6 +69,7 @@
       "fraud-engine": ["./dist/fraud-engine.d.ts"],
       "profile": ["./dist/profile.d.ts"],
       "prices": ["./dist/prices.d.ts"],
+      "stake": ["./dist/stake.d.ts"],
       "country": ["./dist/country.d.ts"],
       "zkkyc": ["./dist/zkkyc.d.ts"]
     }

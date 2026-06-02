@@ -4,6 +4,7 @@ import type { FraudEngine } from "../fraud-engine/types";
 import { createOrders } from "../orders";
 import { createPrices } from "../prices/client";
 import { createProfile } from "../profile/client";
+import { createStake } from "../stake/client";
 import { createZkkyc } from "../zkkyc/client";
 import type { Sdk, SdkConfig } from "./types";
 
@@ -77,6 +78,10 @@ export function SdkProvider({ children, ...config }: SdkConfig & { readonly chil
 				relayIdentity,
 				logger,
 			}),
+			stake: createStake({
+				publicClient,
+				diamondAddress: config.diamondAddress,
+			}),
 			zkkyc: config.reputationManagerAddress
 				? createZkkyc({
 						reputationManagerAddress: config.reputationManagerAddress,
@@ -121,6 +126,11 @@ export function usePrices() {
 /** Returns the Orders instance from the nearest SdkProvider. */
 export function useOrders() {
 	return useSdk().orders;
+}
+
+/** Returns the Stake instance from the nearest SdkProvider. */
+export function useStake() {
+	return useSdk().stake;
 }
 
 /** Returns the Zkkyc instance from the nearest SdkProvider. */

@@ -4,6 +4,7 @@ export * from "./errors";
 export * from "./order-flow";
 export * from "./order-processor";
 export * from "./p2p-config";
+export * from "./p2p-stake";
 export * from "./reputation-manager";
 export * from "./tx-limits";
 export * from "./usdc";

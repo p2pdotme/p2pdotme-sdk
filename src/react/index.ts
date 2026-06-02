@@ -10,6 +10,7 @@ export {
 	usePrices,
 	useProfile,
 	useSdk,
+	useStake,
 	useZkkyc,
 } from "./sdk-provider";
 
