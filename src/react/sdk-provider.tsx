@@ -81,6 +81,7 @@ export function SdkProvider({ children, ...config }: SdkConfig & { readonly chil
 			stake: createStake({
 				publicClient,
 				diamondAddress: config.diamondAddress,
+				p2pTokenAddress: config.p2pTokenAddress,
 			}),
 			zkkyc: config.reputationManagerAddress
 				? createZkkyc({
@@ -94,6 +95,7 @@ export function SdkProvider({ children, ...config }: SdkConfig & { readonly chil
 		config.subgraphUrl,
 		config.diamondAddress,
 		config.usdcAddress,
+		config.p2pTokenAddress,
 		config.reputationManagerAddress,
 		relayIdentityStore,
 		relayIdentity,

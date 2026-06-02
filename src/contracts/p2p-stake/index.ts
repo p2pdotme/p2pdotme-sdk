@@ -2,8 +2,13 @@ import { ResultAsync } from "neverthrow";
 import { type Address, stringToHex } from "viem";
 import { StakeError } from "../../stake/errors";
 import type { RawStakeBoostGlobals, RawUserStake, StakeBoostConfig } from "../../stake/types";
-import type { GetStakeBoostConfigParams, GetUserStakeParams } from "../../stake/validation";
+import type {
+	GetP2pTokenBalanceParams,
+	GetStakeBoostConfigParams,
+	GetUserStakeParams,
+} from "../../stake/validation";
 import {
+	ZodGetP2pTokenBalanceParamsSchema,
 	ZodGetStakeBoostConfigParamsSchema,
 	ZodGetUserStakeParamsSchema,
 } from "../../stake/validation";
@@ -104,5 +109,38 @@ export function getStakeBoostGlobals(
 				cause: error,
 				context: { diamondAddress },
 			}),
+	);
+}
+
+/** Reads the P2P token (ERC20) balance for a given address. */
+export function getP2pTokenBalance(
+	publicClient: PublicClientLike,
+	p2pTokenAddress: Address,
+	params: GetP2pTokenBalanceParams,
+): ResultAsync<bigint, StakeError> {
+	return validate(
+		ZodGetP2pTokenBalanceParamsSchema,
+		params,
+		(message, cause, data) =>
+			new StakeError(message, {
+				code: "VALIDATION_ERROR",
+				cause,
+				context: { params: data },
+			}),
+	).asyncAndThen((validated) =>
+		ResultAsync.fromPromise(
+			publicClient.readContract({
+				address: p2pTokenAddress,
+				abi: ABIS.EXTERNAL.USDC,
+				functionName: "balanceOf",
+				args: [validated.address],
+			}) as Promise<bigint>,
+			(error) =>
+				new StakeError("Failed to read P2P token balance", {
+					code: "CONTRACT_READ_ERROR",
+					cause: error,
+					context: { address: validated.address, p2pTokenAddress },
+				}),
+		),
 	);
 }

@@ -15,6 +15,12 @@ export const ZodGetStakeBoostConfigParamsSchema = z.object({
 
 export type GetStakeBoostConfigParams = z.infer<typeof ZodGetStakeBoostConfigParamsSchema>;
 
+export const ZodGetP2pTokenBalanceParamsSchema = z.object({
+	address: ZodAddressSchema,
+});
+
+export type GetP2pTokenBalanceParams = z.infer<typeof ZodGetP2pTokenBalanceParamsSchema>;
+
 // ── Write params ────────────────────────────────────────────────────────
 
 export const ZodStakeParamsSchema = z.object({
