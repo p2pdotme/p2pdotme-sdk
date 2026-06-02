@@ -6,9 +6,13 @@ export { createStake, type StakeClient } from "./client";
 
 export type {
 	ExecuteBase,
+	GetStakeBoostConfigParams,
 	GetUserStakeParams,
 	PreparedTx,
+	RawStakeBoostGlobals,
 	RawUserStake,
+	StakeBoostConfig,
+	StakeBoostGlobals,
 	StakeConfig,
 	StakeParams,
 	StakeStatus,

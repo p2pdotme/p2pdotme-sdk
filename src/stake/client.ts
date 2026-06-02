@@ -1,5 +1,5 @@
 import type { ResultAsync } from "neverthrow";
-import { getUserStake } from "../contracts/p2p-stake";
+import { getStakeBoostConfig, getStakeBoostGlobals, getUserStake } from "../contracts/p2p-stake";
 import { type ClaimUnstakeAction, createClaimUnstakeAction } from "./actions/claim-unstake";
 import {
 	createRequestUnstakeAction,
@@ -8,15 +8,23 @@ import {
 import { createStakeAction, type StakeAction } from "./actions/stake";
 import { createTopUpAction, type TopUpAction } from "./actions/top-up";
 import type { StakeError } from "./errors";
-import { normalizeUserStake } from "./normalize";
-import type { StakeConfig, UserStake } from "./types";
-import type { GetUserStakeParams } from "./validation";
+import { normalizeStakeBoostGlobals, normalizeUserStake } from "./normalize";
+import type { StakeBoostConfig, StakeBoostGlobals, StakeConfig, UserStake } from "./types";
+import type { GetStakeBoostConfigParams, GetUserStakeParams } from "./validation";
 
 export interface StakeClient {
 	// ── Reads ───────────────────────────────────────────────────────────
 
 	/** Reads the on-chain stake record for a user (stakedAmount, cooldownEnd, status). */
 	getUserStake(params: GetUserStakeParams): ResultAsync<UserStake, StakeError>;
+
+	/** Reads the per-currency stake boost config (tokens-per-USD, max boost). */
+	getStakeBoostConfig(
+		params: GetStakeBoostConfigParams,
+	): ResultAsync<StakeBoostConfig, StakeError>;
+
+	/** Reads global stake boost configuration (token addr, cooldowns, totals). */
+	getStakeBoostGlobals(): ResultAsync<StakeBoostGlobals, StakeError>;
 
 	// ── Writes (layered prepare/execute) ────────────────────────────────
 
@@ -36,6 +44,11 @@ export function createStake(config: StakeConfig): StakeClient {
 	return {
 		getUserStake: (params) =>
 			getUserStake(publicClient, diamondAddress, params).map(normalizeUserStake),
+
+		getStakeBoostConfig: (params) => getStakeBoostConfig(publicClient, diamondAddress, params),
+
+		getStakeBoostGlobals: () =>
+			getStakeBoostGlobals(publicClient, diamondAddress).map(normalizeStakeBoostGlobals),
 
 		stake: createStakeAction({ publicClient, diamondAddress }),
 		topUp: createTopUpAction({ publicClient, diamondAddress }),

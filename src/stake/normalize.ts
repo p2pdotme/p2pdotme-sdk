@@ -1,4 +1,10 @@
-import type { RawUserStake, StakeStatus, UserStake } from "./types";
+import type {
+	RawStakeBoostGlobals,
+	RawUserStake,
+	StakeBoostGlobals,
+	StakeStatus,
+	UserStake,
+} from "./types";
 
 const STATUS_MAP: Record<number, StakeStatus> = {
 	0: "none",
@@ -13,5 +19,27 @@ export function normalizeUserStake(raw: RawUserStake): UserStake {
 		stakedAmount: raw.stakedAmount,
 		cooldownEnd: raw.cooldownEnd,
 		status: STATUS_MAP[raw.status] ?? "none",
+	};
+}
+
+/** Normalizes the raw positional tuple from `getStakeBoostGlobals` into a struct. */
+export function normalizeStakeBoostGlobals(raw: RawStakeBoostGlobals): StakeBoostGlobals {
+	const [
+		p2pToken,
+		fraudReserve,
+		maxStakeTokens,
+		normalCooldown,
+		blacklistCooldown,
+		tokenDecimals,
+		totalStaked,
+	] = raw;
+	return {
+		p2pToken,
+		fraudReserve,
+		maxStakeTokens,
+		normalCooldown,
+		blacklistCooldown,
+		tokenDecimals,
+		totalStaked,
 	};
 }
