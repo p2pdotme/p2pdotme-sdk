@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ZodAddressSchema } from "../validation";
+import { ZodAddressSchema, ZodCurrencySchema } from "../validation";
 
 // ── Read params ─────────────────────────────────────────────────────────
 
@@ -8,6 +8,12 @@ export const ZodGetUserStakeParamsSchema = z.object({
 });
 
 export type GetUserStakeParams = z.infer<typeof ZodGetUserStakeParamsSchema>;
+
+export const ZodGetStakeBoostConfigParamsSchema = z.object({
+	currency: ZodCurrencySchema,
+});
+
+export type GetStakeBoostConfigParams = z.infer<typeof ZodGetStakeBoostConfigParamsSchema>;
 
 // ── Write params ────────────────────────────────────────────────────────
 

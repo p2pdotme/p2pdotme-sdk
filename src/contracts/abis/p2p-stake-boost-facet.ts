@@ -45,4 +45,45 @@ export const p2pStakeBoostFacetAbi = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [{ internalType: "bytes32", name: "currency", type: "bytes32" }],
+    name: "getStakeBoostConfig",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "tokensPerUsdNumerator",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "tokensPerUsdDenominator",
+            type: "uint256",
+          },
+          { internalType: "uint256", name: "maxBoostUsd", type: "uint256" },
+        ],
+        internalType: "struct P2PStakeBoostStorage.BoostConfig",
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getStakeBoostGlobals",
+    outputs: [
+      { internalType: "address", name: "p2pToken", type: "address" },
+      { internalType: "address", name: "fraudReserve", type: "address" },
+      { internalType: "uint256", name: "maxStakeTokens", type: "uint256" },
+      { internalType: "uint256", name: "normalCooldown", type: "uint256" },
+      { internalType: "uint256", name: "blacklistCooldown", type: "uint256" },
+      { internalType: "uint8", name: "tokenDecimals", type: "uint8" },
+      { internalType: "uint256", name: "totalStaked", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;

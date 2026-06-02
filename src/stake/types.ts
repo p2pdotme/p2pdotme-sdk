@@ -1,7 +1,12 @@
 import type { Address, TransactionReceipt, WalletClient } from "viem";
 import type { PublicClientLike } from "../types";
 
-export type { GetUserStakeParams, StakeParams, TopUpParams } from "./validation";
+export type {
+	GetStakeBoostConfigParams,
+	GetUserStakeParams,
+	StakeParams,
+	TopUpParams,
+} from "./validation";
 
 // ── Client config ───────────────────────────────────────────────────────
 
@@ -37,6 +42,38 @@ export interface RawUserStake {
 	readonly cooldownEnd: bigint;
 	readonly status: number;
 }
+
+/**
+ * Per-currency boost config — how many tokens map to 1 USD of boost, and the
+ * cap on USD-denominated boost a stake can unlock.
+ */
+export interface StakeBoostConfig {
+	readonly tokensPerUsdNumerator: bigint;
+	readonly tokensPerUsdDenominator: bigint;
+	readonly maxBoostUsd: bigint;
+}
+
+/** Global stake boost configuration shared across all users. */
+export interface StakeBoostGlobals {
+	readonly p2pToken: Address;
+	readonly fraudReserve: Address;
+	readonly maxStakeTokens: bigint;
+	readonly normalCooldown: bigint;
+	readonly blacklistCooldown: bigint;
+	readonly tokenDecimals: number;
+	readonly totalStaked: bigint;
+}
+
+/** Raw tuple returned by `getStakeBoostGlobals` before normalization. */
+export type RawStakeBoostGlobals = readonly [
+	Address,
+	Address,
+	bigint,
+	bigint,
+	bigint,
+	number,
+	bigint,
+];
 
 // ── Tx envelope (writes) ────────────────────────────────────────────────
 
