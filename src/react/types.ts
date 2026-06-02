@@ -30,6 +30,7 @@ export interface Sdk {
 	readonly profile: import("../profile/client").Profile;
 	readonly prices: import("../prices/client").Prices;
 	readonly orders: OrdersClient;
+	readonly stake: import("../stake/client").StakeClient;
 	readonly zkkyc?: import("../zkkyc/client").Zkkyc;
 	readonly fraudEngine?: FraudEngine;
 }
