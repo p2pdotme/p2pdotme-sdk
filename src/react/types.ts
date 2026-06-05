@@ -20,6 +20,7 @@ export interface SdkConfig {
 	readonly subgraphUrl: string;
 	readonly diamondAddress: Address;
 	readonly usdcAddress: Address;
+	readonly p2pTokenAddress: Address;
 	readonly reputationManagerAddress?: Address;
 	readonly fraudEngine?: FraudEngineSdkConfig;
 	readonly orders?: OrdersSdkConfig;
@@ -30,6 +31,7 @@ export interface Sdk {
 	readonly profile: import("../profile/client").Profile;
 	readonly prices: import("../prices/client").Prices;
 	readonly orders: OrdersClient;
+	readonly stake: import("../stake/client").StakeClient;
 	readonly zkkyc?: import("../zkkyc/client").Zkkyc;
 	readonly fraudEngine?: FraudEngine;
 }
