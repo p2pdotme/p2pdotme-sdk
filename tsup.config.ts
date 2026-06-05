@@ -76,6 +76,15 @@ export default defineConfig([
     },
   },
   {
+    entry: { stake: "src/stake/index.ts" },
+    format: ["cjs", "esm"],
+    dts: true,
+    sourcemap: true,
+    outExtension({ format }) {
+      return { js: format === "cjs" ? ".cjs" : ".mjs" };
+    },
+  },
+  {
     entry: { country: "src/country/index.ts" },
     format: ["cjs", "esm"],
     dts: true,
