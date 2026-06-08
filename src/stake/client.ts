@@ -5,6 +5,10 @@ import {
 	getStakeBoostGlobals,
 	getUserStake,
 } from "../contracts/p2p-stake";
+import {
+	type CancelUnstakeAction,
+	createCancelUnstakeAction,
+} from "./actions/cancel-unstake";
 import { type ClaimUnstakeAction, createClaimUnstakeAction } from "./actions/claim-unstake";
 import {
 	createRequestUnstakeAction,
@@ -43,6 +47,7 @@ export interface StakeClient {
 	readonly stake: StakeAction;
 	readonly topUp: TopUpAction;
 	readonly requestUnstake: RequestUnstakeAction;
+	readonly cancelUnstake: CancelUnstakeAction;
 	readonly claimUnstake: ClaimUnstakeAction;
 }
 
@@ -67,6 +72,7 @@ export function createStake(config: StakeConfig): StakeClient {
 		stake: createStakeAction({ publicClient, diamondAddress }),
 		topUp: createTopUpAction({ publicClient, diamondAddress }),
 		requestUnstake: createRequestUnstakeAction({ publicClient, diamondAddress }),
+		cancelUnstake: createCancelUnstakeAction({ publicClient, diamondAddress }),
 		claimUnstake: createClaimUnstakeAction({ publicClient, diamondAddress }),
 	};
 }

@@ -28,6 +28,13 @@ export const p2pStakeBoostFacetAbi = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "p2pBoostCancelUnstake",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [{ internalType: "address", name: "user", type: "address" }],
     name: "getUserStake",
     outputs: [
