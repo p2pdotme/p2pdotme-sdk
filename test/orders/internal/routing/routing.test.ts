@@ -10,17 +10,36 @@ import type { CircleForRouting } from "../../../../src/orders/internal/routing/t
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function makeCircle(
-	overrides: Partial<CircleForRouting> & { circleId: string },
-): CircleForRouting {
+type CircleOverrides = {
+	circleId: string;
+	currency?: string;
+	metrics?: {
+		circleScore?: number;
+		circleStatus?: string;
+		scoreState?: {
+			activeMerchantsCount?: number;
+			availableMerchantsCount?: number;
+		};
+	};
+};
+
+function makeCircle(overrides: CircleOverrides): CircleForRouting {
+	const active = overrides.metrics?.scoreState?.activeMerchantsCount ?? 5;
 	return {
-		currency: "INR",
+		circleId: overrides.circleId,
+		currency: overrides.currency ?? "INR",
 		metrics: {
-			circleScore: 100,
-			circleStatus: "active",
-			scoreState: { activeMerchantsCount: 5 },
+			circleScore: overrides.metrics?.circleScore ?? 100,
+			circleStatus: overrides.metrics?.circleStatus ?? "active",
+			scoreState: {
+				activeMerchantsCount: active,
+				// Default availableMerchantsCount to activeMerchantsCount so
+				// pre-existing fixtures keep working; tests that need them to
+				// differ can override explicitly.
+				availableMerchantsCount:
+					overrides.metrics?.scoreState?.availableMerchantsCount ?? active,
+			},
 		},
-		...overrides,
 	};
 }
 
@@ -37,52 +56,115 @@ function seedRandom(values: number[]) {
 // ── circleWeight ────────────────────────────────────────────────────────
 
 describe("circleWeight", () => {
-	it("returns raw score for active circles", () => {
+	it("multiplies score by availableMerchantsCount for active circles", () => {
 		const circle = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 80, circleStatus: "active", scoreState: { activeMerchantsCount: 3 } },
+			metrics: {
+				circleScore: 80,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 3, availableMerchantsCount: 3 },
+			},
 		});
-		expect(circleWeight(circle)).toBe(80);
+		expect(circleWeight(circle)).toBe(80 * 3);
 	});
 
-	it("caps bootstrap circles at 25", () => {
+	it("caps bootstrap base at 25 before multiplying by capacity", () => {
 		const circle = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 50, circleStatus: "bootstrap", scoreState: { activeMerchantsCount: 1 } },
+			metrics: {
+				circleScore: 50,
+				circleStatus: "bootstrap",
+				scoreState: { activeMerchantsCount: 4, availableMerchantsCount: 4 },
+			},
 		});
-		expect(circleWeight(circle)).toBe(25);
+		// base = min(50, 25) = 25; weight = 25 × 4
+		expect(circleWeight(circle)).toBe(25 * 4);
 	});
 
-	it("returns raw score for bootstrap circles when score < 25", () => {
+	it("uses raw score for bootstrap circles when score < 25", () => {
 		const circle = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 10, circleStatus: "bootstrap", scoreState: { activeMerchantsCount: 1 } },
+			metrics: {
+				circleScore: 10,
+				circleStatus: "bootstrap",
+				scoreState: { activeMerchantsCount: 2, availableMerchantsCount: 2 },
+			},
 		});
-		expect(circleWeight(circle)).toBe(10);
+		expect(circleWeight(circle)).toBe(10 * 2);
 	});
 
-	it("scales paused circles by 0.3", () => {
+	it("scales paused base by 0.3 before multiplying by capacity", () => {
 		const circle = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 100, circleStatus: "paused", scoreState: { activeMerchantsCount: 2 } },
+			metrics: {
+				circleScore: 100,
+				circleStatus: "paused",
+				scoreState: { activeMerchantsCount: 2, availableMerchantsCount: 2 },
+			},
 		});
-		expect(circleWeight(circle)).toBeCloseTo(30);
+		// base = 100 × 0.3 = 30; weight = 30 × 2
+		expect(circleWeight(circle)).toBeCloseTo(60);
 	});
 
-	it("returns raw score for unknown status", () => {
+	it("treats unknown status as raw score base", () => {
 		const circle = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 60, circleStatus: "unknown", scoreState: { activeMerchantsCount: 0 } },
+			metrics: {
+				circleScore: 60,
+				circleStatus: "unknown",
+				scoreState: { activeMerchantsCount: 4, availableMerchantsCount: 4 },
+			},
 		});
-		expect(circleWeight(circle)).toBe(60);
+		expect(circleWeight(circle)).toBe(60 * 4);
+	});
+
+	it("returns zero when availableMerchantsCount is zero, regardless of score", () => {
+		const circle = makeCircle({
+			circleId: "1",
+			metrics: {
+				circleScore: 90,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 5, availableMerchantsCount: 0 },
+			},
+		});
+		expect(circleWeight(circle)).toBe(0);
 	});
 
 	it("handles zero score", () => {
 		const circle = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 0, circleStatus: "active", scoreState: { activeMerchantsCount: 0 } },
+			metrics: {
+				circleScore: 0,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 5, availableMerchantsCount: 5 },
+			},
 		});
 		expect(circleWeight(circle)).toBe(0);
+	});
+
+	it("equalizes per-merchant load ratio to score ratio", () => {
+		// Per-merchant load = weight / availableMerchantsCount = base score.
+		// So the ratio of per-merchant loads between two active circles
+		// equals their score ratio, independent of merchant pool sizes.
+		const big = makeCircle({
+			circleId: "1",
+			metrics: {
+				circleScore: 50,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 20, availableMerchantsCount: 20 },
+			},
+		});
+		const small = makeCircle({
+			circleId: "2",
+			metrics: {
+				circleScore: 80,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 5, availableMerchantsCount: 5 },
+			},
+		});
+		const bigPerMerchant = circleWeight(big) / big.metrics.scoreState.availableMerchantsCount;
+		const smallPerMerchant = circleWeight(small) / small.metrics.scoreState.availableMerchantsCount;
+		expect(smallPerMerchant / bigPerMerchant).toBeCloseTo(80 / 50);
 	});
 });
 
@@ -107,6 +189,21 @@ describe("filterEligibleCircles", () => {
 
 	it("returns empty for empty input", () => {
 		expect(filterEligibleCircles([], "INR")).toEqual([]);
+	});
+
+	it("excludes circles with zero availableMerchantsCount", () => {
+		const withCap = makeCircle({
+			circleId: "1",
+			currency: "INR",
+			metrics: { scoreState: { activeMerchantsCount: 4, availableMerchantsCount: 4 } },
+		});
+		const withoutCap = makeCircle({
+			circleId: "2",
+			currency: "INR",
+			metrics: { scoreState: { activeMerchantsCount: 4, availableMerchantsCount: 0 } },
+		});
+		const result = filterEligibleCircles([withCap, withoutCap], "INR");
+		expect(result.map((c) => c.circleId)).toEqual(["1"]);
 	});
 });
 
@@ -147,19 +244,27 @@ describe("selectCircle", () => {
 		expect(result).toBe(active);
 	});
 
-	it("explores: picks from all eligible circles (Math.random < 0.25)", () => {
+	it("explores: picks from all eligible circles (BOOTSTRAP_RESERVE <= r < 0.35)", () => {
 		const active = makeCircle({
 			circleId: "1",
-			metrics: { circleScore: 100, circleStatus: "active", scoreState: { activeMerchantsCount: 5 } },
+			metrics: {
+				circleScore: 100,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 5, availableMerchantsCount: 5 },
+			},
 		});
 		const paused = makeCircle({
 			circleId: "2",
-			metrics: { circleScore: 100, circleStatus: "paused", scoreState: { activeMerchantsCount: 2 } },
+			metrics: {
+				circleScore: 100,
+				circleStatus: "paused",
+				scoreState: { activeMerchantsCount: 2, availableMerchantsCount: 2 },
+			},
 		});
 
-		// First random < 0.25 → explore; second random picks high enough to land on paused
-		// Weights: active=100, paused=30 → total=130
-		// To pick paused: rand must exceed 100 → need > 100/130 ≈ 0.77
+		// r=0.1: not in reserve (0.1 < 0.1 is false), 0.1 < 0.35 → explore.
+		// Capacity-aware weights: active=100×5=500, paused=30×2=60 → total=560.
+		// Second random 0.9 → rand = 0.9 × 560 = 504. 504-500=4, 4-60=-56 → paused.
 		seedRandom([0.1, 0.9]);
 		const result = selectCircle([active, paused]);
 		expect(result).toBe(paused);
@@ -201,6 +306,49 @@ describe("selectCircle", () => {
 
 		// highScore (900) should be picked ~90% of the time
 		expect(counts["1"]).toBeGreaterThan(counts["2"] * 2);
+	});
+
+	it("bootstrap reserve: picks only from bootstrap circles when r < 0.1", () => {
+		const active = makeCircle({
+			circleId: "1",
+			metrics: {
+				circleScore: 900,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 10, availableMerchantsCount: 10 },
+			},
+		});
+		const bootstrap = makeCircle({
+			circleId: "2",
+			metrics: {
+				circleScore: 20,
+				circleStatus: "bootstrap",
+				scoreState: { activeMerchantsCount: 1, availableMerchantsCount: 1 },
+			},
+		});
+
+		// r=0.05 → bootstrap reserve branch.
+		// Even though active has weight 9000 vs bootstrap 20, reserve picks
+		// from bootstrap-only.
+		seedRandom([0.05, 0.0]);
+		const result = selectCircle([active, bootstrap]);
+		expect(result).toBe(bootstrap);
+	});
+
+	it("bootstrap reserve falls through to e-greedy when no bootstrap circles exist", () => {
+		const active = makeCircle({
+			circleId: "1",
+			metrics: {
+				circleScore: 100,
+				circleStatus: "active",
+				scoreState: { activeMerchantsCount: 5, availableMerchantsCount: 5 },
+			},
+		});
+
+		// r=0.05 — would hit reserve, but no bootstrap circles → falls through.
+		// 0.05 < 0.35 → explore branch over active alone.
+		seedRandom([0.05, 0.0]);
+		const result = selectCircle([active]);
+		expect(result).toBe(active);
 	});
 });
 
