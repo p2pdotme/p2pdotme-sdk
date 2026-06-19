@@ -16,6 +16,7 @@ export const CIRCLES_FOR_ROUTING_QUERY = /* GraphQL */ `
         circleStatus
         scoreState {
           activeMerchantsCount
+          availableMerchantsCount
         }
       }
     }

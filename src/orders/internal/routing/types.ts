@@ -9,6 +9,7 @@ export type { PublicClientLike } from "../../../types";
 
 export interface CircleScoreState {
 	readonly activeMerchantsCount: number;
+	readonly availableMerchantsCount: number;
 }
 
 export interface CircleMetrics {

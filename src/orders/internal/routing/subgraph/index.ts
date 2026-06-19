@@ -30,12 +30,15 @@ export function getCirclesForRouting(
 				(message, cause, d) =>
 					new OrderRoutingError(message, { code: "VALIDATION_ERROR", cause, context: { data: d } }),
 			).map((validated) => {
+				// Filter by availableMerchantsCount (point-in-time routing capacity)
+				// rather than activeMerchantsCount, which also counts merchants with
+				// pending unstake requests and overstates real capacity.
 				const circles = validated.circles.filter(
-					(item) => Number(item.metrics.scoreState.activeMerchantsCount) > 0,
+					(item) => Number(item.metrics.scoreState.availableMerchantsCount) > 0,
 				);
 				logger.info("fetched circles from subgraph", {
 					total: validated.circles.length,
-					withActiveMerchants: circles.length,
+					withAvailableMerchants: circles.length,
 					circles,
 				});
 				return circles;
