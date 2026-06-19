@@ -5,6 +5,7 @@ import { ZodAddressSchema } from "../../../validation/schemas.validation";
 
 export const ZodCircleScoreStateSchema = z.object({
 	activeMerchantsCount: z.coerce.number(),
+	availableMerchantsCount: z.coerce.number(),
 });
 
 export const ZodCircleMetricsForRoutingSchema = z.object({
