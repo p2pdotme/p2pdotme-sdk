@@ -3,12 +3,14 @@ import type { Address } from "viem";
 import {
 	prepareSocialVerify,
 	prepareSubmitAnonAadharProof,
+	prepareSubmitKycAttestation,
 	prepareZkPassportRegister,
 } from "../contracts/reputation-manager/writes";
 import type { ZkkycError } from "./errors";
 import type { ZkkycConfig } from "./types";
 import type {
 	AnonAadharProofParams,
+	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
 } from "./validation";
@@ -22,6 +24,9 @@ export interface Zkkyc {
 	): Result<{ to: Address; data: `0x${string}` }, ZkkycError>;
 	prepareZkPassportRegister(
 		params: ZkPassportRegisterParams,
+	): Result<{ to: Address; data: `0x${string}` }, ZkkycError>;
+	prepareSubmitKycAttestation(
+		params: SimpleKycSubmitParams,
 	): Result<{ to: Address; data: `0x${string}` }, ZkkycError>;
 }
 
@@ -37,5 +42,7 @@ export function createZkkyc(config: ZkkycConfig): Zkkyc {
 			prepareSubmitAnonAadharProof(reputationManagerAddress, params),
 		prepareZkPassportRegister: (params) =>
 			prepareZkPassportRegister(reputationManagerAddress, params),
+		prepareSubmitKycAttestation: (params) =>
+			prepareSubmitKycAttestation(reputationManagerAddress, params),
 	};
 }
