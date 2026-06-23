@@ -197,4 +197,30 @@ export const reputationManagerAbi = [
 		stateMutability: "nonpayable",
 		type: "function",
 	},
+	{
+		inputs: [
+			{ internalType: "bytes32", name: "nullifier", type: "bytes32" },
+			{ internalType: "uint256", name: "limit", type: "uint256" },
+			{ internalType: "uint256", name: "expiry", type: "uint256" },
+			{ internalType: "bytes", name: "signature", type: "bytes" },
+		],
+		name: "submitKycAttestation",
+		outputs: [],
+		stateMutability: "nonpayable",
+		type: "function",
+	},
+	{
+		inputs: [],
+		name: "kycRp",
+		outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+		stateMutability: "view",
+		type: "function",
+	},
+	{
+		inputs: [{ internalType: "address", name: "", type: "address" }],
+		name: "kycVerified",
+		outputs: [{ internalType: "bool", name: "", type: "bool" }],
+		stateMutability: "view",
+		type: "function",
+	},
 ] as const;

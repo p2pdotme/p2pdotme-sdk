@@ -109,3 +109,58 @@ export interface ZkPassportSession {
 	/** Aborts the flow. The result promise will reject with ZK_PASSPORT_ABORTED. */
 	readonly abort: () => void;
 }
+
+// ── simple-kyc (hosted passport + liveness wizard) ────────────────────────────
+
+/**
+ * Params for `createSimpleKycFlow`. The app opens the hosted simple-kyc wizard,
+ * which runs onboard → passport → liveness → face match/dedup and, on approval,
+ * redirects back to `redirectUrl` with `?code=<code>&state=<state>`. The app
+ * then calls `resumeSimpleKycFlow` to redeem the code for the EIP-712 attestation.
+ */
+export interface SimpleKycFlowParams {
+	/**
+	 * Base URL exposing the browser-facing `/v1/widget/public-sessions` and
+	 * `/v1/widget/attestation` endpoints — the `kyc-proxy` in a client-only setup
+	 * (e.g. http://localhost:8787). The proxy holds the X-API-Key and forwards to
+	 * simple-kyc's key-gated endpoints.
+	 */
+	readonly baseUrl: string;
+	/** The user's EVM wallet — bound into the attestation and credited on-chain. */
+	readonly walletAddress: Address;
+	/** Tenant slug (one per consuming contract), e.g. "p2p-reputation". */
+	readonly tenant: string;
+	/** Return URL — pass `${window.location.origin}<route>` so each app self-routes. */
+	readonly redirectUrl: string;
+	/**
+	 * ISO-2 country code (e.g. "IN"). Required — the embedded wizard skips the
+	 * country step, so the app must prebind it. Must be one of simple-kyc's
+	 * supported markets (IN, NG, BR, MX, CO, AR, VE, ID).
+	 */
+	readonly country: string;
+	/** Opaque state round-tripped back to the app (CSRF/nonce + page to restore). */
+	readonly state?: string;
+	/** Status callback. */
+	readonly onStatus?: (status: SimpleKycStatus) => void;
+}
+
+export type SimpleKycStatus =
+	| { type: "session_created"; widgetUrl: string }
+	| { type: "redirecting"; widgetUrl: string };
+
+export interface SimpleKycSession {
+	/** The hosted wizard URL to navigate to. */
+	readonly widgetUrl: string;
+	/** Convenience: navigate the browser to the wizard (no-op outside the browser). */
+	readonly redirect: () => void;
+}
+
+/** The on-chain-ready attestation, shaped for `prepareSubmitKycAttestation`. */
+export interface SimpleKycAttestation {
+	readonly nullifier: `0x${string}`;
+	readonly limit: bigint;
+	readonly expiry: bigint;
+	readonly signature: `0x${string}`;
+	/** The opaque unique-human handle (no PII), for app-side bookkeeping. */
+	readonly identityHash?: string;
+}
