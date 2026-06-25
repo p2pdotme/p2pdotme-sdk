@@ -66,7 +66,7 @@ export function createReclaimFlow(
 				onStatus?.({ type: "session_created", sessionId, requestUrl });
 
 				if (typeof window !== "undefined") {
-					reclaimProofRequest.triggerReclaimFlow();
+					reclaimProofRequest.triggerReclaimFlow({ verificationMode: "app" });
 				}
 			}
 

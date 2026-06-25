@@ -1,6 +1,6 @@
 {
   "name": "@p2pdotme/sdk",
-  "version": "1.2.1-kyc.1",
+  "version": "1.2.1-kyc.2",
   "description": "P2P.me SDK",
   "license": "MIT",
   "type": "module",
@@ -62,16 +62,36 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/index.d.ts"],
-      "orders": ["./dist/orders.d.ts"],
-      "react": ["./dist/react.d.ts"],
-      "qr-parsers": ["./dist/qr-parsers.d.ts"],
-      "fraud-engine": ["./dist/fraud-engine.d.ts"],
-      "profile": ["./dist/profile.d.ts"],
-      "prices": ["./dist/prices.d.ts"],
-      "stake": ["./dist/stake.d.ts"],
-      "country": ["./dist/country.d.ts"],
-      "zkkyc": ["./dist/zkkyc.d.ts"]
+      ".": [
+        "./dist/index.d.ts"
+      ],
+      "orders": [
+        "./dist/orders.d.ts"
+      ],
+      "react": [
+        "./dist/react.d.ts"
+      ],
+      "qr-parsers": [
+        "./dist/qr-parsers.d.ts"
+      ],
+      "fraud-engine": [
+        "./dist/fraud-engine.d.ts"
+      ],
+      "profile": [
+        "./dist/profile.d.ts"
+      ],
+      "prices": [
+        "./dist/prices.d.ts"
+      ],
+      "stake": [
+        "./dist/stake.d.ts"
+      ],
+      "country": [
+        "./dist/country.d.ts"
+      ],
+      "zkkyc": [
+        "./dist/zkkyc.d.ts"
+      ]
     }
   },
   "files": [
@@ -123,7 +143,7 @@
   },
   "peerDependencies": {
     "react": "18 || ^19",
-    "@reclaimprotocol/js-sdk": "^4",
+    "@reclaimprotocol/js-sdk": "^5",
     "@zkpassport/sdk": ">=0.12.4 <0.15.0"
   },
   "peerDependenciesMeta": {
