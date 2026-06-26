@@ -29,9 +29,9 @@ import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 
-// 1. Run the Reclaim UX flow — user scans the deep link on their phone and
-//    completes the verification; the promise resolves with the proof.
-const proofResult = await createReclaimFlow({
+// 1. Initialize the Reclaim session (on page load). `init()` runs here, so the
+//    request URL is ready immediately for display as a QR / deep link.
+const sessionResult = await createReclaimFlow({
   appId: RECLAIM_APP_ID,
   appSecret: RECLAIM_APP_SECRET,
   providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
@@ -39,9 +39,15 @@ const proofResult = await createReclaimFlow({
   walletAddress: account.address,
   onStatus: (s) => console.log(s),
 });
+if (sessionResult.isErr()) throw sessionResult.error;
+const session = sessionResult.value;
+
+// 2. Start verification (on user action — e.g. button click). This triggers the
+//    in-app flow and polls until the proof arrives. `session.abort()` cancels it.
+const proofResult = await session.start();
 if (proofResult.isErr()) throw proofResult.error;
 
-// 2. Prepare the on-chain calldata.
+// 3. Prepare the on-chain calldata.
 const zkkyc = createZkkyc({ reputationManagerAddress: REP_MANAGER_ADDRESS });
 const prepared = zkkyc.prepareSocialVerify({
   _socialName: proofResult.value._socialName,
@@ -79,9 +85,9 @@ Returns:
 
 All three are pure encoders; no network, no wallet.
 
-### `createReclaimFlow(params)` → `ResultAsync<ReclaimProofResult, ZkkycError>`
+### `createReclaimFlow(params)` → `ResultAsync<ReclaimSession, ZkkycError>`
 
-Runs the full Reclaim flow: initializes a session, surfaces the request URL via `onStatus` so the consumer can display a QR / deep-link, polls the Reclaim API until a proof arrives, transforms the proof for on-chain use, and returns it.
+Initializes a Reclaim session and returns it. `init()` runs eagerly, so call this on page load — the request URL is surfaced via the `session_created` `onStatus` event (and on `session.requestUrl`) for immediate QR / deep-link display. Calling `session.start()` (on user action, e.g. a button click) triggers the in-app flow, polls the Reclaim API until a proof arrives, transforms it for on-chain use, and resolves with `ReclaimProofResult`. `session.abort()` cancels in-flight polling.
 
 Single-object `ReclaimFlowParams` (app-level config + per-call options merged):
 

@@ -23,6 +23,7 @@ export { createSimpleKycFlow, resumeSimpleKycFlow } from "./orchestrators/simple
 export type {
 	ReclaimFlowParams,
 	ReclaimProofResult,
+	ReclaimSession,
 	ReclaimStatus,
 	SimpleKycAttestation,
 	SimpleKycFlowParams,

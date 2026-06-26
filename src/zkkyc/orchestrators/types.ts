@@ -65,6 +65,17 @@ export interface ReclaimProofResult {
 	readonly sessionId: string;
 }
 
+export interface ReclaimSession {
+	/** The Reclaim session id (empty until known when resuming). */
+	readonly sessionId: string;
+	/** URL to display as a QR code or open as a deep link. Empty when resuming an existing session. */
+	readonly requestUrl: string;
+	/** Triggers the in-app Reclaim flow (browser only) and polls until the proof is ready. Call on user action (e.g. button click). */
+	readonly start: () => ResultAsync<ReclaimProofResult, ZkkycError>;
+	/** Aborts an in-flight polling loop started by `start`. */
+	readonly abort: () => void;
+}
+
 // ── ZK Passport ──────────────────────────────────────────────────────────────
 
 /**
