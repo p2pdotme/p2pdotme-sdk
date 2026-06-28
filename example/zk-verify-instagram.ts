@@ -65,9 +65,9 @@ async function main(): Promise<void> {
 	kv("Platform", PLATFORM);
 	kv("Wallet", walletAddress);
 
-	// ── 2. Start the Reclaim flow ─────────────────────────────────────
-	step(2, "Start Reclaim session and wait for proof");
-	const proofResult = await createReclaimFlow({
+	// ── 2. Initialize the Reclaim session (on page load) ──────────────
+	step(2, "Initialize Reclaim session");
+	const sessionResult = await createReclaimFlow({
 		appId: RECLAIM_APP_ID,
 		appSecret: RECLAIM_APP_SECRET,
 		providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
@@ -94,13 +94,22 @@ async function main(): Promise<void> {
 		},
 	});
 
+	if (sessionResult.isErr()) {
+		console.error(`   ✖ Reclaim init failed (${sessionResult.error.code}): ${sessionResult.error.message}`);
+		process.exit(1);
+	}
+
+	// ── 3. Start verification (on user action) — triggers the flow + polls ──
+	step(3, "Start verification and wait for proof");
+	const proofResult = await sessionResult.value.start();
+
 	if (proofResult.isErr()) {
 		console.error(`   ✖ Reclaim flow failed (${proofResult.error.code}): ${proofResult.error.message}`);
 		process.exit(1);
 	}
 	const proof = proofResult.value;
 
-	step(3, "Proof summary");
+	step(4, "Proof summary");
 	kv("_socialName", proof._socialName);
 	kv("sessionId", proof.sessionId);
 	kv("proofs", proof.proofs.length);
@@ -111,7 +120,7 @@ async function main(): Promise<void> {
 	}
 
 	// ── 3. Prepare the on-chain calldata ──────────────────────────────
-	step(4, "Prepare socialVerify calldata");
+	step(5, "Prepare socialVerify calldata");
 	const zkkyc = createZkkyc({ reputationManagerAddress: REPUTATION_MANAGER_ADDRESS });
 	const prepared = zkkyc.prepareSocialVerify({
 		_socialName: proof._socialName,
@@ -132,7 +141,7 @@ async function main(): Promise<void> {
 	}
 
 	// ── 4. Submit ─────────────────────────────────────────────────────
-	step(5, "Submit socialVerify on-chain");
+	step(6, "Submit socialVerify on-chain");
 	const account = privateKeyToAccount(PRIVATE_KEY);
 	const transport = http(RPC_URL);
 	const publicClient = createPublicClient({ chain: CHAIN, transport });
