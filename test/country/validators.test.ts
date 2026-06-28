@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { validateArgentinePaymentId } from "../../src/country/currencies/ars";
 import { validatePIXId } from "../../src/country/currencies/brl";
 import { validateColombianPaymentId } from "../../src/country/currencies/cop";
+import {
+	validateEcuadorianAccountName,
+	validateEcuadorianAccountNumber,
+	validateEcuadorianCedula,
+} from "../../src/country/currencies/ecu";
 import { validateRevolutId } from "../../src/country/currencies/eur";
 import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr";
 import { validateUPIId } from "../../src/country/currencies/inr";
@@ -323,5 +328,65 @@ describe("validateRevolutId (EUR / USD)", () => {
 		["special char not in allowed set", "user!name"],
 	])("rejects %s", (_label, input) => {
 		expect(validateRevolutId(input)).toBe(false);
+	});
+});
+
+// ── ECU ───────────────────────────────────────────────────────────────────────
+
+describe("validateEcuadorianCedula (ECU)", () => {
+	it.each([
+		["valid Pichincha cédula", "1710034065"],
+		["valid cédula with surrounding spaces", " 1710034065 "],
+		["valid 13-digit natural-person RUC", "1710034065001"],
+	])("accepts %s", (_label, input) => {
+		expect(validateEcuadorianCedula(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (9 digits)", "171003406"],
+		["wrong length (11 digits)", "17100340650"],
+		["bad province (99)", "9910034065"],
+		["third digit >= 6", "1760034065"],
+		["failed checksum", "1710034066"],
+	])("rejects %s", (_label, input) => {
+		expect(validateEcuadorianCedula(input)).toBe(false);
+	});
+});
+
+describe("validateEcuadorianAccountNumber (ECU)", () => {
+	it.each([
+		["8-digit account", "21001234"],
+		["account with dashes (stripped)", "2100-1234-56"],
+	])("accepts %s", (_label, input) => {
+		expect(validateEcuadorianAccountNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["too short (3 digits)", "123"],
+		["letters only", "abcd"],
+	])("rejects %s", (_label, input) => {
+		expect(validateEcuadorianAccountNumber(input)).toBe(false);
+	});
+});
+
+describe("validateEcuadorianAccountName (ECU)", () => {
+	it.each([
+		["simple name", "Juan Perez"],
+		["accented name", "José Muñoz"],
+		["name with apostrophe", "O'Brien"],
+	])("accepts %s", (_label, input) => {
+		expect(validateEcuadorianAccountName(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["single char", "J"],
+		["leading digit", "1Juan"],
+	])("rejects %s", (_label, input) => {
+		expect(validateEcuadorianAccountName(input)).toBe(false);
 	});
 });
