@@ -91,7 +91,7 @@ export const ECU_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 	},
 	{
 		key: "account-name",
-		label: "ACCOUNT_NAME",
+		label: "NAME",
 		placeholder: ECU_PLACEHOLDER_NAME,
 		displayLabel: "Name",
 		validate: validateEcuadorianAccountName,
