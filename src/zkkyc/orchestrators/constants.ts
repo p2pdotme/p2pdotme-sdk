@@ -7,6 +7,7 @@ export const DEFAULT_RECLAIM_PROVIDER_IDS: Record<SocialPlatform, string> = {
 	x: "aad95818-f726-4a34-be97-8d1f47631b03",
 	instagram: "7e5b59a9-56c5-490c-a169-82a443f9b507",
 	facebook: "2701510b-c835-4820-84f0-d9e74569656b",
+	binance: "7e40c007-f432-4d47-ac00-3e0762f8a7a0",
 };
 
 /** ZK Passport app store links. */
@@ -19,3 +20,6 @@ export const ZK_PASSPORT_APP_LINKS = {
 export const RECLAIM_APP_LINKS = {
 	ANDROID: "https://play.google.com/store/apps/details?id=org.reclaimprotocol.app",
 } as const;
+
+/** Default tenant slug for the P2P reputation contract on the simple-kyc service. */
+export const SIMPLE_KYC_DEFAULT_TENANT = "p2p-reputation";
