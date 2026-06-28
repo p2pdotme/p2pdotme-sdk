@@ -1,6 +1,7 @@
 export * from "./ars";
 export * from "./brl";
 export * from "./cop";
+export * from "./ecu";
 export * from "./eur";
 export * from "./idr";
 export * from "./inr";
