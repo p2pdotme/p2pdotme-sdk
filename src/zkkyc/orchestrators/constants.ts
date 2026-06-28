@@ -20,3 +20,6 @@ export const ZK_PASSPORT_APP_LINKS = {
 export const RECLAIM_APP_LINKS = {
 	ANDROID: "https://play.google.com/store/apps/details?id=org.reclaimprotocol.app",
 } as const;
+
+/** Default tenant slug for the P2P reputation contract on the simple-kyc service. */
+export const SIMPLE_KYC_DEFAULT_TENANT = "p2p-reputation";
