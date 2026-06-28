@@ -13,6 +13,8 @@ export type ZkkycErrorCode =
 	| "ZK_PASSPORT_REJECTED"
 	| "ZK_PASSPORT_VERIFICATION_FAILED"
 	| "ZK_PASSPORT_ABORTED"
+	| "SIMPLE_KYC_SESSION_FAILED"
+	| "SIMPLE_KYC_REDEEM_FAILED"
 	| "PEER_DEPENDENCY_MISSING";
 
 export class ZkkycError extends SdkError<ZkkycErrorCode> {
