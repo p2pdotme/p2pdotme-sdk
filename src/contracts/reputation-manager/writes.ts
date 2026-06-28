@@ -4,11 +4,13 @@ import { validate } from "../../validation";
 import { ZkkycError } from "../../zkkyc/errors";
 import type {
 	AnonAadharProofParams,
+	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
 } from "../../zkkyc/validation";
 import {
 	ZodAnonAadharProofParamsSchema,
+	ZodSimpleKycSubmitParamsSchema,
 	ZodSocialVerifyParamsSchema,
 	ZodZkPassportRegisterParamsSchema,
 } from "../../zkkyc/validation";
@@ -85,6 +87,40 @@ export function prepareSubmitAnonAadharProof(
 			}),
 			(error) =>
 				new ZkkycError("Failed to encode submitAnonAadharProof", {
+					code: "ENCODE_ERROR",
+					cause: error,
+				}),
+		)(),
+	);
+}
+
+/** Prepares a simple-kyc EIP-712 attestation submission (awards KYC rp). */
+export function prepareSubmitKycAttestation(
+	reputationManagerAddress: Address,
+	params: SimpleKycSubmitParams,
+): Result<{ to: Address; data: `0x${string}` }, ZkkycError> {
+	return validate(
+		ZodSimpleKycSubmitParamsSchema,
+		params,
+		(message, cause, data) =>
+			new ZkkycError(message, { code: "VALIDATION_ERROR", cause, context: { params: data } }),
+	).andThen((validated) =>
+		Result.fromThrowable(
+			() => ({
+				to: reputationManagerAddress,
+				data: encodeFunctionData({
+					abi: ABIS.EXTERNAL.REPUTATION_MANAGER,
+					functionName: "submitKycAttestation",
+					args: [
+						validated.nullifier as `0x${string}`,
+						validated.limit,
+						validated.expiry,
+						validated.signature as `0x${string}`,
+					],
+				}),
+			}),
+			(error) =>
+				new ZkkycError("Failed to encode submitKycAttestation", {
 					code: "ENCODE_ERROR",
 					cause: error,
 				}),
