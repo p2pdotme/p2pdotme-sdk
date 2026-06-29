@@ -55,6 +55,18 @@ describe("parseQR dispatcher", () => {
 		expect(data.paymentAddress).toBe("SGVsbG8=?x=1");
 	});
 
+	it("dispatches ECU to the DeUna parser", async () => {
+		const data = unwrap(
+			await parseQR({
+				qrData: "https://pagar.deuna.app/demo/merchant?id=abc123",
+				currency: "ECU",
+				sellPrice: 1,
+			}),
+		);
+		expect(data.paymentAddress).toBe("abc123");
+		expect(data.amount).toBeUndefined();
+	});
+
 	it.each([
 		["empty", ""],
 		["whitespace", "   "],
