@@ -15,6 +15,7 @@ src/country/
 │   ├── ven.ts           # Venezuela — Pago Móvil
 │   ├── ngn.ts           # Nigeria — NIP
 │   ├── cop.ts           # Colombia — Transferencia (Nequi / Daviplata)
+│   ├── ecu.ts           # Ecuador — Transferencia / DeUna QR
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
@@ -66,6 +67,7 @@ validatePIXId("user@example.com"); // true
 | VEN | Venezuela | Pago Móvil | Yes | No |
 | NGN | Nigeria | NIP | Yes | No |
 | COP | Colombia | Transferencia | Yes | Yes |
+| ECU | Ecuador | Transferencia / DeUna | Yes | No |
 | EUR | Revolut EUR | Revolut | Yes | No |
 | USD | Revolut USD | Revolut | Yes | No |
 
@@ -85,6 +87,7 @@ validatePIXId("user@example.com"); // true
 | `validateVenezuelanRif` | VEN | `V` prefix + digits (Cédula, natural persons only) |
 | `validateNigerianAccountNumber` | NGN | Exactly 10 digits (NUBAN) |
 | `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
+| `validateEcuadorianCedula` | ECU | 10-digit cédula (módulo-10) or 13-digit RUC |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs
