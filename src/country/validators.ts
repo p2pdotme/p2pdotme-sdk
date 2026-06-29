@@ -1,6 +1,9 @@
 export {
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
+	validateEcuadorianAccountName,
+	validateEcuadorianAccountNumber,
+	validateEcuadorianCedula,
 	validateIndonesianPhoneNumber,
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
