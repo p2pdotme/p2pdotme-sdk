@@ -125,7 +125,7 @@ export const ECU_COUNTRY_OPTION: CountryOption = {
 	phoneCode: "+593",
 	telegramSupportChannel: "https://t.me/Ecuador_P2P",
 	twitterUsername: "P2Pdotme_Ecu",
-	smsCountryCodes: ["EC"],
+	smsCountryCodes: [],
 	precision: 2,
 	isAlpha: true,
 	disabled: false,
