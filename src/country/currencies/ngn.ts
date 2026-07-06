@@ -68,7 +68,7 @@ export const NGN_COUNTRY_OPTION: CountryOption = {
 	phoneCode: "+234",
 	telegramSupportChannel: "https://t.me/p2pmengn",
 	twitterUsername: "p2pmeNigeria",
-	smsCountryCodes: ["NG"],
+	smsCountryCodes: [],
 	precision: 2,
 	isAlpha: true,
 	disabled: false,
