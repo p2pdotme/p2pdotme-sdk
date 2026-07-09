@@ -6,7 +6,7 @@ export function parseAmount(
 	amountStr: string,
 	sellPrice: number,
 ): { usdc: number; fiat: number } | null {
-	if (!amountStr || amountStr.trim() === "") return null;
+	if (!amountStr || amountStr.trim() === "" || sellPrice <= 0) return null;
 
 	const fiat = parseFloat(amountStr.trim());
 	if (Number.isNaN(fiat) || fiat <= 0) return null;
