@@ -13,6 +13,7 @@ QR code parsers for P2P.me payment networks. Extracts payment addresses and amou
 | VEN      | Venezuela   | Pago Movil      | Base64 payload  |
 | NGN      | Nigeria     | NQR / NIP       | EMVCo TLV + CRC, SPD |
 | ECU      | Ecuador     | DeUna           | URL             |
+| PEN      | Peru        | Yape / Plin     | EMVCo TLV + CRC |
 
 ## Installation
 

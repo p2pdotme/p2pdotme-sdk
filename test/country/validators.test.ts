@@ -12,6 +12,7 @@ import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr"
 import { validateUPIId } from "../../src/country/currencies/inr";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
+import { validatePeruvianPaymentKey, validatePeruvianQr } from "../../src/country/currencies/pen";
 import { validateVenezuelanPhoneNumber, validateVenezuelanRif } from "../../src/country/currencies/ven";
 
 // ── INR ─────────────────────────────────────────────────────────────────────
@@ -300,6 +301,59 @@ describe("validateColombianPaymentId (COP)", () => {
 		["@ with spaces", "@ juanperez"],
 	])("rejects %s", (_label, input) => {
 		expect(validateColombianPaymentId(input)).toBe(false);
+	});
+});
+
+// ── PEN ─────────────────────────────────────────────────────────────────────
+
+describe("validatePeruvianPaymentKey (PEN)", () => {
+	it.each([
+		["20-digit CCI", "00212345678901234567"],
+		["20-digit CCI with spaces (stripped)", "0021 2345 6789 0123 4567"],
+		["Yape/Plin phone", "987654321"],
+		["phone with +51 prefix", "+51987654321"],
+		["phone with 51 prefix", "51987654321"],
+		["phone with +51 and spaces", "+51 987654321"],
+	])("accepts %s", (_label, input) => {
+		expect(validatePeruvianPaymentKey(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["19-digit CCI (too short)", "0021234567890123456"],
+		["21-digit CCI (too long)", "002123456789012345678"],
+		["phone not starting with 9", "887654321"],
+		["phone too short (8 digits)", "98765432"],
+		["contains letters", "9876543ab"],
+	])("rejects %s", (_label, input) => {
+		expect(validatePeruvianPaymentKey(input)).toBe(false);
+	});
+});
+
+describe("validatePeruvianQr (PEN)", () => {
+	const SAMPLE =
+		"0002010102113932acfba6cb922753c690f09280f365d7a25204561153036045802PE5906YAPERO6004Lima6304ECE9";
+
+	it("accepts the real Yape QR sample", () => {
+		expect(validatePeruvianQr(SAMPLE)).toBe(true);
+	});
+
+	it("rejects a payload with a non-604 currency (tag 53)", () => {
+		const tweaked = SAMPLE.replace("5303604", "5303840");
+		expect(validatePeruvianQr(tweaked)).toBe(false);
+	});
+
+	it("rejects a payload with a corrupted CRC", () => {
+		const corrupted = SAMPLE.replace("6304ECE9", "6304FFFF");
+		expect(validatePeruvianQr(corrupted)).toBe(false);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+	])("rejects %s", (_label, input) => {
+		expect(validatePeruvianQr(input)).toBe(false);
 	});
 });
 
