@@ -16,6 +16,7 @@ src/country/
 │   ├── ngn.ts           # Nigeria — NIP
 │   ├── cop.ts           # Colombia — Transferencia (Nequi / Daviplata)
 │   ├── ecu.ts           # Ecuador — Transferencia / DeUna QR
+│   ├── pen.ts           # Peru — Yape / Plin QR / CCI
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
@@ -68,6 +69,7 @@ validatePIXId("user@example.com"); // true
 | NGN | Nigeria | NIP | Yes | No |
 | COP | Colombia | Transferencia | Yes | Yes |
 | ECU | Ecuador | Transferencia / DeUna | Yes | No |
+| PEN | Peru | Yape / Plin / CCI | Yes | No |
 | EUR | Revolut EUR | Revolut | Yes | No |
 | USD | Revolut USD | Revolut | Yes | No |
 
@@ -88,6 +90,8 @@ validatePIXId("user@example.com"); // true
 | `validateNigerianAccountNumber` | NGN | Exactly 10 digits (NUBAN) |
 | `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
 | `validateEcuadorianCedula` | ECU | 10-digit cédula (módulo-10) or 13-digit RUC |
+| `validatePeruvianPaymentKey` | PEN | 20-digit CCI or Yape/Plin phone (`9XXXXXXXX`, optional `+51`) |
+| `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs

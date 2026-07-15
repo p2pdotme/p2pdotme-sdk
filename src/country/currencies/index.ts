@@ -7,5 +7,6 @@ export * from "./idr";
 export * from "./inr";
 export * from "./mex";
 export * from "./ngn";
+export * from "./pen";
 export * from "./usd";
 export * from "./ven";

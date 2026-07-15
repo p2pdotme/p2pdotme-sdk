@@ -67,6 +67,16 @@ describe("parseQR dispatcher", () => {
 		expect(data.amount).toBeUndefined();
 	});
 
+	it("dispatches PEN to the Peru parser", async () => {
+		const sample =
+			"0002010102113932acfba6cb922753c690f09280f365d7a25204561153036045802PE5906YAPERO6004Lima6304ECE9";
+		const data = unwrap(
+			await parseQR({ qrData: sample, currency: "PEN", sellPrice: 3.75 }),
+		);
+		expect(data.paymentAddress).toBe(sample);
+		expect(data.amount).toBeUndefined();
+	});
+
 	it.each([
 		["empty", ""],
 		["whitespace", "   "],
