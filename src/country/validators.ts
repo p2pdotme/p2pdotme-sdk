@@ -8,6 +8,8 @@ export {
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
 	validateNigerianAccountNumber,
+	validatePeruvianPaymentKey,
+	validatePeruvianQr,
 	validatePIXId,
 	validateRevolutId,
 	validateUPIId,
