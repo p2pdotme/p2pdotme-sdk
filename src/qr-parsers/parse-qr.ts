@@ -6,6 +6,7 @@ import { parseDeUna } from "./parsers/ecu";
 import { parseQRIS } from "./parsers/idr";
 import { parseUPI } from "./parsers/inr";
 import { parseNGN } from "./parsers/ngn";
+import { parsePeru } from "./parsers/pen";
 import { parsePagoMovil } from "./parsers/ven";
 import type { ParseQRParams, ParseResult } from "./types";
 import { failure } from "./types";
@@ -44,6 +45,8 @@ export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 			return parseCOP(qrData, sellPrice);
 		case CURRENCY.ECU:
 			return parseDeUna(qrData, sellPrice);
+		case CURRENCY.PEN:
+			return parsePeru(qrData, sellPrice);
 		default:
 			return failure("INVALID_CURRENCY", `Currency "${currency}" is not supported`);
 	}
