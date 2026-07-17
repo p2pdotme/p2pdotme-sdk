@@ -68,12 +68,16 @@ Paginated list of a user's orders from the subgraph, newest first. `skip` defaul
 
 ### `orders.getFeeConfig({ currency })` → `ResultAsync<FeeConfig, OrdersError>`
 
-Per-currency small-order threshold + fixed fee, read via multicall.
+Per-currency small-order threshold + per-order-type fixed fees, read via multicall.
 
 ```ts
 interface FeeConfig {
-  smallOrderThreshold: bigint;  // orders ≤ this are billed the fixed fee
-  smallOrderFixedFee: bigint;   // 6 decimals
+  smallOrderThreshold: bigint;  // orders ≤ this are billed the fixed fee (per currency)
+  smallOrderFixedFee: {         // 6 decimals, per order type
+    buy: bigint;
+    sell: bigint;
+    pay: bigint;
+  };
 }
 ```
 
