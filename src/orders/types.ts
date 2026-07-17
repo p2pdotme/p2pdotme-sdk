@@ -64,14 +64,21 @@ export interface Order {
 }
 
 /**
- * Per-currency small-order fee config read from the Diamond.
- * Amounts are 6-decimal bigints.
+ * Per-currency small-order fee config read from the Diamond. The threshold is
+ * per-currency; the fixed fee varies by order type. Amounts are 6-decimal bigints.
  */
 export interface FeeConfig {
 	/** Order amounts at or below this threshold are billed the fixed fee. */
 	smallOrderThreshold: bigint;
-	/** Fixed fee applied to small orders (6 decimals). */
-	smallOrderFixedFee: bigint;
+	/** Fixed fee applied to small orders, per order type (6 decimals). */
+	smallOrderFixedFee: {
+		/** Fixed fee for small BUY orders. */
+		buy: bigint;
+		/** Fixed fee for small SELL orders. */
+		sell: bigint;
+		/** Fixed fee for small PAY orders. */
+		pay: bigint;
+	};
 }
 
 // ── Client config ───────────────────────────────────────────────────────
