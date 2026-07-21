@@ -80,7 +80,7 @@ export const VEN_COUNTRY_OPTION: CountryOption = {
 	twitterUsername: "p2pmevenezuela",
 	smsCountryCodes: ["VE"],
 	precision: 2,
-	isAlpha: true,
+	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
 };
