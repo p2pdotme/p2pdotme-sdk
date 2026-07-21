@@ -171,18 +171,21 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 						context: { params: d },
 					}),
 			)
-				.asyncAndThen(({ currency }) =>
-					readFeeConfigMulticall(publicClient, diamondAddress, currency).mapErr(
+				.asyncAndThen(({ currency, orderType }) =>
+					readFeeConfigMulticall(publicClient, diamondAddress, currency, orderType).mapErr(
 						(cause) =>
 							new OrdersError("Fee config contract read failed", {
 								code: "CONTRACT_READ_FAILED",
 								cause,
-								context: { currency },
+								context: { currency, orderType },
 							}),
 					),
 				)
 				.map((config) => {
-					logger.debug("getFeeConfig resolved", { currency: params.currency });
+					logger.debug("getFeeConfig resolved", {
+						currency: params.currency,
+						orderType: params.orderType,
+					});
 					return config;
 				});
 		},

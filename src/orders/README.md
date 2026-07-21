@@ -66,18 +66,14 @@ Single order via Diamond multicall (with a parallel-`readContract` fallback).
 
 Paginated list of a user's orders from the subgraph, newest first. `skip` defaults to `0`; `limit` defaults to `20`, max `100`.
 
-### `orders.getFeeConfig({ currency })` → `ResultAsync<FeeConfig, OrdersError>`
+### `orders.getFeeConfig({ currency, orderType })` → `ResultAsync<FeeConfig, OrdersError>`
 
-Per-currency small-order threshold + per-order-type fixed fees, read via multicall.
+Per-currency small-order threshold + the fixed fee for the given order type (`0` buy, `1` sell, `2` pay), read via multicall.
 
 ```ts
 interface FeeConfig {
   smallOrderThreshold: bigint;  // orders ≤ this are billed the fixed fee (per currency)
-  smallOrderFixedFee: {         // 6 decimals, per order type
-    buy: bigint;
-    sell: bigint;
-    pay: bigint;
-  };
+  smallOrderFixedFee: bigint;   // 6 decimals, for the requested order type
 }
 ```
 
