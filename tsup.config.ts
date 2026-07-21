@@ -102,4 +102,13 @@ export default defineConfig([
       return { js: format === "cjs" ? ".cjs" : ".mjs" };
     },
   },
+  {
+    entry: { "payment-proof": "src/payment-proof/index.ts" },
+    format: ["cjs", "esm"],
+    dts: true,
+    sourcemap: true,
+    outExtension({ format }) {
+      return { js: format === "cjs" ? ".cjs" : ".mjs" };
+    },
+  },
 ]);

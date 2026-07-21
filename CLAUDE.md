@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `@p2pdotme/sdk/fraud-engine` — fraud detection, device fingerprinting (FingerprintJS), SEON session signals, encrypted activity logging.
 - `@p2pdotme/sdk/zkkyc` — ZK KYC: tx calldata preparation for Reclaim social verify, Aadhaar, ZK Passport; plus UX flow orchestrators.
 - `@p2pdotme/sdk/country` — country/currency metadata, payment field configs, per-currency validators.
+- `@p2pdotme/sdk/payment-proof` — client for the encrypted-payment-proof server: `getPublicConfig`, `getOrderProofRequest`, `requestProof`, `listProofFiles`, `downloadProof` for completed SELL/PAY orders. Thin `ResultAsync` wrapper over the published `p2pme-encrypted-payment-proof` client.
 
 Framework-agnostic core. Wallet-agnostic — consumers bring their own viem `PublicClient` (reads) and optionally a `WalletClient` (writes).
 
@@ -85,6 +86,7 @@ src/
 ├── fraud-engine/
 ├── zkkyc/                  # createZkkyc + createReclaimFlow + createZkPassportFlow
 ├── country/                # COUNTRY_OPTIONS, PAYMENT_ID_FIELDS, per-currency validators
+├── payment-proof/          # ResultAsync client over p2pme-encrypted-payment-proof
 └── react/                  # SdkProvider + hooks
 ```
 
@@ -167,6 +169,7 @@ SEON and FingerprintJS are direct deps — the SDK owns their lifecycle. Browser
 - `@seontechnologies/seon-javascript-sdk` — SEON session collection.
 - `@fingerprintjs/fingerprintjs` — browser fingerprinting.
 - `@noble/ciphers`, `@noble/curves`, `@noble/hashes` — ECIES + AES-GCM (bundled; not re-exported).
+- `p2pme-encrypted-payment-proof` — headless proof-server client wrapped by `@p2pdotme/sdk/payment-proof`.
 - `react` — optional peer (for `./react` export).
 - `@reclaimprotocol/js-sdk` — optional peer (zkkyc Reclaim flow only).
 - `@zkpassport/sdk` — optional peer (zkkyc ZK Passport flow only).
