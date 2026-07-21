@@ -12,6 +12,7 @@ export type GetOrderParams = z.infer<typeof ZodGetOrderParamsSchema>;
 
 export const ZodGetFeeConfigParamsSchema = z.object({
 	currency: ZodCurrencySchema,
+	orderType: z.union([z.literal(0), z.literal(1), z.literal(2)]),
 });
 
 export type GetFeeConfigParams = z.infer<typeof ZodGetFeeConfigParamsSchema>;
