@@ -4,12 +4,14 @@ import { validate } from "../../validation";
 import { ZkkycError } from "../../zkkyc/errors";
 import type {
 	AnonAadharProofParams,
+	BvnSubmitParams,
 	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
 } from "../../zkkyc/validation";
 import {
 	ZodAnonAadharProofParamsSchema,
+	ZodBvnSubmitParamsSchema,
 	ZodSimpleKycSubmitParamsSchema,
 	ZodSocialVerifyParamsSchema,
 	ZodZkPassportRegisterParamsSchema,
@@ -121,6 +123,40 @@ export function prepareSubmitKycAttestation(
 			}),
 			(error) =>
 				new ZkkycError("Failed to encode submitKycAttestation", {
+					code: "ENCODE_ERROR",
+					cause: error,
+				}),
+		)(),
+	);
+}
+
+/** Prepares a BVN EIP-712 attestation submission (awards BVN rp). */
+export function prepareSubmitBvnAttestation(
+	reputationManagerAddress: Address,
+	params: BvnSubmitParams,
+): Result<{ to: Address; data: `0x${string}` }, ZkkycError> {
+	return validate(
+		ZodBvnSubmitParamsSchema,
+		params,
+		(message, cause, data) =>
+			new ZkkycError(message, { code: "VALIDATION_ERROR", cause, context: { params: data } }),
+	).andThen((validated) =>
+		Result.fromThrowable(
+			() => ({
+				to: reputationManagerAddress,
+				data: encodeFunctionData({
+					abi: ABIS.EXTERNAL.REPUTATION_MANAGER,
+					functionName: "submitBvnAttestation",
+					args: [
+						validated.nullifier as `0x${string}`,
+						validated.limit,
+						validated.expiry,
+						validated.signature as `0x${string}`,
+					],
+				}),
+			}),
+			(error) =>
+				new ZkkycError("Failed to encode submitBvnAttestation", {
 					code: "ENCODE_ERROR",
 					cause: error,
 				}),
