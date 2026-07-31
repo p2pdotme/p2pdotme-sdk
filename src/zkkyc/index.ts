@@ -5,6 +5,7 @@ export { ZkkycError } from "./errors";
 export type { ZkkycConfig } from "./types";
 export type {
 	AnonAadharProofParams,
+	BvnSubmitParams,
 	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
@@ -13,14 +14,26 @@ export type {
 // ── Orchestrators ────────────────────────────────────────────────────────────
 
 export {
+	BVN_OTP_METHODS,
 	DEFAULT_RECLAIM_PROVIDER_IDS,
 	RECLAIM_APP_LINKS,
 	SIMPLE_KYC_DEFAULT_TENANT,
 	ZK_PASSPORT_APP_LINKS,
 } from "./orchestrators/constants";
+export { createBvnFlow } from "./orchestrators/bvn";
 export { createReclaimFlow } from "./orchestrators/reclaim";
 export { createSimpleKycFlow, resumeSimpleKycFlow } from "./orchestrators/simple-kyc";
 export type {
+	BvnAttestation,
+	BvnDecision,
+	BvnFlow,
+	BvnFlowConfig,
+	BvnMethod,
+	BvnOnboardParams,
+	BvnOtpMethod,
+	BvnScope,
+	BvnSendOtpParams,
+	BvnSession,
 	ReclaimFlowParams,
 	ReclaimProofResult,
 	ReclaimSession,
