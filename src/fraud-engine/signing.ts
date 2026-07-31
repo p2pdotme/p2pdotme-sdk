@@ -5,14 +5,22 @@ export async function getSignedHeaders(
 	signer: FraudEngineSigner,
 	action: "activity-log" | "link-order" | "fingerprint-log",
 ): Promise<Record<string, string>> {
-	// The EIP-191 signed message is bound to the address of the key that
-	// actually produces the signature (the admin EOA for AA smart wallets),
-	// not to the tracked subject address. For plain EOA signers where no
-	// separate `signerAddress` is provided, this falls back to `signer.address`
-	// and behaviour is identical to the single-address case.
+	// The signed message binds BOTH addresses: the key that produces the
+	// signature (the admin EOA for AA smart wallets) and the subject the
+	// request acts for (the smart account). Binding the subject stops a
+	// signature captured for one account being replayed against another
+	// inside the backend's freshness window.
+	//
+	// This is not by itself an authorisation control — the backend decides
+	// entitlement by checking on-chain that the signer is an admin of the
+	// subject account. See fraud-engine `core/wallet_auth.py`.
+	//
+	// For plain EOA signers where no separate `signerAddress` is provided,
+	// both values collapse to `signer.address`.
 	const signingAddress = (signer.signerAddress ?? signer.address).toLowerCase();
+	const subjectAddress = signer.address.toLowerCase();
 	const timestamp = Math.floor(Date.now() / 1000).toString();
-	const message = `${action}:${signingAddress}:${timestamp}`;
+	const message = `${action}:${signingAddress}:${subjectAddress}:${timestamp}`;
 
 	try {
 		const signature = await signer.signMessage(message);
