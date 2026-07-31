@@ -1,5 +1,7 @@
 import type { ParseResult } from "../types";
 import { failure, success } from "../types";
+import { decodeQr } from "../utils/decode-qr-pago-movil";
+import type { QrData } from "../utils/decode-qr-pago-movil/decrypt";
 
 export function parsePagoMovil(qrData: string, _sellPrice: number): ParseResult {
 	if (!qrData || typeof qrData !== "string" || qrData.trim().length === 0) {
@@ -15,9 +17,14 @@ export function parsePagoMovil(qrData: string, _sellPrice: number): ParseResult 
 
 	const payload = trimmed.substring(0, qIdx);
 
+	let pagoMovilDetails: QrData | null = null;
+	if (payload && /[?&]merchantId=/i.test(trimmed)) {
+		pagoMovilDetails = decodeQr(trimmed);
+	}
+
 	if (!payload || !/^[A-Za-z0-9+/=]+$/.test(payload)) {
 		return failure("INVALID_QR", "Not a valid Venezuelan QR code");
 	}
 
-	return success({ paymentAddress: trimmed });
+	return success({ paymentAddress: trimmed, pagoMovilDetails });
 }

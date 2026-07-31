@@ -5,15 +5,9 @@ import {
 	getStakeBoostGlobals,
 	getUserStake,
 } from "../contracts/p2p-stake";
-import {
-	type CancelUnstakeAction,
-	createCancelUnstakeAction,
-} from "./actions/cancel-unstake";
+import { type CancelUnstakeAction, createCancelUnstakeAction } from "./actions/cancel-unstake";
 import { type ClaimUnstakeAction, createClaimUnstakeAction } from "./actions/claim-unstake";
-import {
-	createRequestUnstakeAction,
-	type RequestUnstakeAction,
-} from "./actions/request-unstake";
+import { createRequestUnstakeAction, type RequestUnstakeAction } from "./actions/request-unstake";
 import { createStakeAction, type StakeAction } from "./actions/stake";
 import { createTopUpAction, type TopUpAction } from "./actions/top-up";
 import type { StakeError } from "./errors";
@@ -32,9 +26,7 @@ export interface StakeClient {
 	getUserStake(params: GetUserStakeParams): ResultAsync<UserStake, StakeError>;
 
 	/** Reads the per-currency stake boost config (tokens-per-USD, max boost). */
-	getStakeBoostConfig(
-		params: GetStakeBoostConfigParams,
-	): ResultAsync<StakeBoostConfig, StakeError>;
+	getStakeBoostConfig(params: GetStakeBoostConfigParams): ResultAsync<StakeBoostConfig, StakeError>;
 
 	/** Reads global stake boost configuration (token addr, cooldowns, totals). */
 	getStakeBoostGlobals(): ResultAsync<StakeBoostGlobals, StakeError>;

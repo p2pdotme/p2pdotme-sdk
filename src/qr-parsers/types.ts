@@ -28,12 +28,19 @@ export interface ParseQRParams {
 	readonly orderId?: string;
 }
 
+export interface PagoMovilDetails {
+	dni: string;
+	phone: string;
+	bank: string;
+}
+
 export interface ParsedQR {
 	paymentAddress: string;
 	amount?: {
 		usdc: number;
 		fiat: number;
 	};
+	pagoMovilDetails?: PagoMovilDetails | null;
 }
 
 export type ParseResult = Result<ParsedQR, QRParserError>;
