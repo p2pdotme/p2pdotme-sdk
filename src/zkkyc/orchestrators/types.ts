@@ -175,3 +175,82 @@ export interface SimpleKycAttestation {
 	/** The opaque unique-human handle (no PII), for app-side bookkeeping. */
 	readonly identityHash?: string;
 }
+
+// ── BVN (Nigerian Bank Verification Number) ──────────────────────────────────
+
+/** OTP delivery channels the BVN backend exposes. `alternate_phone` needs a number. */
+export type BvnOtpMethod = "email" | "phone" | "phone_1" | "alternate_phone";
+
+/** BVN identity scope requested during onboard. */
+export type BvnScope = "identity" | "bank_accounts";
+
+/**
+ * Shared config for every BVN step. `baseUrl` points at the backend proxy — the
+ * only party holding the Mono secret + the EIP-712 attestor key — using the
+ * `{ ok, data }` envelope.
+ */
+export interface BvnFlowConfig {
+	/** Backend proxy base URL (e.g. https://ngn-bvn-verify-production.up.railway.app). */
+	readonly baseUrl: string;
+	/** Tenant slug registered on the backend, mapping to one on-chain contract. */
+	readonly tenant: string;
+}
+
+/** An active BVN backend session. Carry this between steps. */
+export interface BvnSession {
+	readonly sessionId: number;
+	readonly sessionToken: string;
+}
+
+/** An available OTP delivery method returned after submitting the BVN. */
+export interface BvnMethod {
+	readonly method: string;
+	readonly hint?: string;
+}
+
+/** The confirm-OTP decision. `reject` may carry a reason (e.g. "bvn_reused"). */
+export interface BvnDecision {
+	readonly decision: "approve" | "reject";
+	readonly reason?: string;
+}
+
+/** The on-chain-ready attestation, shaped for `prepareSubmitBvnAttestation`. */
+export interface BvnAttestation {
+	readonly nullifier: `0x${string}`;
+	readonly limit: bigint;
+	readonly expiry: bigint;
+	readonly signature: `0x${string}`;
+	/** The wallet the attestation is bound to. */
+	readonly wallet?: string;
+}
+
+/** Params for `bvnOnboard`. */
+export interface BvnOnboardParams {
+	/** The user's EVM wallet — bound into the attestation and credited on-chain. */
+	readonly walletAddress: Address;
+	/** Identity scope. Defaults to "identity". */
+	readonly scope?: BvnScope;
+}
+
+/** Params for `bvnSendOtp`. */
+export interface BvnSendOtpParams {
+	readonly method: BvnOtpMethod;
+	/** Required only when `method` is "alternate_phone". */
+	readonly phoneNumber?: string;
+}
+
+/** The full BVN flow bound to a config — mirrors the `Zkkyc` client shape. */
+export interface BvnFlow {
+	/** Step 1 — start a session bound to the wallet + tenant. */
+	onboard(params: BvnOnboardParams): ResultAsync<BvnSession, ZkkycError>;
+	/** Step 2 — submit the 11-digit BVN, get available OTP methods. */
+	submitBvn(session: BvnSession, bvn: string): ResultAsync<BvnMethod[], ZkkycError>;
+	/** Step 3 — request an OTP over the chosen channel. */
+	sendOtp(session: BvnSession, params: BvnSendOtpParams): ResultAsync<boolean, ZkkycError>;
+	/** Step 4 — confirm the OTP; returns approve/reject (never any PII). */
+	confirmOtp(session: BvnSession, otp: string): ResultAsync<BvnDecision, ZkkycError>;
+	/** Step 5 — mint the signed EIP-712 attestation for an approved session. */
+	getAttestation(session: BvnSession): ResultAsync<BvnAttestation, ZkkycError>;
+	/** Optional — the address the tenant contract must trust as its signer. */
+	getAttestor(): ResultAsync<{ address: string }, ZkkycError>;
+}
