@@ -223,4 +223,36 @@ export const reputationManagerAbi = [
 		stateMutability: "view",
 		type: "function",
 	},
+	// ── BVN (Nigerian Bank Verification Number) attestation ─────────────────
+	{ inputs: [], name: "BvnSignerNotSet", type: "error" },
+	{ inputs: [], name: "BvnAttestationExpired", type: "error" },
+	{ inputs: [], name: "BvnNullifierAlreadySpent", type: "error" },
+	{ inputs: [], name: "BvnAlreadyVerified", type: "error" },
+	{ inputs: [], name: "BvnInvalidSignature", type: "error" },
+	{
+		inputs: [
+			{ internalType: "bytes32", name: "nullifier", type: "bytes32" },
+			{ internalType: "uint256", name: "limit", type: "uint256" },
+			{ internalType: "uint256", name: "expiry", type: "uint256" },
+			{ internalType: "bytes", name: "signature", type: "bytes" },
+		],
+		name: "submitBvnAttestation",
+		outputs: [],
+		stateMutability: "nonpayable",
+		type: "function",
+	},
+	{
+		inputs: [],
+		name: "bvnRp",
+		outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+		stateMutability: "view",
+		type: "function",
+	},
+	{
+		inputs: [{ internalType: "address", name: "", type: "address" }],
+		name: "bvnVerified",
+		outputs: [{ internalType: "bool", name: "", type: "bool" }],
+		stateMutability: "view",
+		type: "function",
+	},
 ] as const;
