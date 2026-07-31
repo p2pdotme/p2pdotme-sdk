@@ -2,7 +2,7 @@ import { okAsync, type ResultAsync } from "neverthrow";
 import { type Address, encodeFunctionData } from "viem";
 import { ABIS } from "../../contracts/abis";
 import type { PublicClientLike } from "../../types";
-import { StakeError } from "../errors";
+import type { StakeError } from "../errors";
 import { submitPreparedTx } from "../tx";
 import type { ExecuteBase, PreparedTx, TxResult } from "../types";
 
@@ -22,9 +22,7 @@ export interface CreateCancelUnstakeInput {
  * Returns the caller from COOLDOWN back to ACTIVE, restoring their boost
  * without any token movement.
  */
-export function createCancelUnstakeAction(
-	input: CreateCancelUnstakeInput,
-): CancelUnstakeAction {
+export function createCancelUnstakeAction(input: CreateCancelUnstakeInput): CancelUnstakeAction {
 	const { publicClient, diamondAddress } = input;
 
 	const prepareFn = (): ResultAsync<PreparedTx, StakeError> =>
