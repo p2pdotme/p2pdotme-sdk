@@ -23,3 +23,6 @@ export const RECLAIM_APP_LINKS = {
 
 /** Default tenant slug for the P2P reputation contract on the simple-kyc service. */
 export const SIMPLE_KYC_DEFAULT_TENANT = "p2p-reputation";
+
+/** OTP delivery channels the BVN backend (Mono) exposes. */
+export const BVN_OTP_METHODS = ["email", "phone", "phone_1", "alternate_phone"] as const;
