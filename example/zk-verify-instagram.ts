@@ -25,15 +25,16 @@ import { base } from "viem/chains";
 import {
 	createReclaimFlow,
 	createZkkyc,
-	DEFAULT_RECLAIM_PROVIDER_IDS,
 	type SocialPlatform,
 	type SocialVerifyParams,
 } from "@p2pdotme/sdk/zkkyc";
 
 // ── CONFIG (edit these) ─────────────────────────────────────────────────
-const RECLAIM_APP_ID = "";
-const RECLAIM_APP_SECRET = "";
-const PLATFORM: SocialPlatform = "instagram"; // linkedin | github | x | instagram | facebook
+/** Base URL of a running reclaim-session-service — it holds the Reclaim app secret. */
+const RECLAIM_BASE_URL = "";
+/** Where the service should send the user back. Its host must be on the service's allowlist. */
+const REDIRECT_URL = "http://localhost:5173/verify";
+const PLATFORM: SocialPlatform = "instagram"; // linkedin | github | x | instagram | facebook | binance
 
 const PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000" as const; // fund this account; runs on mainnet
 
@@ -53,8 +54,8 @@ const kv = (key: string, value: unknown) =>
 	console.log(`   ${key.padEnd(18)} ${String(value)}`);
 
 async function main(): Promise<void> {
-	if (!RECLAIM_APP_ID || !RECLAIM_APP_SECRET) {
-		console.error("Set RECLAIM_APP_ID and RECLAIM_APP_SECRET at the top of the file.");
+	if (!RECLAIM_BASE_URL) {
+		console.error("Set RECLAIM_BASE_URL at the top of the file (see reclaim-session-service).");
 		process.exit(1);
 	}
 
@@ -68,12 +69,11 @@ async function main(): Promise<void> {
 	// ── 2. Initialize the Reclaim session (on page load) ──────────────
 	step(2, "Initialize Reclaim session");
 	const sessionResult = await createReclaimFlow({
-		appId: RECLAIM_APP_ID,
-		appSecret: RECLAIM_APP_SECRET,
-		providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
+		sessionEndpoint: RECLAIM_BASE_URL,
+		tenant: "p2p",
 		platform: PLATFORM,
 		walletAddress,
-		contextDescription: `example — ${PLATFORM} verification`,
+		redirectUrl: REDIRECT_URL,
 		onStatus: (s) => {
 			switch (s.type) {
 				case "session_created":
