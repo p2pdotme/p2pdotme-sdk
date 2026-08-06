@@ -17,6 +17,8 @@ export {
 	serializeCompoundPaymentId,
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
+	validateCubanCardNumber,
+	validateCubanPhoneNumber,
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
