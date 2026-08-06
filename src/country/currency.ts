@@ -16,6 +16,7 @@ export const CURRENCY = {
 	NGN: "NGN",
 	USD: "USD",
 	COP: "COP",
+	CUP: "CUP",
 	ECU: "ECU",
 	PEN: "PEN",
 } as const;

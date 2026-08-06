@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateArgentinePaymentId } from "../../src/country/currencies/ars";
 import { validatePIXId } from "../../src/country/currencies/brl";
 import { validateColombianPaymentId } from "../../src/country/currencies/cop";
+import { validateCubanCardNumber, validateCubanPhoneNumber } from "../../src/country/currencies/cup";
 import {
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
@@ -223,6 +224,51 @@ describe("validateVenezuelanRif (VEN)", () => {
 		["no prefix", "12345678"],
 	])("rejects %s", (_label, input) => {
 		expect(validateVenezuelanRif(input)).toBe(false);
+	});
+});
+
+// ── CUP ───────────────────────────────────────────────────────────────────────────
+
+describe("validateCubanPhoneNumber (CUP)", () => {
+	it.each([
+		["8-digit number", "54004417"],
+		["number with spaces (stripped)", "5400 4417"],
+		["number with dashes (stripped)", "5400-4417"],
+		["number with +53 country code", "+53 54004417"],
+		["number with 53 prefix", "5354004417"],
+	])("accepts %s", (_label, input) => {
+		expect(validateCubanPhoneNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (7 digits)", "5400441"],
+		["too long (9 digits)", "540044171"],
+		["letters", "5400441a"],
+	])("rejects %s", (_label, input) => {
+		expect(validateCubanPhoneNumber(input)).toBe(false);
+	});
+});
+
+describe("validateCubanCardNumber (CUP)", () => {
+	it.each([
+		["16 digits with spaces", "9227 9598 7238 3620"],
+		["16 digits without spaces", "9227959872383620"],
+		["16 digits with dashes", "9227-9598-7238-3620"],
+	])("accepts %s", (_label, input) => {
+		expect(validateCubanCardNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (15 digits)", "922795987238362"],
+		["too long (17 digits)", "92279598723836201"],
+		["letters", "9227 9598 7238 362a"],
+		["other separators", "9227/9598/7238/3620"],
+	])("rejects %s", (_label, input) => {
+		expect(validateCubanCardNumber(input)).toBe(false);
 	});
 });
 
