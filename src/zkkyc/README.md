@@ -14,8 +14,28 @@ Transaction submission stays on the consumer's side — this module doesn't take
 | Reclaim (social verify) | `prepareSocialVerify` | `createReclaimFlow` | `@reclaimprotocol/js-sdk` |
 | Anon Aadhaar | `prepareSubmitAnonAadharProof` | — (consumer-driven) | — |
 | ZK Passport | `prepareZkPassportRegister` | `createZkPassportFlow` | `@zkpassport/sdk` |
+| simple-kyc (hosted passport wizard) | `prepareSubmitKycAttestation` | `createSimpleKycFlow` / `resumeSimpleKycFlow` | — |
+| BVN | `prepareSubmitBvnAttestation` | `createBvnFlow` | — |
+| Liveness (hosted face-only wizard) | `prepareSubmitLivenessAttestation` | `createLivenessFlow` / `resumeLivenessFlow` | — |
 
 Both peer dependencies are loaded via dynamic `import()` at runtime. Missing peer → `ZkkycError` with code `PEER_DEPENDENCY_MISSING`.
+
+### Passport vs liveness — two services, not one flow with a flag
+
+They look interchangeable (same session/redeem endpoints, same attestation
+struct) and are not. Getting this wrong fails at `ecrecover`, on-chain, after
+the user has already verified:
+
+| | passport (simple-kyc) | liveness |
+|---|---|---|
+| `baseUrl` | the **kyc** proxy (`passport-proxy.p2p.cool`) | the **liveness** proxy (`liveness-proxy.p2p.cool`) |
+| EIP-712 domain | `KycVerifier` | `LivenessVerifier` |
+| on-chain function | `submitKycAttestation` | `submitLivenessAttestation` |
+| `country` | **required** (the wizard skips its country step) | not accepted — no document is read |
+| tenant registry | simple-kyc's DB | the liveness service's own DB |
+
+A tenant slug existing on one backend says nothing about the other: a slug has
+to be registered separately on each, against the same contract address.
 
 ## Usage
 
