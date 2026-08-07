@@ -176,6 +176,60 @@ export interface SimpleKycAttestation {
 	readonly identityHash?: string;
 }
 
+// ── liveness (hosted face-only wizard, no document) ───────────────────────────
+
+/**
+ * Params for `createLivenessFlow`. The app opens the hosted liveness wizard,
+ * which runs onboard → active liveness challenge → face embed → 1:N dedup and,
+ * on approval, redirects back to `redirectUrl` with `?code=<code>&state=<state>`.
+ * The app then calls `resumeLivenessFlow` to redeem the code for the EIP-712
+ * attestation.
+ *
+ * Identical to `SimpleKycFlowParams` minus `country`: liveness reads no
+ * document, so there is no issuing market to prebind.
+ */
+export interface LivenessFlowParams {
+	/**
+	 * Base URL exposing the browser-facing `/v1/widget/public-sessions` and
+	 * `/v1/widget/attestation` endpoints — the liveness proxy in a client-only
+	 * setup (e.g. https://liveness-proxy.p2p.cool). The proxy holds the
+	 * X-API-Key and forwards to the liveness service's key-gated endpoints.
+	 * This is **not** the same host as the passport (`simple-kyc`) proxy.
+	 */
+	readonly baseUrl: string;
+	/** The user's EVM wallet — bound into the attestation and credited on-chain. */
+	readonly walletAddress: Address;
+	/** Tenant slug (one per consuming contract), e.g. "p2p-reputation-liveness". */
+	readonly tenant: string;
+	/** Return URL — pass `${window.location.origin}<route>` so each app self-routes. */
+	readonly redirectUrl: string;
+	/** Opaque state round-tripped back to the app (CSRF/nonce + page to restore). */
+	readonly state?: string;
+	/** Status callback. */
+	readonly onStatus?: (status: LivenessStatus) => void;
+}
+
+export type LivenessStatus =
+	| { type: "session_created"; widgetUrl: string }
+	| { type: "redirecting"; widgetUrl: string };
+
+export interface LivenessSession {
+	/** The hosted wizard URL to navigate to. */
+	readonly widgetUrl: string;
+	/** Convenience: navigate the browser to the wizard (no-op outside the browser). */
+	readonly redirect: () => void;
+}
+
+/** The on-chain-ready attestation, shaped for `prepareSubmitLivenessAttestation`. */
+export interface LivenessAttestation {
+	readonly nullifier: `0x${string}`;
+	readonly limit: bigint;
+	readonly expiry: bigint;
+	readonly signature: `0x${string}`;
+	/** The opaque unique-human handle (no PII), for app-side bookkeeping. */
+	readonly identityHash?: string;
+}
+
 // ── BVN (Nigerian Bank Verification Number) ──────────────────────────────────
 
 /** OTP delivery channels the BVN backend exposes. `alternate_phone` needs a number. */
