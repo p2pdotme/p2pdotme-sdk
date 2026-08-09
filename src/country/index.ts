@@ -28,6 +28,7 @@ export {
 	validateNigerianAccountNumber,
 	validatePeruvianPaymentKey,
 	validatePeruvianQr,
+	validatePhilippinePhoneNumber,
 	validatePIXId,
 	validateRevolutId,
 	validateUPIId,
