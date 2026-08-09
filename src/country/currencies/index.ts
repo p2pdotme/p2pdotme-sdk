@@ -9,5 +9,6 @@ export * from "./inr";
 export * from "./mex";
 export * from "./ngn";
 export * from "./pen";
+export * from "./php";
 export * from "./usd";
 export * from "./ven";

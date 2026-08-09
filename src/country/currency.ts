@@ -19,6 +19,7 @@ export const CURRENCY = {
 	CUP: "CUP",
 	ECU: "ECU",
 	PEN: "PEN",
+	PHP: "PHP",
 } as const;
 
 /** Union of supported currency codes. */
