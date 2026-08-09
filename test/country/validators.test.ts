@@ -14,6 +14,7 @@ import { validateUPIId } from "../../src/country/currencies/inr";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
 import { validatePeruvianPaymentKey, validatePeruvianQr } from "../../src/country/currencies/pen";
+import { validatePhilippinePhoneNumber } from "../../src/country/currencies/php";
 import { validateVenezuelanPhoneNumber, validateVenezuelanRif } from "../../src/country/currencies/ven";
 
 // ── INR ─────────────────────────────────────────────────────────────────────
@@ -488,5 +489,31 @@ describe("validateEcuadorianAccountName (ECU)", () => {
 		["leading digit", "1Juan"],
 	])("rejects %s", (_label, input) => {
 		expect(validateEcuadorianAccountName(input)).toBe(false);
+	});
+});
+
+// ── PHP ───────────────────────────────────────────────────────────────────────────
+
+describe("validatePhilippinePhoneNumber (PHP)", () => {
+	it.each([
+		["10-digit number starting with 9", "9171234567"],
+		["local 11-digit 09 format", "09171234567"],
+		["number with spaces (stripped)", "0917 123 4567"],
+		["number with dashes (stripped)", "0917-123-4567"],
+		["number with +63 country code", "+63 9171234567"],
+		["number with 63 prefix", "639171234567"],
+	])("accepts %s", (_label, input) => {
+		expect(validatePhilippinePhoneNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["landline (does not start with 9)", "8171234567"],
+		["too short (9 digits)", "917123456"],
+		["too long (11 digits not starting with 0)", "91712345678"],
+		["letters", "91712345a7"],
+	])("rejects %s", (_label, input) => {
+		expect(validatePhilippinePhoneNumber(input)).toBe(false);
 	});
 });

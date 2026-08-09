@@ -18,6 +18,7 @@ src/country/
 │   ├── cup.ts           # Cuba — Transfermóvil
 │   ├── ecu.ts           # Ecuador — Transferencia / DeUna QR
 │   ├── pen.ts           # Peru — Yape / Plin QR / CCI
+│   ├── php.ts           # Philippines — InstaPay (GCash / Maya), QR Ph
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
@@ -72,6 +73,7 @@ validatePIXId("user@example.com"); // true
 | CUP | Cuba | Transfermóvil | Yes | No |
 | ECU | Ecuador | Transferencia / DeUna | Yes | No |
 | PEN | Peru | Yape / Plin / CCI | Yes | No |
+| PHP | Philippines | InstaPay | Yes | Yes |
 | EUR | Revolut EUR | Revolut | Yes | No |
 | USD | Revolut USD | Revolut | Yes | No |
 
@@ -96,6 +98,7 @@ validatePIXId("user@example.com"); // true
 | `validateEcuadorianCedula` | ECU | 10-digit cédula (módulo-10) or 13-digit RUC |
 | `validatePeruvianPaymentKey` | PEN | 20-digit CCI or Yape/Plin phone (`9XXXXXXXX`, optional `+51`) |
 | `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC) |
+| `validatePhilippinePhoneNumber` | PHP | Mobile number `9XXXXXXXXX` (optional `0` or `+63` prefix) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs
