@@ -77,6 +77,15 @@ describe("parseQR dispatcher", () => {
 		expect(data.amount).toBeUndefined();
 	});
 
+	it("dispatches PHP to the QR Ph parser", async () => {
+		const sample =
+			"00020101021127830012com.p2pqrpay0111GXCHPHM2XXX02081234567803150000000000000000417TESTTESTTESTTEST15204601653036085802PH5909TEST SHOP6006Manila61041000630476A9";
+		const result = unwrap(
+			await parseQR({ qrData: sample, currency: "PHP", sellPrice: 58.5 }),
+		);
+		expect(result.paymentAddress).toBe(sample);
+	});
+
 	it.each([
 		["empty", ""],
 		["whitespace", "   "],
