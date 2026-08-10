@@ -16,8 +16,10 @@ export const CURRENCY = {
 	NGN: "NGN",
 	USD: "USD",
 	COP: "COP",
+	CUP: "CUP",
 	ECU: "ECU",
 	PEN: "PEN",
+	PHP: "PHP",
 } as const;
 
 /** Union of supported currency codes. */

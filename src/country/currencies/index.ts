@@ -1,6 +1,7 @@
 export * from "./ars";
 export * from "./brl";
 export * from "./cop";
+export * from "./cup";
 export * from "./ecu";
 export * from "./eur";
 export * from "./idr";
@@ -8,5 +9,6 @@ export * from "./inr";
 export * from "./mex";
 export * from "./ngn";
 export * from "./pen";
+export * from "./php";
 export * from "./usd";
 export * from "./ven";
