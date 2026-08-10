@@ -15,6 +15,7 @@ QR code parsers for P2P.me payment networks. Extracts payment addresses and amou
 | ECU      | Ecuador     | DeUna           | URL             |
 | PEN      | Peru        | Yape / Plin     | EMVCo TLV + CRC |
 | PHP      | Philippines | QR Ph           | EMVCo TLV + CRC |
+| CUP      | Cuba        | Transfermóvil   | Comma-separated |
 
 ## Installation
 
@@ -57,6 +58,26 @@ const result = await parseQR({
 ```
 
 The proxy receives `GET /pix?locationUrl=<url>&orderId=<id>` and should return the raw PIX response (JWT).
+
+### Transfermóvil (CUP)
+
+Cuban QRs are the plain comma-separated Transfermóvil payload:
+
+```
+TRANSFERMOVIL_ETECSA,<operation>,<card>,<phone>,<amount>
+```
+
+The card must be 16 digits and the phone 8 digits (a `+53` prefix is stripped). The amount field is optional. Because CUP is a compound payment ID (phone + card), `paymentAddress` is returned pipe-separated in that field order:
+
+```ts
+const result = await parseQR({
+  qrData: "TRANSFERMOVIL_ETECSA,TRANSFERENCIA,9204959800000000,58555555,",
+  currency: "CUP",
+  sellPrice: 400,
+});
+
+result.value.paymentAddress; // "58555555|9204959800000000"
+```
 
 ## API
 
