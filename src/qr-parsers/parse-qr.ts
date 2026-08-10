@@ -7,6 +7,7 @@ import { parseQRIS } from "./parsers/idr";
 import { parseUPI } from "./parsers/inr";
 import { parseNGN } from "./parsers/ngn";
 import { parsePeru } from "./parsers/pen";
+import { parseQRPh } from "./parsers/php";
 import { parsePagoMovil } from "./parsers/ven";
 import type { ParseQRParams, ParseResult } from "./types";
 import { failure } from "./types";
@@ -18,8 +19,8 @@ import { failure } from "./types";
  * behind a location URL pointing at the issuing bank's PIX endpoint. The SDK
  * resolves that URL via a CORS-bypassing proxy (see `proxyUrl`), which returns
  * a signed JWT whose `valor.original` field holds the amount. All other parsers
- * (UPI, QRIS, MercadoPago, PagoMovil) and static PIX are synchronous and resolve
- * immediately.
+ * (UPI, QRIS, QR Ph, MercadoPago, PagoMovil) and static PIX are synchronous and
+ * resolve immediately.
  */
 export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 	const { qrData, currency, sellPrice, proxyUrl, orderId } = params;
@@ -47,6 +48,8 @@ export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 			return parseDeUna(qrData, sellPrice);
 		case CURRENCY.PEN:
 			return parsePeru(qrData, sellPrice);
+		case CURRENCY.PHP:
+			return parseQRPh(qrData, sellPrice);
 		default:
 			return failure("INVALID_CURRENCY", `Currency "${currency}" is not supported`);
 	}
