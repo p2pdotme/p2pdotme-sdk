@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateArgentinePaymentId } from "../../src/country/currencies/ars";
 import { validatePIXId } from "../../src/country/currencies/brl";
 import { validateColombianPaymentId } from "../../src/country/currencies/cop";
+import { validateCubanCardNumber, validateCubanPhoneNumber } from "../../src/country/currencies/cup";
 import {
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
@@ -13,6 +14,7 @@ import { validateUPIId } from "../../src/country/currencies/inr";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
 import { validatePeruvianPaymentKey, validatePeruvianQr } from "../../src/country/currencies/pen";
+import { validatePhilippinePhoneNumber } from "../../src/country/currencies/php";
 import { validateVenezuelanPhoneNumber, validateVenezuelanRif } from "../../src/country/currencies/ven";
 
 // ── INR ─────────────────────────────────────────────────────────────────────
@@ -223,6 +225,51 @@ describe("validateVenezuelanRif (VEN)", () => {
 		["no prefix", "12345678"],
 	])("rejects %s", (_label, input) => {
 		expect(validateVenezuelanRif(input)).toBe(false);
+	});
+});
+
+// ── CUP ───────────────────────────────────────────────────────────────────────────
+
+describe("validateCubanPhoneNumber (CUP)", () => {
+	it.each([
+		["8-digit number", "54004417"],
+		["number with spaces (stripped)", "5400 4417"],
+		["number with dashes (stripped)", "5400-4417"],
+		["number with +53 country code", "+53 54004417"],
+		["number with 53 prefix", "5354004417"],
+	])("accepts %s", (_label, input) => {
+		expect(validateCubanPhoneNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (7 digits)", "5400441"],
+		["too long (9 digits)", "540044171"],
+		["letters", "5400441a"],
+	])("rejects %s", (_label, input) => {
+		expect(validateCubanPhoneNumber(input)).toBe(false);
+	});
+});
+
+describe("validateCubanCardNumber (CUP)", () => {
+	it.each([
+		["16 digits with spaces", "9227 9598 7238 3620"],
+		["16 digits without spaces", "9227959872383620"],
+		["16 digits with dashes", "9227-9598-7238-3620"],
+	])("accepts %s", (_label, input) => {
+		expect(validateCubanCardNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (15 digits)", "922795987238362"],
+		["too long (17 digits)", "92279598723836201"],
+		["letters", "9227 9598 7238 362a"],
+		["other separators", "9227/9598/7238/3620"],
+	])("rejects %s", (_label, input) => {
+		expect(validateCubanCardNumber(input)).toBe(false);
 	});
 });
 
@@ -442,5 +489,31 @@ describe("validateEcuadorianAccountName (ECU)", () => {
 		["leading digit", "1Juan"],
 	])("rejects %s", (_label, input) => {
 		expect(validateEcuadorianAccountName(input)).toBe(false);
+	});
+});
+
+// ── PHP ───────────────────────────────────────────────────────────────────────────
+
+describe("validatePhilippinePhoneNumber (PHP)", () => {
+	it.each([
+		["10-digit number starting with 9", "9171234567"],
+		["local 11-digit 09 format", "09171234567"],
+		["number with spaces (stripped)", "0917 123 4567"],
+		["number with dashes (stripped)", "0917-123-4567"],
+		["number with +63 country code", "+63 9171234567"],
+		["number with 63 prefix", "639171234567"],
+	])("accepts %s", (_label, input) => {
+		expect(validatePhilippinePhoneNumber(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["landline (does not start with 9)", "8171234567"],
+		["too short (9 digits)", "917123456"],
+		["too long (11 digits not starting with 0)", "91712345678"],
+		["letters", "91712345a7"],
+	])("rejects %s", (_label, input) => {
+		expect(validatePhilippinePhoneNumber(input)).toBe(false);
 	});
 });

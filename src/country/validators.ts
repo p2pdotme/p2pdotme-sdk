@@ -1,6 +1,8 @@
 export {
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
+	validateCubanCardNumber,
+	validateCubanPhoneNumber,
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
@@ -10,6 +12,7 @@ export {
 	validateNigerianAccountNumber,
 	validatePeruvianPaymentKey,
 	validatePeruvianQr,
+	validatePhilippinePhoneNumber,
 	validatePIXId,
 	validateRevolutId,
 	validateUPIId,
