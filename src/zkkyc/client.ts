@@ -5,6 +5,7 @@ import {
 	prepareSubmitAnonAadharProof,
 	prepareSubmitBvnAttestation,
 	prepareSubmitKycAttestation,
+	prepareSubmitLivenessAttestation,
 	prepareZkPassportRegister,
 } from "../contracts/reputation-manager/writes";
 import type { ZkkycError } from "./errors";
@@ -12,6 +13,7 @@ import type { ZkkycConfig } from "./types";
 import type {
 	AnonAadharProofParams,
 	BvnSubmitParams,
+	LivenessSubmitParams,
 	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
@@ -33,6 +35,9 @@ export interface Zkkyc {
 	prepareSubmitBvnAttestation(
 		params: BvnSubmitParams,
 	): Result<{ to: Address; data: `0x${string}` }, ZkkycError>;
+	prepareSubmitLivenessAttestation(
+		params: LivenessSubmitParams,
+	): Result<{ to: Address; data: `0x${string}` }, ZkkycError>;
 }
 
 /**
@@ -51,5 +56,7 @@ export function createZkkyc(config: ZkkycConfig): Zkkyc {
 			prepareSubmitKycAttestation(reputationManagerAddress, params),
 		prepareSubmitBvnAttestation: (params) =>
 			prepareSubmitBvnAttestation(reputationManagerAddress, params),
+		prepareSubmitLivenessAttestation: (params) =>
+			prepareSubmitLivenessAttestation(reputationManagerAddress, params),
 	};
 }

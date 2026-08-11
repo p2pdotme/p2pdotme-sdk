@@ -6,6 +6,7 @@ export type { ZkkycConfig } from "./types";
 export type {
 	AnonAadharProofParams,
 	BvnSubmitParams,
+	LivenessSubmitParams,
 	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
@@ -13,14 +14,16 @@ export type {
 
 // ── Orchestrators ────────────────────────────────────────────────────────────
 
+export { createBvnFlow } from "./orchestrators/bvn";
 export {
 	BVN_OTP_METHODS,
 	DEFAULT_RECLAIM_PROVIDER_IDS,
+	LIVENESS_DEFAULT_TENANT,
 	RECLAIM_APP_LINKS,
 	SIMPLE_KYC_DEFAULT_TENANT,
 	ZK_PASSPORT_APP_LINKS,
 } from "./orchestrators/constants";
-export { createBvnFlow } from "./orchestrators/bvn";
+export { createLivenessFlow, resumeLivenessFlow } from "./orchestrators/liveness";
 export { createReclaimFlow } from "./orchestrators/reclaim";
 export { createSimpleKycFlow, resumeSimpleKycFlow } from "./orchestrators/simple-kyc";
 export type {
@@ -34,6 +37,10 @@ export type {
 	BvnScope,
 	BvnSendOtpParams,
 	BvnSession,
+	LivenessAttestation,
+	LivenessFlowParams,
+	LivenessSession,
+	LivenessStatus,
 	ReclaimFlowParams,
 	ReclaimProofResult,
 	ReclaimSession,
