@@ -54,7 +54,7 @@ export const CUP_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 	},
 ];
 
-/** Country option for Cuba (CUP). Transfermóvil transfers only — QR payments are disabled. */
+/** Country option for Cuba (CUP). Transfermóvil transfers, including QR payments. */
 export const CUP_COUNTRY_OPTION: CountryOption = {
 	country: "Cuba",
 	currency: CURRENCY.CUP,
@@ -73,5 +73,5 @@ export const CUP_COUNTRY_OPTION: CountryOption = {
 	precision: 2,
 	isAlpha: true,
 	disabled: false,
-	disabledPaymentTypes: ["PAY"],
+	disabledPaymentTypes: [],
 };

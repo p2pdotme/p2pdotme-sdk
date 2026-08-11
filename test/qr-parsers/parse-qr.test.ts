@@ -86,6 +86,17 @@ describe("parseQR dispatcher", () => {
 		expect(result.paymentAddress).toBe(sample);
 	});
 
+	it("dispatches CUP to the Transfermóvil parser", async () => {
+		const result = unwrap(
+			await parseQR({
+				qrData: "TRANSFERMOVIL_ETECSA,TRANSFERENCIA,9204959800000000,58555555,",
+				currency: "CUP",
+				sellPrice: 400,
+			}),
+		);
+		expect(result.paymentAddress).toBe("58555555|9204959800000000");
+	});
+
 	it.each([
 		["empty", ""],
 		["whitespace", "   "],
