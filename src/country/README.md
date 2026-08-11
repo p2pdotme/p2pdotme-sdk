@@ -15,7 +15,7 @@ src/country/
 │   ├── ven.ts           # Venezuela — Pago Móvil
 │   ├── ngn.ts           # Nigeria — NIP
 │   ├── cop.ts           # Colombia — Transferencia (Nequi / Daviplata)
-│   ├── cup.ts           # Cuba — Transfermóvil
+│   ├── cup.ts           # Cuba — Transfermóvil (transfers + QR)
 │   ├── ecu.ts           # Ecuador — Transferencia / DeUna QR
 │   ├── pen.ts           # Peru — Yape / Plin QR / CCI
 │   ├── php.ts           # Philippines — InstaPay (GCash / Maya), QR Ph
