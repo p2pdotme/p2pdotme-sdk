@@ -5,6 +5,7 @@ import { ZkkycError } from "../../zkkyc/errors";
 import type {
 	AnonAadharProofParams,
 	BvnSubmitParams,
+	LivenessSubmitParams,
 	SimpleKycSubmitParams,
 	SocialVerifyParams,
 	ZkPassportRegisterParams,
@@ -12,6 +13,7 @@ import type {
 import {
 	ZodAnonAadharProofParamsSchema,
 	ZodBvnSubmitParamsSchema,
+	ZodLivenessSubmitParamsSchema,
 	ZodSimpleKycSubmitParamsSchema,
 	ZodSocialVerifyParamsSchema,
 	ZodZkPassportRegisterParamsSchema,
@@ -157,6 +159,45 @@ export function prepareSubmitBvnAttestation(
 			}),
 			(error) =>
 				new ZkkycError("Failed to encode submitBvnAttestation", {
+					code: "ENCODE_ERROR",
+					cause: error,
+				}),
+		)(),
+	);
+}
+
+/** Prepares a liveness EIP-712 attestation submission (awards liveness rp).
+ *
+ * Same struct shape as the KYC one but a different on-chain function: the
+ * liveness verifier is a separate service with its own EIP-712 domain and its
+ * own nullifier set, so the two attestations are not interchangeable.
+ */
+export function prepareSubmitLivenessAttestation(
+	reputationManagerAddress: Address,
+	params: LivenessSubmitParams,
+): Result<{ to: Address; data: `0x${string}` }, ZkkycError> {
+	return validate(
+		ZodLivenessSubmitParamsSchema,
+		params,
+		(message, cause, data) =>
+			new ZkkycError(message, { code: "VALIDATION_ERROR", cause, context: { params: data } }),
+	).andThen((validated) =>
+		Result.fromThrowable(
+			() => ({
+				to: reputationManagerAddress,
+				data: encodeFunctionData({
+					abi: ABIS.EXTERNAL.REPUTATION_MANAGER,
+					functionName: "submitLivenessAttestation",
+					args: [
+						validated.nullifier as `0x${string}`,
+						validated.limit,
+						validated.expiry,
+						validated.signature as `0x${string}`,
+					],
+				}),
+			}),
+			(error) =>
+				new ZkkycError("Failed to encode submitLivenessAttestation", {
 					code: "ENCODE_ERROR",
 					cause: error,
 				}),
