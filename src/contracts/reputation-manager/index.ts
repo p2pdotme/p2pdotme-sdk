@@ -3,5 +3,6 @@ export {
 	prepareSubmitAnonAadharProof,
 	prepareSubmitBvnAttestation,
 	prepareSubmitKycAttestation,
+	prepareSubmitLivenessAttestation,
 	prepareZkPassportRegister,
 } from "./writes";
