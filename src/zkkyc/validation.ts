@@ -122,3 +122,22 @@ export const ZodBvnSubmitParamsSchema = z.object({
 });
 
 export type BvnSubmitParams = z.infer<typeof ZodBvnSubmitParamsSchema>;
+
+// ── Liveness EIP-712 attestation ─────────────────────────────────────────────
+
+export const ZodLivenessSubmitParamsSchema = z.object({
+	/** Per-(tenant, identity) Sybil nullifier (bytes32 hex). */
+	nullifier: z.string().refine((v) => /^0x[a-fA-F0-9]{64}$/.test(v), {
+		message: "nullifier must be a bytes32 hex string",
+	}),
+	/** Remaining limit in micro-USDC (part of the signed struct). */
+	limit: z.bigint(),
+	/** Attestation expiry (unix seconds). */
+	expiry: z.bigint(),
+	/** 65-byte secp256k1 signature (hex). */
+	signature: z.string().refine((v) => /^0x[a-fA-F0-9]+$/.test(v), {
+		message: "signature must be a hex string",
+	}),
+});
+
+export type LivenessSubmitParams = z.infer<typeof ZodLivenessSubmitParamsSchema>;
