@@ -52,6 +52,6 @@ export const MEX_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: ["MX"],
 	precision: 2,
 	isAlpha: true,
-	disabled: false,
+	disabled: true,
 	disabledPaymentTypes: ["PAY"],
 };
