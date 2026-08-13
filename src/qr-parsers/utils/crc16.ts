@@ -34,8 +34,12 @@ export function verifyCRC16(qrData: string): { valid: boolean; error?: string } 
 		return { valid: false, error: "QR data too short for CRC verification" };
 	}
 
-	const crcTagIndex = qrData.lastIndexOf("6304");
-	if (crcTagIndex === -1 || crcTagIndex + 8 !== qrData.length) {
+	// The CRC tag is always the final data object: "63" (tag) + "04" (length) +
+	// 4 hex CRC digits. It must sit at a fixed position (length - 8). Locating it
+	// positionally — rather than with lastIndexOf("6304") — avoids a false match
+	// when the CRC value itself is "6304" (payload ends "...63046304").
+	const crcTagIndex = qrData.length - 8;
+	if (qrData.substring(crcTagIndex, crcTagIndex + 4) !== "6304") {
 		return { valid: false, error: "Missing or misplaced CRC tag (6304)" };
 	}
 
