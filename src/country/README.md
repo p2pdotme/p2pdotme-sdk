@@ -90,7 +90,7 @@ validatePIXId("user@example.com"); // true
 | `validateArgentinePaymentId` | ARS | CBU/CVU (22 digits with checksum) or Alias (6–20 chars) |
 | `validateMexicanPaymentId` | MEX | CLABE (18 digits), card (16 digits), phone (10 digits) |
 | `validateVenezuelanPhoneNumber` | VEN | 11-digit number starting with `04` |
-| `validateVenezuelanRif` | VEN | `V` prefix + digits (Cédula, natural persons only) |
+| `validateVenezuelanRif` | VEN | `V|E|J|G|R|P` prefix + digits (Cédula/RIF / passport) |
 | `validateNigerianAccountNumber` | NGN | Exactly 10 digits (NUBAN) |
 | `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
 | `validateCubanPhoneNumber` | CUP | 8-digit phone (optional `+53` prefix) |

@@ -205,7 +205,13 @@ describe("validateVenezuelanPhoneNumber (VEN)", () => {
 describe("validateVenezuelanRif (VEN)", () => {
 	it.each([
 		["V prefix (individual)", "V12345678"],
+		["E prefix (foreigner)", "E1234567"],
+		["J prefix (company)", "J123456789"],
+		["G prefix (government)", "G12345678"],
+		["R prefix (residual)", "R12345678"],
+		["P prefix (passport)", "P12345678"],
 		["lowercase prefix (normalized)", "v12345678"],
+		["lowercase P prefix", "p12345678"],
 		["short suffix (legacy)", "V12345"],
 		["long suffix", "V1234567890"],
 		["9-digit suffix", "V123456789"],
@@ -216,13 +222,11 @@ describe("validateVenezuelanRif (VEN)", () => {
 	it.each([
 		["empty string", ""],
 		["whitespace only", "   "],
-		["J prefix (company, no longer allowed)", "J123456789"],
-		["E prefix (foreigner, no longer allowed)", "E1234567"],
-		["G prefix (government, no longer allowed)", "G12345678"],
-		["C prefix (communal council, no longer allowed)", "C12345678"],
+		["C prefix (communal council, not allowed)", "C12345678"],
 		["invalid prefix", "X12345678"],
 		["letters in suffix", "V1234abcd"],
 		["no prefix", "12345678"],
+		["prefix only", "P"],
 	])("rejects %s", (_label, input) => {
 		expect(validateVenezuelanRif(input)).toBe(false);
 	});
