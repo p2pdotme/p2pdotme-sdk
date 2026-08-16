@@ -1,11 +1,11 @@
 import { CURRENCY } from "../currency";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
-export const PEN_PLACEHOLDER = "CCI (20 digits) or Yape/Plin phone (9XXXXXXXX)";
-export const PEN_VALIDATION_ERROR = "Please enter a valid 20-digit CCI or Yape/Plin phone number";
+export const PEN_PLACEHOLDER = "Yape/Plin QR or 20-digit CCI";
+export const PEN_VALIDATION_ERROR = "Please upload a valid Yape/Plin QR or enter a 20-digit CCI";
 
 /**
- * Validates a Peruvian payment key for the SELL text-key path.
+ * Validates a Peruvian payment key for the SELL text-key path (legacy).
  * Accepts either a 20-digit CCI (Código de Cuenta Interbancario, spaces ignored)
  * or a Yape/Plin phone number (optional `+51`/`51` prefix, then `9` + 8 digits).
  */
@@ -77,8 +77,10 @@ export const PEN_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 		key: "paymentId",
 		label: "CCI_YAPE_PLIN",
 		placeholder: PEN_PLACEHOLDER,
-		displayLabel: "CCI / Yape / Plin",
-		validate: validatePeruvianPaymentKey,
+		displayLabel: "Yape / Plin / CCI",
+		// Prefer EMVCo QR payloads (sell/pay QR flow). CCI (and legacy phone)
+		// still validates so bank-transfer and older address-book entries work.
+		validate: (value) => validatePeruvianQr(value) || validatePeruvianPaymentKey(value),
 		validationErrorMessage: PEN_VALIDATION_ERROR,
 	},
 ];
