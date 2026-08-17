@@ -15,7 +15,12 @@ import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
 import { validatePeruvianPaymentKey, validatePeruvianQr } from "../../src/country/currencies/pen";
 import { validatePhilippinePhoneNumber } from "../../src/country/currencies/php";
-import { validateVenezuelanPhoneNumber, validateVenezuelanRif } from "../../src/country/currencies/ven";
+import {
+	validateVenezuelanPaymentId,
+	validateVenezuelanPhoneNumber,
+	validateVenezuelanQr,
+	validateVenezuelanRif,
+} from "../../src/country/currencies/ven";
 
 // ── INR ─────────────────────────────────────────────────────────────────────
 
@@ -229,6 +234,64 @@ describe("validateVenezuelanRif (VEN)", () => {
 		["prefix only", "P"],
 	])("rejects %s", (_label, input) => {
 		expect(validateVenezuelanRif(input)).toBe(false);
+	});
+});
+
+describe("validateVenezuelanQr (VEN S7B)", () => {
+	const tesoro =
+		"dBKxwilNo3+ATaUX7YpeGfb+DOGtIBnj2DpAypb7U6gqar/JxjhLFaXIKyv9O+Z6xh3rX2B6huFupypAZjcj0istG7bYvJ5XO3NfqXYAeVR+hEwkuuBBcCy+9MKH7OJMvDGEXU143a7+bgcrTjaCzQ==?merchantId=0163&strong_id=1786921164-3";
+	const mercantil =
+		"m28tuwbizhMer7LqTrXDR390LJYTLTMLxvAojSnPrZ2ese+vGGypN/1IfjBJVQyduC5qN+Hvyqa8FzYoP1xntmkI7PU6HlnAEpYgEZ1TSahnec0Ctt1Tpg3gK3rTG0ay5ST8h24YHsc6Q4aZtmxdLjtKyeChlbRhqq6v8e9qNlrpc/2nZ6HV0a1mcIOz7qm4GgpPQMaHW5ywzkuWE0ps9fMB9kCiyGPNj6G0SZomROybsNlMDevCMdpbGyz5w84MxNdomJwEgy8qhBYgKSEPlCn/cCmAdeZCtyFypu6Tr1tDgrlL0kLNRrv2CQKkLw3uHx8zxZohwuu3Cau0io4elA==?merchantId=0105&strong_id=260722171116&origin=web";
+
+	it.each([
+		["Tesoro live QR", tesoro],
+		["Mercantil live QR with origin=web", mercantil],
+	])("accepts %s", (_label, input) => {
+		expect(validateVenezuelanQr(input)).toBe(true);
+	});
+
+	it.each([
+		["empty", ""],
+		["no query", "dGVzdA=="],
+		["short blob", "SGVsbG8=?merchantId=0134"],
+		["missing merchantId", `${"A".repeat(48)}?origin=web`],
+		["compound payment id", "04121234567|V12345678|Banesco"],
+	])("rejects %s", (_label, input) => {
+		expect(validateVenezuelanQr(input)).toBe(false);
+	});
+});
+
+describe("validateVenezuelanPaymentId (VEN QR or compound)", () => {
+	it("accepts a Suiche 7B payload", () => {
+		expect(
+			validateVenezuelanPaymentId(
+				`${"A".repeat(48)}?merchantId=0134&origin=app`,
+			),
+		).toBe(true);
+	});
+
+	it("accepts a legacy phone|rif|bank id", () => {
+		expect(validateVenezuelanPaymentId("04121234567|V12345678|Banesco")).toBe(
+			true,
+		);
+	});
+
+	it("rejects a phone-only value", () => {
+		expect(validateVenezuelanPaymentId("04121234567")).toBe(false);
+	});
+
+	it("accepts a packed QR + phone|rif|bank id", () => {
+		const qr = `${"A".repeat(48)}?merchantId=0134&origin=app`;
+		expect(
+			validateVenezuelanPaymentId(`${qr}||04121234567|V12345678|Banesco`),
+		).toBe(true);
+	});
+
+	it("does not treat a packed id as a raw QR payload", () => {
+		const qr = `${"A".repeat(48)}?merchantId=0134&origin=app`;
+		expect(
+			validateVenezuelanQr(`${qr}||04121234567|V12345678|Banesco`),
+		).toBe(false);
 	});
 });
 

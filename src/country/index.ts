@@ -14,7 +14,9 @@ export type { CountryOption, PaymentIdFieldConfig } from "./types";
 export {
 	deserializeCompoundPaymentId,
 	formatCompoundPaymentIdForDisplay,
+	parseVenezuelanPaymentId,
 	serializeCompoundPaymentId,
+	serializeVenezuelanPaymentId,
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
@@ -32,6 +34,8 @@ export {
 	validatePIXId,
 	validateRevolutId,
 	validateUPIId,
+	validateVenezuelanPaymentId,
 	validateVenezuelanPhoneNumber,
+	validateVenezuelanQr,
 	validateVenezuelanRif,
 } from "./validators";

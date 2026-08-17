@@ -40,6 +40,83 @@ export function validateVenezuelanRif(rif: string): boolean {
 	return /^[VEJGRP]\d+$/.test(trimmed);
 }
 
+/**
+ * Structural check for a Suiche 7B (Pago Móvil) QR payload.
+ * Live bank QRs are `base64?merchantId=NNNN&…` — the blob is opaque AES; we
+ * only validate the envelope so the payload can be stored and re-rendered.
+ */
+/** Joins an optional S7B QR payload with `phone|rif|bank` in one stored ID. */
+export const VEN_QR_COMPOUND_SEP = "||";
+
+export function validateVenezuelanQr(payload: string): boolean {
+	if (!payload || typeof payload !== "string") return false;
+	const trimmed = payload.trim();
+	if (trimmed.includes(VEN_QR_COMPOUND_SEP)) return false;
+	const qIdx = trimmed.indexOf("?");
+	if (qIdx < 40) return false;
+	const blob = trimmed.substring(0, qIdx);
+	if (!/^[A-Za-z0-9+/=]+$/.test(blob)) return false;
+	return /(?:^|[?&])merchantId=\d{3,4}(?:&|$)/.test(trimmed.substring(qIdx));
+}
+
+function isValidVenezuelanCompound(value: string): boolean {
+	const parts = value.split("|");
+	if (parts.length !== 3) return false;
+	return (
+		validateVenezuelanPhoneNumber(parts[0]) &&
+		validateVenezuelanRif(parts[1]) &&
+		parts[2].trim().length > 0
+	);
+}
+
+export type VenezuelanPaymentIdParts = {
+	qr: string | null;
+	compound: string | null;
+};
+
+/**
+ * Splits a stored VEN payment ID into its QR payload and/or typed fallback.
+ * Formats: S7B blob, `phone|rif|bank`, or `blob||phone|rif|bank`.
+ */
+export function parseVenezuelanPaymentId(
+	value: string | null | undefined,
+): VenezuelanPaymentIdParts {
+	if (!value || typeof value !== "string") return { qr: null, compound: null };
+	const trimmed = value.trim();
+	const sep = trimmed.indexOf(VEN_QR_COMPOUND_SEP);
+	if (sep >= 0) {
+		const left = trimmed.slice(0, sep);
+		const right = trimmed.slice(sep + VEN_QR_COMPOUND_SEP.length);
+		return {
+			qr: validateVenezuelanQr(left) ? left : null,
+			compound: isValidVenezuelanCompound(right) ? right : null,
+		};
+	}
+	if (validateVenezuelanQr(trimmed)) return { qr: trimmed, compound: null };
+	if (isValidVenezuelanCompound(trimmed)) return { qr: null, compound: trimmed };
+	return { qr: null, compound: null };
+}
+
+export function serializeVenezuelanPaymentId(
+	qr: string | null | undefined,
+	compound: string | null | undefined,
+): string {
+	const q = qr?.trim() && validateVenezuelanQr(qr.trim()) ? qr.trim() : "";
+	const c = compound?.trim() || "";
+	if (q && c) return `${q}${VEN_QR_COMPOUND_SEP}${c}`;
+	return q || c;
+}
+
+/**
+ * Accepts a Suiche 7B QR payload, the typed `phone|rif|bank` fallback,
+ * or both packed as `qr||phone|rif|bank`.
+ */
+export function validateVenezuelanPaymentId(value: string): boolean {
+	if (!value || typeof value !== "string") return false;
+	const { qr, compound } = parseVenezuelanPaymentId(value);
+	return qr !== null || compound !== null;
+}
+
 /** Payment ID field configuration for VEN (Venezuela, Pago Móvil). */
 export const VEN_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 	{

@@ -1,4 +1,6 @@
 export {
+	parseVenezuelanPaymentId,
+	serializeVenezuelanPaymentId,
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
@@ -16,7 +18,9 @@ export {
 	validatePIXId,
 	validateRevolutId,
 	validateUPIId,
+	validateVenezuelanPaymentId,
 	validateVenezuelanPhoneNumber,
+	validateVenezuelanQr,
 	validateVenezuelanRif,
 } from "./currencies";
 
