@@ -7,6 +7,11 @@ export interface PaymentIdFieldConfig {
 	readonly displayLabel: string | null;
 	readonly validate: (value: string) => boolean;
 	readonly validationErrorMessage: string;
+	/**
+	 * When true, an empty value is allowed. If every field is optional, at least
+	 * one field must still be filled (see `validatePaymentIdFields`).
+	 */
+	readonly optional?: boolean;
 }
 
 export interface CountryOption {
@@ -29,4 +34,16 @@ export interface CountryOption {
 	readonly isAlpha: boolean;
 	readonly disabled: boolean;
 	readonly disabledPaymentTypes: readonly string[];
+	/**
+	 * Merchant/seller provides payment details by uploading a QR image
+	 * (e.g. Yape/Plin). Distinct from PAY, where the buyer scans a QR.
+	 */
+	readonly uploadPaymentQR: boolean;
+	/**
+	 * Stored payment ID may pack an optional QR payload with typed fields as
+	 * `qr||field|field`. VEN always; PEN when the seller uploads a Yape/Plin QR.
+	 */
+	readonly packedPaymentId?: boolean;
+	/** Structural check for a standalone QR payload (no `||` pack). */
+	readonly validateQr?: (payload: string) => boolean;
 }

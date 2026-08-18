@@ -13,8 +13,26 @@ import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr"
 import { validateUPIId } from "../../src/country/currencies/inr";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
-import { validatePeruvianPaymentKey, validatePeruvianQr } from "../../src/country/currencies/pen";
+import {
+	PEN_PAYMENT_FIELDS,
+	PEN_QR_COMPOUND_SEP,
+	parsePeruvianPaymentId,
+	serializePeruvianPaymentId,
+	validatePeruvianCci,
+	validatePeruvianPaymentId,
+	validatePeruvianPaymentKey,
+	validatePeruvianPhone,
+	validatePeruvianQr,
+} from "../../src/country/currencies/pen";
 import { validatePhilippinePhoneNumber } from "../../src/country/currencies/php";
+import {
+	assignPaymentIdToFieldValues,
+	assignStoredPaymentIdToFieldValues,
+	formatStoredPaymentIdForDisplay,
+	validatePaymentIdFields,
+	validateStoredPaymentId,
+} from "../../src/country/validators";
+import { usesPackedPaymentId } from "../../src/country/countries";
 import {
 	validateVenezuelanPaymentId,
 	validateVenezuelanPhoneNumber,
@@ -442,6 +460,224 @@ describe("validatePeruvianPaymentKey (PEN)", () => {
 		["contains letters", "9876543ab"],
 	])("rejects %s", (_label, input) => {
 		expect(validatePeruvianPaymentKey(input)).toBe(false);
+	});
+});
+
+describe("PEN_PAYMENT_FIELDS catalog", () => {
+	it("has optional phone and CCI fields", () => {
+		expect(PEN_PAYMENT_FIELDS.map((f) => f.key)).toEqual(["phone", "cci"]);
+		expect(PEN_PAYMENT_FIELDS.every((f) => f.optional)).toBe(true);
+	});
+
+	it("validatePaymentIdFields accepts phone, CCI, or both", () => {
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "987654321")).toBe(true);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "00212345678901234567")).toBe(true);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "987654321|00212345678901234567")).toBe(
+			true,
+		);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "|00212345678901234567")).toBe(true);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "987654321|")).toBe(true);
+	});
+
+	it("validatePaymentIdFields rejects empty or invalid pairs", () => {
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "")).toBe(false);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "|")).toBe(false);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "887654321")).toBe(false);
+		expect(validatePaymentIdFields(PEN_PAYMENT_FIELDS, "987654321|123")).toBe(false);
+	});
+
+	it("assignPaymentIdToFieldValues hydrates legacy single tokens", () => {
+		expect(assignPaymentIdToFieldValues(PEN_PAYMENT_FIELDS, "987654321")).toEqual({
+			phone: "987654321",
+			cci: "",
+		});
+		expect(assignPaymentIdToFieldValues(PEN_PAYMENT_FIELDS, "00212345678901234567")).toEqual({
+			phone: "",
+			cci: "00212345678901234567",
+		});
+		expect(
+			assignPaymentIdToFieldValues(PEN_PAYMENT_FIELDS, "987654321|00212345678901234567"),
+		).toEqual({
+			phone: "987654321",
+			cci: "00212345678901234567",
+		});
+		expect(
+			assignPaymentIdToFieldValues(PEN_PAYMENT_FIELDS, "00212345678901234567|987654321"),
+		).toEqual({
+			phone: "987654321",
+			cci: "00212345678901234567",
+		});
+	});
+});
+
+describe("parse/serialize Peruvian packed payment ID", () => {
+	const SAMPLE =
+		"0002010102113932acfba6cb922753c690f09280f365d7a25204561153036045802PE5906YAPERO6004Lima6304ECE9";
+	const PHONE = "987654321";
+	const CCI = "00212345678901234567";
+
+	it("round-trips phone, CCI, both, and packed QR", () => {
+		expect(parsePeruvianPaymentId(PHONE)).toEqual({ qr: null, phone: PHONE, cci: null });
+		expect(parsePeruvianPaymentId(CCI)).toEqual({ qr: null, phone: null, cci: CCI });
+		expect(parsePeruvianPaymentId(`${PHONE}|${CCI}`)).toEqual({
+			qr: null,
+			phone: PHONE,
+			cci: CCI,
+		});
+		expect(parsePeruvianPaymentId(`${CCI}|${PHONE}`)).toEqual({
+			qr: null,
+			phone: PHONE,
+			cci: CCI,
+		});
+		expect(parsePeruvianPaymentId(SAMPLE)).toEqual({ qr: SAMPLE, phone: null, cci: null });
+		expect(serializePeruvianPaymentId(SAMPLE, PHONE, CCI)).toBe(
+			`${SAMPLE}${PEN_QR_COMPOUND_SEP}${PHONE}|${CCI}`,
+		);
+		expect(parsePeruvianPaymentId(serializePeruvianPaymentId(SAMPLE, PHONE, ""))).toEqual({
+			qr: SAMPLE,
+			phone: PHONE,
+			cci: null,
+		});
+	});
+
+	it("shows CCI and also the phone when the QR embeds it", () => {
+		const crc16ccitt = (s: string) => {
+			let crc = 0xffff;
+			for (let i = 0; i < s.length; i++) {
+				crc ^= s.charCodeAt(i) << 8;
+				for (let j = 0; j < 8; j++) {
+					crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+					crc &= 0xffff;
+				}
+			}
+			return crc.toString(16).toUpperCase().padStart(4, "0");
+		};
+		const body =
+			"00020101021126210004test010998765432153036045802PE5906YAPERO6004Lima6304";
+		const qr = `${body}${crc16ccitt(body)}`;
+		expect(parsePeruvianPaymentId(qr)).toEqual({
+			qr,
+			phone: PHONE,
+			cci: null,
+		});
+		expect(parsePeruvianPaymentId(`${qr}${PEN_QR_COMPOUND_SEP}${CCI}`)).toEqual({
+			qr,
+			phone: PHONE,
+			cci: CCI,
+		});
+		expect(formatStoredPaymentIdForDisplay("PEN", `${qr}${PEN_QR_COMPOUND_SEP}${CCI}`)).toBe(
+			`Yape / Plin phone: ${PHONE} | CCI: ${CCI}`,
+		);
+		expect(assignStoredPaymentIdToFieldValues("PEN", `${qr}${PEN_QR_COMPOUND_SEP}${CCI}`)).toEqual({
+			phone: PHONE,
+			cci: CCI,
+		});
+	});
+
+	it("extracts a Yape phone from merchant-account tag 02", () => {
+		const crc16ccitt = (s: string) => {
+			let crc = 0xffff;
+			for (let i = 0; i < s.length; i++) {
+				crc ^= s.charCodeAt(i) << 8;
+				for (let j = 0; j < 8; j++) {
+					crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+					crc &= 0xffff;
+				}
+			}
+			return crc.toString(16).toUpperCase().padStart(4, "0");
+		};
+		const body = "0002010102110212+5198765432153036045802PE5906YAPERO6004Lima6304";
+		const qr = `${body}${crc16ccitt(body)}`;
+		expect(parsePeruvianPaymentId(qr)).toEqual({ qr, phone: PHONE, cci: null });
+		expect(parsePeruvianPaymentId(`${qr}${PEN_QR_COMPOUND_SEP}${CCI}`)).toEqual({
+			qr,
+			phone: PHONE,
+			cci: CCI,
+		});
+		expect(formatStoredPaymentIdForDisplay("PEN", `${qr}${PEN_QR_COMPOUND_SEP}${CCI}`)).toBe(
+			`Yape / Plin phone: ${PHONE} | CCI: ${CCI}`,
+		);
+	});
+
+	it("extracts a Yape phone glued with +51 inside a merchant-account value", () => {
+		const crc16ccitt = (s: string) => {
+			let crc = 0xffff;
+			for (let i = 0; i < s.length; i++) {
+				crc ^= s.charCodeAt(i) << 8;
+				for (let j = 0; j < 8; j++) {
+					crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+					crc &= 0xffff;
+				}
+			}
+			return crc.toString(16).toUpperCase().padStart(4, "0");
+		};
+		const body =
+			"0002010102112618YAPE+51987654321PE53036045802PE5906YAPERO6004Lima6304";
+		const qr = `${body}${crc16ccitt(body)}`;
+		expect(parsePeruvianPaymentId(qr)).toEqual({ qr, phone: PHONE, cci: null });
+		expect(parsePeruvianPaymentId(`${qr}${PEN_QR_COMPOUND_SEP}${CCI}`)).toEqual({
+			qr,
+			phone: PHONE,
+			cci: CCI,
+		});
+		expect(parsePeruvianPaymentId(SAMPLE)).toEqual({ qr: SAMPLE, phone: null, cci: null });
+	});
+
+	it("validatePeruvianPaymentId accepts QR, phone, or CCI", () => {
+		expect(validatePeruvianPaymentId(PHONE)).toBe(true);
+		expect(validatePeruvianPaymentId(CCI)).toBe(true);
+		expect(validatePeruvianPaymentId(SAMPLE)).toBe(true);
+		expect(validatePeruvianPaymentId(`${SAMPLE}${PEN_QR_COMPOUND_SEP}${PHONE}`)).toBe(true);
+		expect(validatePeruvianPaymentId("")).toBe(false);
+	});
+
+	it("validateStoredPaymentId / display / hydrate go through the catalog", () => {
+		expect(usesPackedPaymentId("PEN")).toBe(true);
+		expect(usesPackedPaymentId("VEN")).toBe(true);
+		expect(usesPackedPaymentId("CUP")).toBe(false);
+		expect(validateStoredPaymentId("PEN", SAMPLE)).toBe(true);
+		expect(validateStoredPaymentId("PEN", PHONE)).toBe(true);
+		expect(validateStoredPaymentId("PEN", `${CCI}|${PHONE}`)).toBe(true);
+		expect(validateStoredPaymentId("PEN", `${SAMPLE}${PEN_QR_COMPOUND_SEP}${CCI}|${PHONE}`)).toBe(
+			true,
+		);
+		expect(formatStoredPaymentIdForDisplay("PEN", SAMPLE)).toBe("");
+		expect(formatStoredPaymentIdForDisplay("PEN", CCI)).toBe(`CCI: ${CCI}`);
+		expect(formatStoredPaymentIdForDisplay("PEN", `${PHONE}|${CCI}`)).toBe(
+			`Yape / Plin phone: ${PHONE} | CCI: ${CCI}`,
+		);
+		expect(formatStoredPaymentIdForDisplay("PEN", `${CCI}|${PHONE}`)).toBe(
+			`Yape / Plin phone: ${PHONE} | CCI: ${CCI}`,
+		);
+		expect(
+			assignStoredPaymentIdToFieldValues(
+				"PEN",
+				`${SAMPLE}${PEN_QR_COMPOUND_SEP}${PHONE}|${CCI}`,
+			),
+		).toEqual({ phone: PHONE, cci: CCI });
+		expect(assignStoredPaymentIdToFieldValues("PEN", `${CCI}|${PHONE}`)).toEqual({
+			phone: PHONE,
+			cci: CCI,
+		});
+		expect(assignStoredPaymentIdToFieldValues("PEN", SAMPLE)).toEqual({ phone: "", cci: "" });
+		expect(
+			assignPaymentIdToFieldValues(
+				PEN_PAYMENT_FIELDS,
+				`${SAMPLE}${PEN_QR_COMPOUND_SEP}${PHONE}`,
+			),
+		).toEqual({
+			phone: PHONE,
+			cci: "",
+		});
+	});
+});
+
+describe("validatePeruvianPhone / validatePeruvianCci", () => {
+	it("splits the combined payment-key rules", () => {
+		expect(validatePeruvianPhone("987654321")).toBe(true);
+		expect(validatePeruvianPhone("00212345678901234567")).toBe(false);
+		expect(validatePeruvianCci("00212345678901234567")).toBe(true);
+		expect(validatePeruvianCci("987654321")).toBe(false);
 	});
 });
 

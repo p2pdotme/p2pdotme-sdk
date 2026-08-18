@@ -73,4 +73,5 @@ export const NGN_COUNTRY_OPTION: CountryOption = {
 	isAlpha: true,
 	disabled: false,
 	disabledPaymentTypes: [],
+	uploadPaymentQR: false,
 };

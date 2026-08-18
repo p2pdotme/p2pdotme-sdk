@@ -51,4 +51,5 @@ export const EUR_COUNTRY_OPTION: CountryOption = {
 	isAlpha: true,
 	disabled: true,
 	disabledPaymentTypes: ["PAY"],
+	uploadPaymentQR: false,
 };

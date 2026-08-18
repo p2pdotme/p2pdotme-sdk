@@ -1,22 +1,32 @@
 // ── Constants ────────────────────────────────────────────────────────────
 
-export { COUNTRY_OPTIONS } from "./countries";
+export { COUNTRY_OPTIONS, uploadsPaymentQR, usesPackedPaymentId } from "./countries";
 export { CURRENCY, CURRENCY_CODES } from "./currency";
 export { PAYMENT_ID_FIELDS } from "./payment-fields";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
+export type { PeruvianPaymentIdParts } from "./currencies/pen";
+export type { VenezuelanPaymentIdParts } from "./currencies/ven";
 export type { CurrencyCode } from "./currency";
 export type { CountryOption, PaymentIdFieldConfig } from "./types";
 
 // ── Validators ──────────────────────────────────────────────────────────
 
 export {
+	assignPaymentIdToFieldValues,
+	assignStoredPaymentIdToFieldValues,
 	deserializeCompoundPaymentId,
 	formatCompoundPaymentIdForDisplay,
+	formatStoredPaymentIdForDisplay,
+	PACKED_PAYMENT_ID_SEP,
+	PEN_QR_COMPOUND_SEP,
+	parsePeruvianPaymentId,
 	parseVenezuelanPaymentId,
 	serializeCompoundPaymentId,
+	serializePeruvianPaymentId,
 	serializeVenezuelanPaymentId,
+	unpackPackedPaymentId,
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
@@ -28,11 +38,16 @@ export {
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
 	validateNigerianAccountNumber,
+	validatePaymentIdFields,
+	validatePeruvianCci,
+	validatePeruvianPaymentId,
 	validatePeruvianPaymentKey,
+	validatePeruvianPhone,
 	validatePeruvianQr,
 	validatePhilippinePhoneNumber,
 	validatePIXId,
 	validateRevolutId,
+	validateStoredPaymentId,
 	validateUPIId,
 	validateVenezuelanPaymentId,
 	validateVenezuelanPhoneNumber,

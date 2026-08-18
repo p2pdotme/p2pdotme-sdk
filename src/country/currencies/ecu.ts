@@ -130,4 +130,5 @@ export const ECU_COUNTRY_OPTION: CountryOption = {
 	isAlpha: true,
 	disabled: false,
 	disabledPaymentTypes: [],
+	uploadPaymentQR: false,
 };

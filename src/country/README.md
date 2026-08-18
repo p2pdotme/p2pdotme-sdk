@@ -79,6 +79,19 @@ validatePIXId("user@example.com"); // true
 
 `isAlpha: true` — feature-flagged, may not be fully available in production.
 `disabled: true` — hidden from selection in the UI.
+`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (Yape/Plin). Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
+
+`packedPaymentId: true` — stored ID may be `qr||field|field` (VEN always; PEN when the seller uploads a Yape/Plin QR). Apps use `usesPackedPaymentId(currency)` instead of `isPeru()` / `isVenezuela()`.
+
+`optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
+
+```typescript
+import { uploadsPaymentQR, usesPackedPaymentId, validateStoredPaymentId } from "@p2pdotme/sdk/country";
+
+uploadsPaymentQR("PEN"); // true — seller may upload a Yape/Plin QR
+usesPackedPaymentId("VEN"); // true
+validateStoredPaymentId("PEN", "987654321"); // true — phone-only
+```
 
 ## Validators
 
@@ -96,14 +109,16 @@ validatePIXId("user@example.com"); // true
 | `validateCubanPhoneNumber` | CUP | 8-digit phone (optional `+53` prefix) |
 | `validateCubanCardNumber` | CUP | 16-digit bank card (spaces/dashes allowed) |
 | `validateEcuadorianCedula` | ECU | 10-digit cédula (módulo-10) or 13-digit RUC |
-| `validatePeruvianPaymentKey` | PEN | 20-digit CCI or Yape/Plin phone (`9XXXXXXXX`, optional `+51`) |
+| `validatePeruvianPhone` | PEN | Yape/Plin phone (`9XXXXXXXX`, optional `+51`) |
+| `validatePeruvianCci` | PEN | 20-digit CCI |
+| `validatePeruvianPaymentKey` | PEN | CCI **or** Yape/Plin phone (legacy single-field) |
 | `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC) |
 | `validatePhilippinePhoneNumber` | PHP | Mobile number `9XXXXXXXXX` (optional `0` or `+63` prefix) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs
 
-Venezuela (VEN) requires three fields: phone, RIF, and bank name. Use the compound utilities to serialize/deserialize:
+Venezuela (VEN) requires three fields: phone, RIF, and bank name. Peru (PEN) has two **optional** fields (Yape/Plin phone and CCI); at least one must be present. Use the compound utilities to serialize/deserialize:
 
 ```typescript
 import {
