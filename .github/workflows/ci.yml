@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build
+        run: bun run build
+
       - name: Typecheck
         run: bun run typecheck
 
@@ -38,6 +41,3 @@ jobs:
         run: bun run test
         env:
           PIX_PROXY_URL: https://mock-pix-proxy.test
-
-      - name: Build
-        run: bun run build
