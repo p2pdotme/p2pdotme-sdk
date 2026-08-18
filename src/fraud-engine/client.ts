@@ -18,7 +18,13 @@ import type {
 	ProcessBuyOrderResult,
 	UserDetails,
 } from "./types";
-import { validate, ZodFraudEngineConfigSchema } from "./validation";
+import {
+	validate,
+	ZodFingerprintLogResultSchema,
+	ZodFraudCheckApiResponseSchema,
+	ZodFraudEngineConfigSchema,
+	ZodLinkOrderResultSchema,
+} from "./validation";
 
 export function createFraudEngine(config: FraudEngineConfig): FraudEngine {
 	const { apiUrl, encryptionKey } = config;
@@ -76,7 +82,12 @@ export function createFraudEngine(config: FraudEngineConfig): FraudEngine {
 					});
 				}
 
-				const data = (await response.json()) as LinkOrderResult;
+				const json = await response.json();
+				const result = validate(ZodLinkOrderResultSchema, json);
+				if (result.isErr()) {
+					throw result.error;
+				}
+				const data = result.value;
 				logger.info("Order linked successfully", { orderId });
 				return data;
 			})(),
@@ -161,7 +172,12 @@ export function createFraudEngine(config: FraudEngineConfig): FraudEngine {
 			});
 		}
 
-		const data = (await response.json()) as FraudCheckApiResponse;
+		const json = await response.json();
+		const result = validate(ZodFraudCheckApiResponseSchema, json);
+		if (result.isErr()) {
+			throw result.error;
+		}
+		const data = result.value;
 		logger.info("Fraud check result", {
 			approved: data.approved,
 			activityLogId: data.activity_log_id,
@@ -318,7 +334,12 @@ export function createFraudEngine(config: FraudEngineConfig): FraudEngine {
 						});
 					}
 
-					const data = (await response.json()) as FingerprintLogResult;
+					const json = await response.json();
+					const result = validate(ZodFingerprintLogResultSchema, json);
+					if (result.isErr()) {
+						throw result.error;
+					}
+					const data = result.value;
 					logger.info("Fingerprint logged successfully");
 					return data;
 				})(),
