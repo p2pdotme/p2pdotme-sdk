@@ -108,5 +108,4 @@ export const BRL_COUNTRY_OPTION: CountryOption = {
 	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
-	uploadPaymentQR: false,
 };

@@ -1,5 +1,8 @@
 import { CURRENCY } from "../currency";
-import type { CountryOption, PaymentIdFieldConfig } from "../types";
+import { validatePeruvianQr } from "../qr-validator";
+import { type CountryOption, PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "../types";
+
+export { validatePeruvianQr };
 
 export const PEN_PLACEHOLDER = "CCI (20 digits) or Yape/Plin phone (9XXXXXXXX)";
 export const PEN_PHONE_PLACEHOLDER = "PERU_PHONE_PLACEHOLDER";
@@ -33,58 +36,6 @@ export function validatePeruvianPhone(value: string): boolean {
 export function validatePeruvianPaymentKey(value: string): boolean {
 	return validatePeruvianCci(value) || validatePeruvianPhone(value);
 }
-
-/**
- * Computes CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF, no reflection, xorout 0)
- * over the input string and returns the 4-char uppercase hex checksum.
- */
-function crc16ccitt(s: string): string {
-	let crc = 0xffff;
-	for (let i = 0; i < s.length; i++) {
-		crc ^= s.charCodeAt(i) << 8;
-		for (let j = 0; j < 8; j++) {
-			crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
-			crc &= 0xffff;
-		}
-	}
-	return crc.toString(16).toUpperCase().padStart(4, "0");
-}
-
-/**
- * Validates a Yape/Plin EMVCo QR payload: parseable TLV, country (tag 58) `PE`,
- * currency (tag 53) `604` (PEN), and a matching CRC-16/CCITT-FALSE (tag 63).
- */
-export function validatePeruvianQr(payload: string): boolean {
-	if (!payload || payload.trim().length === 0) return false;
-	const data = payload.trim();
-
-	const tags: Record<string, string> = {};
-	let pos = 0;
-	while (pos + 4 <= data.length) {
-		const tag = data.substring(pos, pos + 2);
-		const lengthStr = data.substring(pos + 2, pos + 4);
-		if (!/^[0-9]{2}$/.test(tag) || !/^[0-9]{2}$/.test(lengthStr)) break;
-		const length = Number.parseInt(lengthStr, 10);
-		if (pos + 4 + length > data.length) break;
-		tags[tag] = data.substring(pos + 4, pos + 4 + length);
-		pos += 4 + length;
-	}
-
-	if (tags["58"] !== "PE") return false;
-	if (tags["53"] !== "604") return false;
-
-	const crcTag = tags["63"];
-	if (!crcTag) return false;
-
-	const marker = data.lastIndexOf("6304");
-	if (marker === -1) return false;
-
-	const expected = crc16ccitt(data.substring(0, marker + 4));
-	return expected.toUpperCase() === crcTag.toUpperCase();
-}
-
-/** Joins an optional Yape/Plin QR payload with phone/CCI in one stored ID. */
-export const PEN_QR_COMPOUND_SEP = "||";
 
 /** Normalizes a CCI or Yape/Plin phone to the stored digit form. */
 export function normalizePeruvianPaymentKey(value: string): string {
@@ -179,10 +130,10 @@ export function parsePeruvianPaymentId(value: string | null | undefined): Peruvi
 		return { qr: null, phone: null, cci: null };
 	}
 	const trimmed = value.trim();
-	const sep = trimmed.indexOf(PEN_QR_COMPOUND_SEP);
+	const sep = trimmed.indexOf(PACKED_PAYMENT_ID_SEP);
 	if (sep >= 0) {
 		const left = trimmed.slice(0, sep);
-		const right = trimmed.slice(sep + PEN_QR_COMPOUND_SEP.length);
+		const right = trimmed.slice(sep + PACKED_PAYMENT_ID_SEP.length);
 		const fallback = parsePeruvianFallback(right);
 		const qr = validatePeruvianQr(left) ? left : null;
 		return {
@@ -211,7 +162,7 @@ export function serializePeruvianPaymentId(
 	const p = phone?.trim() && validatePeruvianPhone(phone) ? normalizePeruvianPaymentKey(phone) : "";
 	const c = cci?.trim() && validatePeruvianCci(cci) ? normalizePeruvianPaymentKey(cci) : "";
 	const fallback = p && c ? `${p}|${c}` : p || c;
-	if (q && fallback) return `${q}${PEN_QR_COMPOUND_SEP}${fallback}`;
+	if (q && fallback) return `${q}${PACKED_PAYMENT_ID_SEP}${fallback}`;
 	return q || fallback;
 }
 
@@ -265,6 +216,9 @@ export const PEN_COUNTRY_OPTION: CountryOption = {
 	disabled: false,
 	disabledPaymentTypes: [],
 	uploadPaymentQR: true,
-	packedPaymentId: true,
 	validateQr: validatePeruvianQr,
+	hydrateFieldsFromQr: (qr) => {
+		const phone = extractPeruvianPhoneFromQr(qr);
+		return phone ? { phone } : {};
+	},
 };

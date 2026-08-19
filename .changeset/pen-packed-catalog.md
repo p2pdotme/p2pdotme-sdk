@@ -2,9 +2,9 @@
 "@p2pdotme/sdk": minor
 ---
 
-country: catalog flags and helpers for packed PEN payment IDs
+country: catalog flags and generic packed payment-ID helpers
 
-- `uploadPaymentQR` / `packedPaymentId` on `CountryOption`, plus `uploadsPaymentQR()` and `usesPackedPaymentId()`.
-- PEN payment fields are optional `phone` + `cci` (at least one required). Stored IDs may be `qr||phone|cci`.
-- New helpers: `validateStoredPaymentId`, `unpackPackedPaymentId`, `assignStoredPaymentIdToFieldValues`, `formatStoredPaymentIdForDisplay`, `parsePeruvianPaymentId` / `serializePeruvianPaymentId`.
-- Parse assigns CCI and phone by validator (any order) and extracts a Yape/Plin phone from the EMVCo QR when present.
+- `uploadPaymentQR?` (default false) and `validateQr?` on `CountryOption`, plus `uploadsPaymentQR()`, `usesPackedPaymentId()` (derived from `validateQr`), and `getCountryOption()`.
+- PEN payment fields are optional `phone` + `cci` (at least one required). Stored IDs may be `qr||field|field`.
+- Catalog helpers: `packStoredPaymentId`, `getStoredQrPayload`, `validateStoredPaymentId`, `unpackPackedPaymentId`, `assignStoredPaymentIdToFieldValues`, `formatStoredPaymentIdForDisplay`.
+- PEN phone embedded in a Yape/Plin QR is hydrated via `CountryOption.hydrateFieldsFromQr` — no `currency === "PEN"` in the generic layer.

@@ -1,15 +1,9 @@
-import { COUNTRY_OPTIONS } from "./countries";
-import { parsePeruvianPaymentId, validatePeruvianPaymentId } from "./currencies/pen";
+import { getCountryOption } from "./countries";
 import type { CurrencyCode } from "./currency";
 import { PAYMENT_ID_FIELDS } from "./payment-fields";
-import type { PaymentIdFieldConfig } from "./types";
+import { PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "./types";
 
 export {
-	PEN_QR_COMPOUND_SEP,
-	parsePeruvianPaymentId,
-	parseVenezuelanPaymentId,
-	serializePeruvianPaymentId,
-	serializeVenezuelanPaymentId,
 	validateArgentinePaymentId,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
@@ -25,16 +19,16 @@ export {
 	validatePeruvianPaymentId,
 	validatePeruvianPaymentKey,
 	validatePeruvianPhone,
-	validatePeruvianQr,
 	validatePhilippinePhoneNumber,
 	validatePIXId,
 	validateRevolutId,
 	validateUPIId,
 	validateVenezuelanPaymentId,
 	validateVenezuelanPhoneNumber,
-	validateVenezuelanQr,
 	validateVenezuelanRif,
 } from "./currencies";
+export { validatePeruvianQr, validateVenezuelanQr } from "./qr-validator";
+export { PACKED_PAYMENT_ID_SEP };
 
 /** Serializes multiple fields into a pipe-separated string. */
 export function serializeCompoundPaymentId(...fields: string[]): string {
@@ -140,9 +134,6 @@ export function assignPaymentIdToFieldValues(
 	return result;
 }
 
-/** Pack separator for optional QR + typed fields (`qr||phone|cci`). */
-export const PACKED_PAYMENT_ID_SEP = "||";
-
 export function unpackPackedPaymentId(paymentId: string): {
 	qr: string;
 	rest: string;
@@ -155,9 +146,68 @@ export function unpackPackedPaymentId(paymentId: string): {
 	};
 }
 
-function countryOption(currency: CurrencyCode | null | undefined) {
-	if (!currency) return undefined;
-	return COUNTRY_OPTIONS.find((c) => c.currency === currency);
+function isStandaloneQr(
+	validateQr: ((payload: string) => boolean) | undefined,
+	value: string,
+): boolean {
+	return !!validateQr?.(value);
+}
+
+/**
+ * QR blob from a stored payment ID, or `null` if none / invalid.
+ */
+export function getStoredQrPayload(
+	currency: CurrencyCode | null | undefined,
+	paymentId: string | null | undefined,
+): string | null {
+	if (!currency || !paymentId) return null;
+	const option = getCountryOption(currency);
+	if (!option?.validateQr) return null;
+	const trimmed = paymentId.trim();
+	const { qr } = unpackPackedPaymentId(trimmed);
+	if (qr && option.validateQr(qr)) return qr;
+	if (isStandaloneQr(option.validateQr, trimmed)) return trimmed;
+	return null;
+}
+
+function packedTypedRest(
+	fields: readonly PaymentIdFieldConfig[],
+	fieldValues: Record<string, string>,
+): string {
+	const parts = fields.map((field) => {
+		const value = (fieldValues[field.key] ?? "").trim();
+		if (!value) return "";
+		return field.validate(value) ? value : "";
+	});
+	if (!parts.some((part) => part.length > 0)) return "";
+	return serializeCompoundPaymentId(...parts);
+}
+
+/**
+ * Builds a stored payment ID: optional validated QR packed with catalog fields.
+ */
+export function packStoredPaymentId(
+	currency: CurrencyCode,
+	qr: string | null | undefined,
+	fieldValues: Record<string, string>,
+): string {
+	const fields = PAYMENT_ID_FIELDS[currency] ?? [];
+	const option = getCountryOption(currency);
+	const trimmedQr = qr?.trim() ?? "";
+	const q = trimmedQr && option?.validateQr?.(trimmedQr) ? trimmedQr : "";
+	const rest = packedTypedRest(fields, fieldValues);
+	if (q && rest) return `${q}${PACKED_PAYMENT_ID_SEP}${rest}`;
+	return q || rest;
+}
+
+function fieldsMatchStoredId(fields: readonly PaymentIdFieldConfig[], paymentId: string): boolean {
+	if (validatePaymentIdFields(fields, paymentId)) return true;
+	const assigned = assignPaymentIdToFieldValues(fields, paymentId);
+	const filled = fields.filter((field) => (assigned[field.key] || "").trim().length > 0);
+	if (filled.length === 0) return false;
+	return fields.every(
+		(field) => field.optional === true || (assigned[field.key] || "").trim().length > 0,
+	);
 }
 
 /**
@@ -166,46 +216,51 @@ function countryOption(currency: CurrencyCode | null | undefined) {
  */
 export function validateStoredPaymentId(currency: CurrencyCode, paymentId: string): boolean {
 	if (!paymentId || paymentId.trim().length === 0) return false;
-	if (currency === "PEN") return validatePeruvianPaymentId(paymentId);
 	const fields = PAYMENT_ID_FIELDS[currency];
 	if (!fields?.length) return false;
-	const option = countryOption(currency);
+	const option = getCountryOption(currency);
 	const trimmed = paymentId.trim();
 	const { qr, rest } = unpackPackedPaymentId(trimmed);
 
 	if (qr) {
 		if (!option?.validateQr?.(qr)) return false;
 		if (!rest.trim()) return true;
-		return validatePaymentIdFields(fields, rest);
+		return fieldsMatchStoredId(fields, rest);
 	}
-	if (option?.validateQr?.(trimmed) && !trimmed.includes("|")) return true;
-	return validatePaymentIdFields(fields, trimmed);
+	if (isStandaloneQr(option?.validateQr, trimmed)) return true;
+	return fieldsMatchStoredId(fields, trimmed);
 }
 
 /**
  * Typed-field values for form hydration. Packed QR prefix is stripped.
- * PEN uses parsePeruvianPaymentId so CCI and phone both surface, including a
- * phone embedded in the Yape/Plin QR. QR-only with no typed fields stays empty.
+ * `hydrateFieldsFromQr` fills keys the typed fallback left empty (PEN phone).
  */
 export function assignStoredPaymentIdToFieldValues(
 	currency: CurrencyCode,
 	paymentId: string,
 ): Record<string, string> {
-	if (currency === "PEN") {
-		const parsed = parsePeruvianPaymentId(paymentId);
-		return {
-			phone: parsed.phone ?? "",
-			cci: parsed.cci ?? "",
-		};
-	}
 	const fields = PAYMENT_ID_FIELDS[currency] ?? [];
-	const option = countryOption(currency);
-	const { rest } = unpackPackedPaymentId(paymentId);
-	const source = rest.trim();
-	if (!source || (option?.validateQr?.(source) && !source.includes("|"))) {
-		return assignPaymentIdToFieldValues(fields, "");
+	const option = getCountryOption(currency);
+	const trimmed = paymentId.trim();
+	const { qr, rest } = unpackPackedPaymentId(trimmed);
+
+	let qrPayload = "";
+	let typed = rest.trim();
+	if (qr && option?.validateQr?.(qr)) {
+		qrPayload = qr;
+	} else if (isStandaloneQr(option?.validateQr, trimmed)) {
+		qrPayload = trimmed;
+		typed = "";
 	}
-	return assignPaymentIdToFieldValues(fields, source);
+
+	const values = assignPaymentIdToFieldValues(fields, typed);
+	if (qrPayload && option?.hydrateFieldsFromQr) {
+		const extra = option.hydrateFieldsFromQr(qrPayload);
+		for (const [key, value] of Object.entries(extra)) {
+			if (value && !values[key]) values[key] = value;
+		}
+	}
+	return values;
 }
 
 /**

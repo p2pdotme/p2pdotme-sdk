@@ -48,5 +48,4 @@ export const IDR_COUNTRY_OPTION: CountryOption = {
 	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
-	uploadPaymentQR: false,
 };

@@ -1,5 +1,8 @@
 import type { CurrencyCode } from "../types";
 
+/** Joins an optional QR payload with typed fields (`qr||phone|cci`). */
+export const PACKED_PAYMENT_ID_SEP = "||";
+
 export interface PaymentIdFieldConfig {
 	readonly key: string;
 	readonly label: string;
@@ -35,15 +38,15 @@ export interface CountryOption {
 	readonly disabled: boolean;
 	readonly disabledPaymentTypes: readonly string[];
 	/**
-	 * Merchant/seller provides payment details by uploading a QR image
-	 * (e.g. Yape/Plin). Distinct from PAY, where the buyer scans a QR.
+	 * Merchant/seller provides payment details by uploading a QR image.
+	 * Distinct from PAY, where the buyer scans a QR. Default: false.
 	 */
-	readonly uploadPaymentQR: boolean;
-	/**
-	 * Stored payment ID may pack an optional QR payload with typed fields as
-	 * `qr||field|field`. VEN always; PEN when the seller uploads a Yape/Plin QR.
-	 */
-	readonly packedPaymentId?: boolean;
+	readonly uploadPaymentQR?: boolean;
 	/** Structural check for a standalone QR payload (no `||` pack). */
 	readonly validateQr?: (payload: string) => boolean;
+	/**
+	 * Fill catalog fields from a validated QR (e.g. Yape/Plin phone in EMVCo).
+	 * Only used when the typed fallback did not already set the key.
+	 */
+	readonly hydrateFieldsFromQr?: (qr: string) => Partial<Record<string, string>>;
 }

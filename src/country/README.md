@@ -5,7 +5,6 @@ Country and currency configuration for the P2P.me SDK — payment methods, valid
 ## Structure
 
 ```
-src/country/
 ├── currencies/          # Per-currency files (single source of truth)
 │   ├── inr.ts           # India — UPI
 │   ├── idr.ts           # Indonesia — QRIS
@@ -22,6 +21,7 @@ src/country/
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
+├── qr-validator.ts      # SELL QR payload checks (PEN / VEN) — shared by both apps
 ├── countries.ts         # COUNTRY_OPTIONS — aggregated from currencies/
 ├── payment-fields.ts    # PAYMENT_ID_FIELDS — aggregated from currencies/
 ├── validators.ts        # Re-exports all validators + compound utils
@@ -79,18 +79,31 @@ validatePIXId("user@example.com"); // true
 
 `isAlpha: true` — feature-flagged, may not be fully available in production.
 `disabled: true` — hidden from selection in the UI.
-`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (Yape/Plin). Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
+`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
 
-`packedPaymentId: true` — stored ID may be `qr||field|field` (VEN always; PEN when the seller uploads a Yape/Plin QR). Apps use `usesPackedPaymentId(currency)` instead of `isPeru()` / `isVenezuela()`.
+Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob (`isPagoMovilQr` / `getStoredQrPayload` / per-currency PAY helpers). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
+
+`validateQr` — this currency may store a QR in the payment ID (`qr||fields` or standalone). `usesPackedPaymentId(currency)` is true when `validateQr` exists.
 
 `optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
 
 ```typescript
-import { uploadsPaymentQR, usesPackedPaymentId, validateStoredPaymentId } from "@p2pdotme/sdk/country";
+import {
+  getStoredQrPayload,
+  packStoredPaymentId,
+  uploadsPaymentQR,
+  usesCatalogPaymentForm,
+  usesPackedPaymentId,
+  validateStoredPaymentId,
+} from "@p2pdotme/sdk/country";
 
 uploadsPaymentQR("PEN"); // true — seller may upload a Yape/Plin QR
-usesPackedPaymentId("VEN"); // true
+uploadsPaymentQR("VEN"); // true — seller may upload a Pago Móvil QR
+usesPackedPaymentId("VEN"); // true — has validateQr
+usesCatalogPaymentForm("CUP"); // true — two typed fields, no QR upload
 validateStoredPaymentId("PEN", "987654321"); // true — phone-only
+packStoredPaymentId("PEN", qr, { phone: "987654321", cci: "" });
+getStoredQrPayload("PEN", storedId); // EMVCo blob or null
 ```
 
 ## Validators
@@ -112,7 +125,8 @@ validateStoredPaymentId("PEN", "987654321"); // true — phone-only
 | `validatePeruvianPhone` | PEN | Yape/Plin phone (`9XXXXXXXX`, optional `+51`) |
 | `validatePeruvianCci` | PEN | 20-digit CCI |
 | `validatePeruvianPaymentKey` | PEN | CCI **or** Yape/Plin phone (legacy single-field) |
-| `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC) |
+| `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC). Source: `qr-validator.ts`. |
+| `validateVenezuelanQr` | VEN | Pago Móvil S7B envelope (`base64?merchantId=`). Source: `qr-validator.ts`. |
 | `validatePhilippinePhoneNumber` | PHP | Mobile number `9XXXXXXXXX` (optional `0` or `+63` prefix) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
@@ -142,7 +156,8 @@ const display = formatCompoundPaymentIdForDisplay(stored, ["Phone", "RIF", "Bank
    - Validator function(s)
    - `<CODE>_PAYMENT_FIELDS: PaymentIdFieldConfig[]`
    - `<CODE>_COUNTRY_OPTION: CountryOption`
-2. Add `export * from "./<code>"` to `currencies/index.ts`
-3. Add the country option to `countries.ts`
-4. Add the payment fields to `payment-fields.ts`
-5. Add validator tests to `test/country/validators.test.ts`
+2. If sellers upload a QR, add the payload check to `qr-validator.ts` and set `validateQr` / `uploadPaymentQR` on the country option.
+3. Add `export * from "./<code>"` to `currencies/index.ts`
+4. Add the country option to `countries.ts`
+5. Add the payment fields to `payment-fields.ts`
+6. Add validator tests to `test/country/validators.test.ts`

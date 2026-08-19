@@ -17,7 +17,7 @@ describe("ECU country option", () => {
 		expect(ECU_COUNTRY_OPTION.disabled).toBe(false);
 		expect(ECU_COUNTRY_OPTION.isAlpha).toBe(true);
 		expect(ECU_COUNTRY_OPTION.disabledPaymentTypes).toEqual([]);
-		expect(ECU_COUNTRY_OPTION.uploadPaymentQR).toBe(false);
+		expect(ECU_COUNTRY_OPTION.uploadPaymentQR).toBeUndefined();
 		expect(ECU_COUNTRY_OPTION.telegramSupportChannel).toBe("https://t.me/Ecuador_P2P");
 		expect(ECU_COUNTRY_OPTION.twitterUsername).toBe("P2Pdotme_Ecu");
 	});
