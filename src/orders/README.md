@@ -113,6 +113,10 @@ disable a button, never as the final word: the contract decides, and rejects
 with `DAILY_SELL_ORDER_PLACEMENT_LIMIT_EXCEEDED` /
 `DAILY_BUY_ORDER_PLACEMENT_LIMIT_EXCEEDED`.
 
+In React, prefer `usePlacementLimits` from `@p2pdotme/sdk/react` — it keeps the
+counts fresh across address changes and the UTC-midnight reset, and hands back a
+`refresh()` to call once a placement lands.
+
 ## Writes (layered `prepare` / `execute`)
 
 Every write action has two methods with matching params:
