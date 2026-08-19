@@ -12,6 +12,7 @@ export const CURRENCY = {
 	ARS: "ARS",
 	MEX: "MEX",
 	VEN: "VEN",
+	BOB: "BOB",
 	EUR: "EUR",
 	NGN: "NGN",
 	USD: "USD",
