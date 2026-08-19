@@ -13,6 +13,7 @@ src/country/
 │   ├── ars.ts           # Argentina — ALIAS / CBU
 │   ├── mex.ts           # Mexico — SPEI / CLABE
 │   ├── ven.ts           # Venezuela — Pago Móvil
+│   ├── bob.ts           # Bolivia — QR Simple
 │   ├── ngn.ts           # Nigeria — NIP
 │   ├── cop.ts           # Colombia — Transferencia (Nequi / Daviplata)
 │   ├── cup.ts           # Cuba — Transfermóvil (transfers + QR)
@@ -68,6 +69,7 @@ validatePIXId("user@example.com"); // true
 | ARS | Argentina | ALIAS / CBU | No | No |
 | MEX | Mexico | SPEI / CLABE | Yes | No |
 | VEN | Venezuela | Pago Móvil | Yes | No |
+| BOB | Bolivia | QR Simple | Yes | No |
 | NGN | Nigeria | NIP | Yes | No |
 | COP | Colombia | Transferencia | Yes | Yes |
 | CUP | Cuba | Transfermóvil | Yes | No |
@@ -91,6 +93,8 @@ validatePIXId("user@example.com"); // true
 | `validateMexicanPaymentId` | MEX | CLABE (18 digits), card (16 digits), phone (10 digits) |
 | `validateVenezuelanPhoneNumber` | VEN | 11-digit number starting with `04` |
 | `validateVenezuelanRif` | VEN | `V|E|J|G|R|P` prefix + digits (Cédula/RIF / passport) |
+| `validateBolivianAccount` | BOB | 8–20 digit bank account number (spaces/dashes allowed) |
+| `validateBolivianQr` | BOB | QR Simple EMVCo QR (country `BO`, currency `068`, valid CRC) |
 | `validateNigerianAccountNumber` | NGN | Exactly 10 digits (NUBAN) |
 | `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
 | `validateCubanPhoneNumber` | CUP | 8-digit phone (optional `+53` prefix) |

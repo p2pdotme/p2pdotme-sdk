@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateArgentinePaymentId } from "../../src/country/currencies/ars";
+import { validateBolivianAccount, validateBolivianQr } from "../../src/country/currencies/bob";
 import { validatePIXId } from "../../src/country/currencies/brl";
 import { validateColombianPaymentId } from "../../src/country/currencies/cop";
 import { validateCubanCardNumber, validateCubanPhoneNumber } from "../../src/country/currencies/cup";
@@ -16,6 +17,7 @@ import { validateNigerianAccountName, validateNigerianAccountNumber } from "../.
 import { validatePeruvianPaymentKey, validatePeruvianQr } from "../../src/country/currencies/pen";
 import { validatePhilippinePhoneNumber } from "../../src/country/currencies/php";
 import { validateVenezuelanPhoneNumber, validateVenezuelanRif } from "../../src/country/currencies/ven";
+import { calculateCRC16 } from "../../src/qr-parsers/utils/crc16";
 
 // ── INR ─────────────────────────────────────────────────────────────────────
 
@@ -519,5 +521,59 @@ describe("validatePhilippinePhoneNumber (PHP)", () => {
 		["letters", "91712345a7"],
 	])("rejects %s", (_label, input) => {
 		expect(validatePhilippinePhoneNumber(input)).toBe(false);
+	});
+});
+
+// ── BOB ───────────────────────────────────────────────────────────────────────
+
+describe("validateBolivianAccount (BOB)", () => {
+	it.each([
+		["8-digit account", "12345678"],
+		["20-digit account", "12345678901234567890"],
+		["account with spaces (stripped)", "1234 5678 9012"],
+		["account with dashes (stripped)", "1234-5678-9012"],
+	])("accepts %s", (_label, input) => {
+		expect(validateBolivianAccount(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (7 digits)", "1234567"],
+		["too long (21 digits)", "123456789012345678901"],
+		["contains letters", "1234567a"],
+	])("rejects %s", (_label, input) => {
+		expect(validateBolivianAccount(input)).toBe(false);
+	});
+});
+
+describe("validateBolivianQr (BOB)", () => {
+	function tlv(tag: string, value: string): string {
+		return `${tag}${value.length.toString().padStart(2, "0")}${value}`;
+	}
+
+	const inner = `000201${tlv("53", "068")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+	const SAMPLE = `${inner}6304${calculateCRC16(inner)}`;
+
+	it("accepts a valid QR Simple payload (country BO, currency 068, valid CRC)", () => {
+		expect(validateBolivianQr(SAMPLE)).toBe(true);
+	});
+
+	it("rejects a payload with a non-068 currency (tag 53)", () => {
+		const tweaked = `000201${tlv("53", "840")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+		const bad = `${tweaked}6304${calculateCRC16(tweaked)}`;
+		expect(validateBolivianQr(bad)).toBe(false);
+	});
+
+	it("rejects a payload with a corrupted CRC", () => {
+		const corrupted = SAMPLE.replace(/6304[0-9A-F]{4}$/, "6304FFFF");
+		expect(validateBolivianQr(corrupted)).toBe(false);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+	])("rejects %s", (_label, input) => {
+		expect(validateBolivianQr(input)).toBe(false);
 	});
 });

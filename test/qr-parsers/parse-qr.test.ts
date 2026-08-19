@@ -55,6 +55,13 @@ describe("parseQR dispatcher", () => {
 		expect(data.paymentAddress).toBe("SGVsbG8=?x=1");
 	});
 
+	it("dispatches BOB to the Bolivia parser", async () => {
+		const inner = `${tlv("00", "01")}${tlv("53", "068")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+		const sample = withCrc(inner);
+		const data = unwrap(await parseQR({ qrData: sample, currency: "BOB", sellPrice: 6.96 }));
+		expect(data.paymentAddress).toBe(sample);
+	});
+
 	it("dispatches ECU to the DeUna parser", async () => {
 		const data = unwrap(
 			await parseQR({
