@@ -59,6 +59,16 @@ const result = await parseQR({
 
 The proxy receives `GET /pix?locationUrl=<url>&orderId=<id>` and should return the raw PIX response (JWT).
 
+### Pago Móvil (VEN)
+
+Scan & pay stores the **full** scanned string (`base64?merchantId=…` or `base64?bank=…`) as `paymentAddress`. The merchant re-encodes that same blob with `QRCodeSVG` — do not unpack it as SELL `phone|rif|bank`. Use `isPagoMovilQr` to detect the envelope; SELL upload uses the stricter `validateVenezuelanQr` (minimum blob length + `merchantId`).
+
+```ts
+import { isPagoMovilQr } from "@p2pdotme/sdk/qr-parsers";
+
+isPagoMovilQr(scanned); // true → QRCodeSVG value={scanned}
+```
+
 ### Transfermóvil (CUP)
 
 Cuban QRs are the plain comma-separated Transfermóvil payload:
