@@ -24,3 +24,9 @@ place-and-cancel loop still burns the day's allowance.
 A sell/pay cap of `0` is reported as `unlimited` because that is what the
 contract does with it; a `0` buy cap stays `enforced`, because there `0` blocks
 every buy. An unindexed cap is reported as `unknown` rather than guessed.
+
+- New `usePlacementLimits` hook in `@p2pdotme/sdk/react`, wrapping that read for
+  order forms: refetches on address change, on an optional interval, and once
+  the UTC day rolls over — without that last one, a form left open overnight
+  keeps showing yesterday's exhausted bucket and the user concludes they are
+  still blocked.
