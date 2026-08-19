@@ -1,5 +1,7 @@
 export {
 	validateArgentinePaymentId,
+	validateBolivianAccount,
+	validateBolivianQr,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
 	validateCubanPhoneNumber,
