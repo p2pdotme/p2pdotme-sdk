@@ -29,3 +29,19 @@ export const ORDERS_BY_USER_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+export const PLACEMENT_LIMITS_QUERY = /* GraphQL */ `
+  query PlacementLimits($placementsId: ID!, $configId: ID!) {
+    userDailyPlacements(id: $placementsId) {
+      dayIndex
+      buyPlacements
+      sellPlacements
+    }
+    orderPlacementLimitConfig(id: $configId) {
+      dailyBuyOrderPlacementLimit
+      buyLimitConfigured
+      dailySellOrderPlacementLimit
+      sellLimitConfigured
+    }
+  }
+`;

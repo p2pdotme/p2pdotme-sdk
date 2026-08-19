@@ -16,6 +16,12 @@ export const ZodGetFeeConfigParamsSchema = z.object({
 
 export type GetFeeConfigParams = z.infer<typeof ZodGetFeeConfigParamsSchema>;
 
+export const ZodGetPlacementLimitsParamsSchema = z.object({
+	userAddress: ZodAddressSchema,
+});
+
+export type GetPlacementLimitsParams = z.infer<typeof ZodGetPlacementLimitsParamsSchema>;
+
 export const ZodGetOrdersParamsSchema = z.object({
 	userAddress: ZodAddressSchema,
 	skip: z.number().int().min(0).default(0),
@@ -100,4 +106,24 @@ export type RawSubgraphOrder = z.infer<typeof ZodSubgraphOrderSchema>;
 
 export const ZodSubgraphOrdersResponseSchema = z.object({
 	orders_collection: z.array(ZodSubgraphOrderSchema),
+});
+
+// Both entities are absent until the user places their first order of the day
+// and until a placement-limit event has been indexed, so both are nullable.
+export const ZodSubgraphPlacementLimitsResponseSchema = z.object({
+	userDailyPlacements: z
+		.object({
+			dayIndex: z.string(),
+			buyPlacements: z.string(),
+			sellPlacements: z.string(),
+		})
+		.nullish(),
+	orderPlacementLimitConfig: z
+		.object({
+			dailyBuyOrderPlacementLimit: z.string(),
+			buyLimitConfigured: z.boolean(),
+			dailySellOrderPlacementLimit: z.string(),
+			sellLimitConfigured: z.boolean(),
+		})
+		.nullish(),
 });

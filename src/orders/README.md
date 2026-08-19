@@ -77,6 +77,42 @@ interface FeeConfig {
 }
 ```
 
+### `orders.getPlacementLimits({ userAddress })` → `ResultAsync<PlacementLimits, OrdersError>`
+
+The user's gross daily placement allowances, from the subgraph. BUY has its own
+bucket; SELL and PAY share one. Both reset at UTC midnight.
+
+```ts
+interface PlacementLimits {
+  dayIndex: number;   // unix seconds / 86400 — the contract's own day key
+  resetsAt: number;   // unix seconds of the next UTC midnight
+  buy: PlacementBucket;
+  sellPay: PlacementBucket;
+}
+
+interface PlacementBucket {
+  used: number;              // includes orders that were later cancelled
+  limit: number | null;      // null unless state is "enforced"
+  remaining: number | null;  // null unless state is "enforced"
+  state: "enforced" | "unlimited" | "unknown";
+}
+```
+
+**Cancelling does not give a placement back.** The on-chain counters are
+incremented at placement and never credited back, so a place-and-cancel loop
+still burns the daily allowance. Surface that in the UI or users will read a
+shrinking count as a bug.
+
+`state` is `unlimited` only for a sell/pay cap explicitly set to `0`, which the
+contract reads as no cap; a `0` buy cap blocks every buy instead and stays
+`enforced`. `unknown` means no cap has been indexed yet — show the counts, but
+not a limit.
+
+This read is **advisory**. The subgraph lags the chain, so use it to warn or
+disable a button, never as the final word: the contract decides, and rejects
+with `DAILY_SELL_ORDER_PLACEMENT_LIMIT_EXCEEDED` /
+`DAILY_BUY_ORDER_PLACEMENT_LIMIT_EXCEEDED`.
+
 ## Writes (layered `prepare` / `execute`)
 
 Every write action has two methods with matching params:
