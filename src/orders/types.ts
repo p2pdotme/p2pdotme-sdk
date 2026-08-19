@@ -7,6 +7,7 @@ export type {
 	GetFeeConfigParams,
 	GetOrderParams,
 	GetOrdersParams,
+	GetPlacementLimitsParams,
 } from "./validation";
 
 // ── Domain types ────────────────────────────────────────────────────────
@@ -72,6 +73,43 @@ export interface FeeConfig {
 	smallOrderThreshold: bigint;
 	/** Fixed fee applied to small orders (6 decimals). */
 	smallOrderFixedFee: bigint;
+}
+
+/**
+ * Whether a daily placement cap is actually in force.
+ * - `enforced` — a cap is set and the contract will reject placements past it.
+ * - `unlimited` — the cap is explicitly zero, which the contract reads as no
+ *   cap at all (sell/pay only; a zero buy cap blocks every buy instead).
+ * - `unknown` — no cap has been indexed yet, so nothing here should be shown
+ *   as a limit. Let the contract be the judge.
+ */
+export type PlacementLimitState = "enforced" | "unlimited" | "unknown";
+
+/**
+ * One daily placement bucket. `used` counts every order placed today INCLUDING
+ * ones that were later cancelled — the on-chain counter is never credited back,
+ * so cancelling does not free up an allowance.
+ */
+export interface PlacementBucket {
+	used: number;
+	/** The cap itself. Null unless `state` is `enforced`. */
+	limit: number | null;
+	/** `limit - used`, floored at zero. Null unless `state` is `enforced`. */
+	remaining: number | null;
+	state: PlacementLimitState;
+}
+
+/**
+ * Per-user daily order placement allowances, read from the subgraph. SELL and
+ * PAY draw on one shared bucket; BUY has its own. Both reset at UTC midnight.
+ */
+export interface PlacementLimits {
+	/** UTC day these counts belong to (unix seconds / 86400). */
+	dayIndex: number;
+	/** Unix seconds at which the buckets reset (the next UTC midnight). */
+	resetsAt: number;
+	buy: PlacementBucket;
+	sellPay: PlacementBucket;
 }
 
 // ── Client config ───────────────────────────────────────────────────────
