@@ -1,10 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { parsePagoMovil } from "../../src/qr-parsers/parsers/ven";
+import { isPagoMovilQr, parsePagoMovil } from "../../src/qr-parsers/parsers/ven";
 
 function unwrap<T, E>(r: { isOk(): boolean; isErr(): boolean; value?: T; error?: E }) {
 	if (r.isErr()) throw new Error(`expected ok, got err: ${String(r.error)}`);
 	return r.value as T;
 }
+
+describe("isPagoMovilQr (VEN PAY envelope)", () => {
+	it("accepts a base64 blob plus query, including live bank QRs without going through SELL validateQr", () => {
+		expect(isPagoMovilQr("SGVsbG9Xb3JsZA==?param=1")).toBe(true);
+		expect(
+			isPagoMovilQr(
+				`${"dGhlIHZlbmV6dWVsYW4gcXIgaXMgYSBiYXNlNjQgZW5jcnlwdGVkIHN0cmluZyB0aGF0IG9ubHkgYmFua3MgY2FuIGRlY2lwaGVy"}?bank=BANCO_A`,
+			),
+		).toBe(true);
+		expect(
+			isPagoMovilQr(
+				"dBKxwilNo3+ATaUX7YpeGfb+DOGtIBnj2DpAypb7U6gqar/JxjhLFaXIKyv9O+Z6xh3rX2B6huFupypAZjcj0istG7bYvJ5XO3NfqXYAeVR+hEwkuuBBcCy+9MKH7OJMvDGEXU143a7+bgcrTjaCzQ==?merchantId=0163&strong_id=1786921164-3",
+			),
+		).toBe(true);
+	});
+
+	it.each(["", "SGVsbG8=", "not base64!@#?x=y", "?x=y"])(
+		"rejects %s",
+		(input) => {
+			expect(isPagoMovilQr(input)).toBe(false);
+		},
+	);
+});
 
 describe("parsePagoMovil (VEN)", () => {
 	it("returns the full QR string as payment address for base64 payload + query", () => {
