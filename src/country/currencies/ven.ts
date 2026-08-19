@@ -1,5 +1,8 @@
 import { CURRENCY } from "../currency";
-import type { CountryOption, PaymentIdFieldConfig } from "../types";
+import { validateVenezuelanQr } from "../qr-validator";
+import { type CountryOption, PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "../types";
+
+export { validateVenezuelanQr };
 
 export const VEN_PLACEHOLDER = "04121234567";
 export const VEN_PLACEHOLDER_RIF = "V12345678";
@@ -38,6 +41,64 @@ export function validateVenezuelanRif(rif: string): boolean {
 	if (!rif || rif.trim().length === 0) return false;
 	const trimmed = rif.trim().toUpperCase();
 	return /^[VEJGRP]\d+$/.test(trimmed);
+}
+
+function isValidVenezuelanCompound(value: string): boolean {
+	const parts = value.split("|");
+	if (parts.length !== 3) return false;
+	return (
+		validateVenezuelanPhoneNumber(parts[0]) &&
+		validateVenezuelanRif(parts[1]) &&
+		parts[2].trim().length > 0
+	);
+}
+
+export type VenezuelanPaymentIdParts = {
+	qr: string | null;
+	compound: string | null;
+};
+
+/**
+ * Splits a stored VEN payment ID into its QR payload and/or typed fallback.
+ * Formats: S7B blob, `phone|rif|bank`, or `blob||phone|rif|bank`.
+ */
+export function parseVenezuelanPaymentId(
+	value: string | null | undefined,
+): VenezuelanPaymentIdParts {
+	if (!value || typeof value !== "string") return { qr: null, compound: null };
+	const trimmed = value.trim();
+	const sep = trimmed.indexOf(PACKED_PAYMENT_ID_SEP);
+	if (sep >= 0) {
+		const left = trimmed.slice(0, sep);
+		const right = trimmed.slice(sep + PACKED_PAYMENT_ID_SEP.length);
+		return {
+			qr: validateVenezuelanQr(left) ? left : null,
+			compound: isValidVenezuelanCompound(right) ? right : null,
+		};
+	}
+	if (validateVenezuelanQr(trimmed)) return { qr: trimmed, compound: null };
+	if (isValidVenezuelanCompound(trimmed)) return { qr: null, compound: trimmed };
+	return { qr: null, compound: null };
+}
+
+export function serializeVenezuelanPaymentId(
+	qr: string | null | undefined,
+	compound: string | null | undefined,
+): string {
+	const q = qr?.trim() && validateVenezuelanQr(qr.trim()) ? qr.trim() : "";
+	const c = compound?.trim() || "";
+	if (q && c) return `${q}${PACKED_PAYMENT_ID_SEP}${c}`;
+	return q || c;
+}
+
+/**
+ * Accepts a Suiche 7B QR payload, the typed `phone|rif|bank` fallback,
+ * or both packed as `qr||phone|rif|bank`.
+ */
+export function validateVenezuelanPaymentId(value: string): boolean {
+	if (!value || typeof value !== "string") return false;
+	const { qr, compound } = parseVenezuelanPaymentId(value);
+	return qr !== null || compound !== null;
 }
 
 /** Payment ID field configuration for VEN (Venezuela, Pago Móvil). */
@@ -89,4 +150,6 @@ export const VEN_COUNTRY_OPTION: CountryOption = {
 	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
+	uploadPaymentQR: true,
+	validateQr: validateVenezuelanQr,
 };
