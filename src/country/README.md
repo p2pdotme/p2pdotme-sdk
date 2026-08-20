@@ -12,6 +12,7 @@ Country and currency configuration for the P2P.me SDK — payment methods, valid
 │   ├── ars.ts           # Argentina — ALIAS / CBU
 │   ├── mex.ts           # Mexico — SPEI / CLABE
 │   ├── ven.ts           # Venezuela — Pago Móvil
+│   ├── bob.ts           # Bolivia — QR Simple
 │   ├── ngn.ts           # Nigeria — NIP
 │   ├── cop.ts           # Colombia — Transferencia (Nequi / Daviplata)
 │   ├── cup.ts           # Cuba — Transfermóvil (transfers + QR)
@@ -68,6 +69,7 @@ validatePIXId("user@example.com"); // true
 | ARS | Argentina | ALIAS / CBU | No | No |
 | MEX | Mexico | SPEI / CLABE | Yes | No |
 | VEN | Venezuela | Pago Móvil | Yes | No |
+| BOB | Bolivia | QR Simple | Yes | No |
 | NGN | Nigeria | NIP | Yes | No |
 | COP | Colombia | Transferencia | Yes | Yes |
 | CUP | Cuba | Transfermóvil | Yes | No |
@@ -79,7 +81,7 @@ validatePIXId("user@example.com"); // true
 
 `isAlpha: true` — feature-flagged, may not be fully available in production.
 `disabled: true` — hidden from selection in the UI.
-`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
+`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil, BOB QR Simple). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
 
 Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob (`isPagoMovilQr` / `getStoredQrPayload` / per-currency PAY helpers). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
 
@@ -99,6 +101,7 @@ import {
 
 uploadsPaymentQR("PEN"); // true — seller may upload a Yape/Plin QR
 uploadsPaymentQR("VEN"); // true — seller may upload a Pago Móvil QR
+uploadsPaymentQR("BOB"); // true — seller may upload a QR Simple QR
 usesPackedPaymentId("VEN"); // true — has validateQr
 usesCatalogPaymentForm("CUP"); // true — two typed fields, no QR upload
 validateStoredPaymentId("PEN", "987654321"); // true — phone-only
@@ -117,6 +120,8 @@ getStoredQrPayload("PEN", storedId); // EMVCo blob or null
 | `validateMexicanPaymentId` | MEX | CLABE (18 digits), card (16 digits), phone (10 digits) |
 | `validateVenezuelanPhoneNumber` | VEN | 11-digit number starting with `04` |
 | `validateVenezuelanRif` | VEN | `V|E|J|G|R|P` prefix + digits (Cédula/RIF / passport) |
+| `validateBolivianAccount` | BOB | 8–20 digit bank account number (spaces/dashes allowed) |
+| `validateBolivianQr` | BOB | QR Simple EMVCo QR (country `BO`, currency `068`, valid CRC) |
 | `validateNigerianAccountNumber` | NGN | Exactly 10 digits (NUBAN) |
 | `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
 | `validateCubanPhoneNumber` | CUP | 8-digit phone (optional `+53` prefix) |

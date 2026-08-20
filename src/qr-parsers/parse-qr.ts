@@ -1,5 +1,6 @@
 import { CURRENCY } from "../country";
 import { parseMercadoPago } from "./parsers/ars";
+import { parseBolivia } from "./parsers/bob";
 import { parsePIX } from "./parsers/brl";
 import { parseCOP } from "./parsers/cop";
 import { parseTransfermovil } from "./parsers/cup";
@@ -41,6 +42,8 @@ export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 			return parseMercadoPago(qrData, sellPrice);
 		case CURRENCY.VEN:
 			return parsePagoMovil(qrData, sellPrice);
+		case CURRENCY.BOB:
+			return parseBolivia(qrData, sellPrice);
 		case CURRENCY.NGN:
 			return parseNGN(qrData, sellPrice);
 		case CURRENCY.COP:
