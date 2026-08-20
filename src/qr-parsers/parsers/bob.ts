@@ -6,9 +6,11 @@ import { extractTags } from "../utils/tlv";
 const BOB_TAGS = { AMOUNT: "54", CURRENCY: "53", COUNTRY: "58" } as const;
 
 /**
- * Bolivia QR Simple encrypted envelope: `<base64 ciphertext>|<32-hex checksum>`
- * (Yape Bs, BancoSol dynamic QR). The payload is bank-encrypted, so amount/account
- * cannot be read — the buyer re-renders the exact blob for their bank app to scan.
+ * Bolivia QR Simple encrypted envelope: `<base64 ciphertext>|<hex checksum>`
+ * (Yape Bs, BancoSol, Banco Fie dynamic QR). The payload is bank-encrypted, so
+ * amount/account cannot be read — the buyer re-renders the exact blob for their
+ * bank app to scan. The checksum is a hex digest whose length varies by bank
+ * (24 hex for Banco Fie, 32 hex for Yape/BancoSol).
  */
 function isBolivianEncryptedQr(payload: string): boolean {
 	if (payload.includes("||")) return false;
@@ -18,12 +20,12 @@ function isBolivianEncryptedQr(payload: string): boolean {
 	const tag = payload.slice(sep + 1);
 	if (blob.length % 4 !== 0) return false;
 	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
-	return /^[0-9A-Fa-f]{32}$/.test(tag);
+	return /^(?:[0-9A-Fa-f]{24}|[0-9A-Fa-f]{32})$/.test(tag);
 }
 
 /**
  * Parses a Bolivian QR Simple QR. Accepts either the encrypted envelope
- * (`<base64>|<32-hex>`) or an EMVCo static QR (country tag 58 `BO`, currency tag
+ * (`<base64>|<hex>`) or an EMVCo static QR (country tag 58 `BO`, currency tag
  * 53 `068`). Returns the raw payload verbatim as `paymentAddress` so the buyer app
  * can re-render the exact QR. Static EMVCo QRs carry no amount unless tag 54 is
  * present, which is converted to usdc via `sellPrice`; encrypted QRs carry none.
