@@ -1,5 +1,5 @@
 import { CURRENCY } from "../currency";
-import { validateVenezuelanQr } from "../qr-validator";
+import { isVenezuelanPayQr, payQrCandidate, validateVenezuelanQr } from "../qr-validator";
 import { type CountryOption, PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "../types";
 
 export { validateVenezuelanQr };
@@ -152,4 +152,8 @@ export const VEN_COUNTRY_OPTION: CountryOption = {
 	disabledPaymentTypes: [],
 	uploadPaymentQR: true,
 	validateQr: validateVenezuelanQr,
+	getPayQrPayload: (paymentId) => {
+		const candidate = payQrCandidate(paymentId);
+		return isVenezuelanPayQr(candidate) ? candidate : null;
+	},
 };

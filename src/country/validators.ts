@@ -28,7 +28,15 @@ export {
 	validateVenezuelanPhoneNumber,
 	validateVenezuelanRif,
 } from "./currencies";
-export { validateBolivianQr, validatePeruvianQr, validateVenezuelanQr } from "./qr-validator";
+export {
+	isPeruvianPayQr,
+	isPhilippinePayQr,
+	isVenezuelanPayQr,
+	payQrCandidate,
+	validateBolivianQr,
+	validatePeruvianQr,
+	validateVenezuelanQr,
+} from "./qr-validator";
 export { PACKED_PAYMENT_ID_SEP };
 
 /** Serializes multiple fields into a pipe-separated string. */
@@ -171,6 +179,20 @@ export function getStoredQrPayload(
 	return null;
 }
 
+/**
+ * Payload to feed `QRCodeSVG` for a PAY (or packed SELL) order.
+ * Tries strict `getStoredQrPayload` first, then the country's PAY hook.
+ */
+export function getPayQrPayload(
+	currency: CurrencyCode | null | undefined,
+	paymentId: string | null | undefined,
+): string | null {
+	if (!currency || !paymentId) return null;
+	const stored = getStoredQrPayload(currency, paymentId);
+	if (stored) return stored;
+	return getCountryOption(currency)?.getPayQrPayload?.(paymentId.trim()) ?? null;
+}
+
 function packedTypedRest(
 	fields: readonly PaymentIdFieldConfig[],
 	fieldValues: Record<string, string>,
@@ -252,6 +274,12 @@ export function assignStoredPaymentIdToFieldValues(
 	} else if (isStandaloneQr(option?.validateQr, trimmed)) {
 		qrPayload = trimmed;
 		typed = "";
+	} else {
+		const payQr = option?.getPayQrPayload?.(trimmed);
+		if (payQr) {
+			qrPayload = payQr;
+			typed = qr && payQr === qr ? rest.trim() : "";
+		}
 	}
 
 	const values = assignPaymentIdToFieldValues(fields, typed);

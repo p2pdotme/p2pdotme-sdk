@@ -1,5 +1,5 @@
 import { CURRENCY } from "../currency";
-import { validatePeruvianQr } from "../qr-validator";
+import { isPeruvianPayQr, payQrCandidate, validatePeruvianQr } from "../qr-validator";
 import { type CountryOption, PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "../types";
 
 export { validatePeruvianQr };
@@ -217,6 +217,10 @@ export const PEN_COUNTRY_OPTION: CountryOption = {
 	disabledPaymentTypes: [],
 	uploadPaymentQR: true,
 	validateQr: validatePeruvianQr,
+	getPayQrPayload: (paymentId) => {
+		const candidate = payQrCandidate(paymentId);
+		return isPeruvianPayQr(candidate) ? candidate : null;
+	},
 	hydrateFieldsFromQr: (qr) => {
 		const phone = extractPeruvianPhoneFromQr(qr);
 		return phone ? { phone } : {};

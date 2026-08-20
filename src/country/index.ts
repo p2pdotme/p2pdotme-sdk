@@ -25,6 +25,7 @@ export {
 	deserializeCompoundPaymentId,
 	formatCompoundPaymentIdForDisplay,
 	formatStoredPaymentIdForDisplay,
+	getPayQrPayload,
 	getStoredQrPayload,
 	packStoredPaymentId,
 	serializeCompoundPaymentId,

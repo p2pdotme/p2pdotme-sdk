@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parsePeru } from "../../src/qr-parsers/parsers/pen";
+import { calculateCRC16 } from "../../src/qr-parsers/utils/crc16";
 
 const SELL_PRICE = 3.75;
 
@@ -9,6 +10,10 @@ const SAMPLE =
 
 function tlv(tag: string, value: string): string {
 	return `${tag}${value.length.toString().padStart(2, "0")}${value}`;
+}
+
+function withCRC(data: string): string {
+	return `${data}6304${calculateCRC16(data)}`;
 }
 
 function unwrap<T, E>(r: { isOk(): boolean; isErr(): boolean; value?: T; error?: E }) {
@@ -24,7 +29,9 @@ describe("parsePeru (PEN)", () => {
 	});
 
 	it("parses an amount (tag 54) and converts to usdc", () => {
-		const withAmount = `000201${tlv("53", "604")}${tlv("54", "1500")}${tlv("58", "PE")}${tlv("59", "YAPERO")}`;
+		const withAmount = withCRC(
+			`000201${tlv("53", "604")}${tlv("54", "1500")}${tlv("58", "PE")}${tlv("59", "YAPERO")}`,
+		);
 		const data = unwrap(parsePeru(withAmount, SELL_PRICE));
 		expect(data.paymentAddress).toBe(withAmount);
 		expect(data.amount).toEqual({ fiat: 1500, usdc: 1500 / SELL_PRICE });
@@ -42,6 +49,13 @@ describe("parsePeru (PEN)", () => {
 	it("returns INVALID_QR for a non-Peru currency (tag 53 not 604)", () => {
 		const tweaked = SAMPLE.replace("5303604", "5303840");
 		const result = parsePeru(tweaked, SELL_PRICE);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
+	});
+
+	it("returns INVALID_QR when CRC does not match (same rule as SELL upload)", () => {
+		const corrupted = SAMPLE.replace("6304ECE9", "6304FFFF");
+		const result = parsePeru(corrupted, SELL_PRICE);
 		expect(result.isErr()).toBe(true);
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});

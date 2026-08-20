@@ -45,6 +45,14 @@ export interface CountryOption {
 	/** Structural check for a standalone QR payload (no `||` pack). */
 	readonly validateQr?: (payload: string) => boolean;
 	/**
+	 * PAY display: payload to re-draw a stored QR. May be looser than
+	 * `validateQr` so old orders still render (e.g. Yape/Plin without CRC,
+	 * Pago Móvil without `merchantId`). Scan & Pay uses `validateQr` /
+	 * parsers, not this hook. Apps call `getPayQrPayload(currency, id)` —
+	 * do not branch on currency.
+	 */
+	readonly getPayQrPayload?: (paymentId: string) => string | null;
+	/**
 	 * Fill catalog fields from a validated QR (e.g. Yape/Plin phone in EMVCo).
 	 * Only used when the typed fallback did not already set the key.
 	 */

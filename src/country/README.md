@@ -83,15 +83,18 @@ validatePIXId("user@example.com"); // true
 `disabled: true` — hidden from selection in the UI.
 `uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil, BOB QR Simple). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
 
-Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob (`isPagoMovilQr` / `getStoredQrPayload` / per-currency PAY helpers). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
+Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob with `getPayQrPayload(currency, id)` (strict `getStoredQrPayload` first, then a per-country PAY hook). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
 
 `validateQr` — this currency may store a QR in the payment ID (`qr||fields` or standalone). `usesPackedPaymentId(currency)` is true when `validateQr` exists.
+
+`getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, PHP QR Ph vs InstaPay `phone|bank`). Apps must not branch on currency.
 
 `optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
 
 ```typescript
 import {
   getStoredQrPayload,
+  getPayQrPayload,
   packStoredPaymentId,
   uploadsPaymentQR,
   usesCatalogPaymentForm,
@@ -107,6 +110,8 @@ usesCatalogPaymentForm("CUP"); // true — two typed fields, no QR upload
 validateStoredPaymentId("PEN", "987654321"); // true — phone-only
 packStoredPaymentId("PEN", qr, { phone: "987654321", cci: "" });
 getStoredQrPayload("PEN", storedId); // EMVCo blob or null
+getPayQrPayload("PEN", scannedBlob); // same, even if CRC fails
+getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 ```
 
 ## Validators

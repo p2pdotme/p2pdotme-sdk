@@ -1,45 +1,43 @@
 import { describe, expect, it } from "vitest";
 import { isPagoMovilQr, parsePagoMovil } from "../../src/qr-parsers/parsers/ven";
 
+const TESORO =
+	"dBKxwilNo3+ATaUX7YpeGfb+DOGtIBnj2DpAypb7U6gqar/JxjhLFaXIKyv9O+Z6xh3rX2B6huFupypAZjcj0istG7bYvJ5XO3NfqXYAeVR+hEwkuuBBcCy+9MKH7OJMvDGEXU143a7+bgcrTjaCzQ==?merchantId=0163&strong_id=1786921164-3";
+const MERCANTIL =
+	"m28tuwbizhMer7LqTrXDR390LJYTLTMLxvAojSnPrZ2ese+vGGypN/1IfjBJVQyduC5qN+Hvyqa8FzYoP1xntmkI7PU6HlnAEpYgEZ1TSahnec0Ctt1Tpg3gK3rTG0ay5ST8h24YHsc6Q4aZtmxdLjtKyeChlbRhqq6v8e9qNlrpc/2nZ6HV0a1mcIOz7qm4GgpPQMaHW5ywzkuWE0ps9fMB9kCiyGPNj6G0SZomROybsNlMDevCMdpbGyz5w84MxNdomJwEgy8qhBYgKSEPlCn/cCmAdeZCtyFypu6Tr1tDgrlL0kLNRrv2CQKkLw3uHx8zxZohwuu3Cau0io4elA==?merchantId=0105&strong_id=260722171116&origin=web";
+
 function unwrap<T, E>(r: { isOk(): boolean; isErr(): boolean; value?: T; error?: E }) {
 	if (r.isErr()) throw new Error(`expected ok, got err: ${String(r.error)}`);
 	return r.value as T;
 }
 
-describe("isPagoMovilQr (VEN PAY envelope)", () => {
-	it("accepts a base64 blob plus query, including live bank QRs without going through SELL validateQr", () => {
-		expect(isPagoMovilQr("SGVsbG9Xb3JsZA==?param=1")).toBe(true);
-		expect(
-			isPagoMovilQr(
-				`${"dGhlIHZlbmV6dWVsYW4gcXIgaXMgYSBiYXNlNjQgZW5jcnlwdGVkIHN0cmluZyB0aGF0IG9ubHkgYmFua3MgY2FuIGRlY2lwaGVy"}?bank=BANCO_A`,
-			),
-		).toBe(true);
-		expect(
-			isPagoMovilQr(
-				"dBKxwilNo3+ATaUX7YpeGfb+DOGtIBnj2DpAypb7U6gqar/JxjhLFaXIKyv9O+Z6xh3rX2B6huFupypAZjcj0istG7bYvJ5XO3NfqXYAeVR+hEwkuuBBcCy+9MKH7OJMvDGEXU143a7+bgcrTjaCzQ==?merchantId=0163&strong_id=1786921164-3",
-			),
-		).toBe(true);
+describe("isPagoMovilQr (VEN)", () => {
+	it("accepts live S7B QRs with merchantId (same rule as SELL validateQr)", () => {
+		expect(isPagoMovilQr(TESORO)).toBe(true);
+		expect(isPagoMovilQr(MERCANTIL)).toBe(true);
 	});
 
-	it.each(["", "SGVsbG8=", "not base64!@#?x=y", "?x=y"])(
-		"rejects %s",
-		(input) => {
-			expect(isPagoMovilQr(input)).toBe(false);
-		},
-	);
+	it.each([
+		["empty", ""],
+		["no query", "SGVsbG8="],
+		["short blob", "SGVsbG8=?merchantId=0134"],
+		["missing merchantId", `${"A".repeat(48)}?bank=BANCO_A`],
+		["non-base64", "not base64!@#?merchantId=0134"],
+		["empty blob", "?merchantId=0134"],
+	])("rejects %s", (_label, input) => {
+		expect(isPagoMovilQr(input)).toBe(false);
+	});
 });
 
 describe("parsePagoMovil (VEN)", () => {
-	it("returns the full QR string as payment address for base64 payload + query", () => {
-		const qr = "SGVsbG9Xb3JsZA==?param=1";
-		const data = unwrap(parsePagoMovil(qr, 40));
-		expect(data.paymentAddress).toBe(qr);
+	it("returns the full Tesoro QR string as payment address", () => {
+		const data = unwrap(parsePagoMovil(TESORO, 40));
+		expect(data.paymentAddress).toBe(TESORO);
 	});
 
 	it("trims whitespace but preserves the trimmed QR as payment address", () => {
-		const qr = "dGVzdA==?x=y";
-		const data = unwrap(parsePagoMovil(`  ${qr}  `, 40));
-		expect(data.paymentAddress).toBe(qr);
+		const data = unwrap(parsePagoMovil(`  ${MERCANTIL}  `, 40));
+		expect(data.paymentAddress).toBe(MERCANTIL);
 	});
 
 	it.each([
@@ -58,48 +56,26 @@ describe("parsePagoMovil (VEN)", () => {
 	});
 
 	it("returns INVALID_QR when payload has non-base64 characters", () => {
-		const result = parsePagoMovil("not base64!@#?x=y", 40);
+		const result = parsePagoMovil("not base64!@#?merchantId=0134", 40);
 		expect(result.isErr()).toBe(true);
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 
 	it("returns INVALID_QR when payload before '?' is empty", () => {
-		const result = parsePagoMovil("?x=y", 40);
+		const result = parsePagoMovil("?merchantId=0134", 40);
 		expect(result.isErr()).toBe(true);
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
-});
 
-describe("parsePagoMovil (VEN) — real-world examples", () => {
-	// Venezuelan PagoMóvil QRs are an opaque base64-encoded payload that only
-	// the banks can decipher, followed by a `?` and routing metadata.
-	// The base64 below decodes to:
-	//   "the venezuelan qr is a base64 encrypted string that only banks can decipher"
-	const VEN_BASE64 =
-		"dGhlIHZlbmV6dWVsYW4gcXIgaXMgYSBiYXNlNjQgZW5jcnlwdGVkIHN0cmluZyB0aGF0IG9ubHkgYmFua3MgY2FuIGRlY2lwaGVy";
-
-	const VEN_BANCO_A = `${VEN_BASE64}?bank=BANCO_A`;
-	const VEN_BANCO_B = `${VEN_BASE64}?bank=BANCO_B`;
-	const VEN_BANCO_C = `${VEN_BASE64}?bank=BANCO_C`;
-	const VEN_BANCO_D = `${VEN_BASE64}?bank=BANCO_D`;
-
-	it("parses a PagoMóvil QR routed to BANCO_A", () => {
-		const data = unwrap(parsePagoMovil(VEN_BANCO_A, 40));
-		expect(data.paymentAddress).toBe(VEN_BANCO_A);
+	it("returns INVALID_QR when merchantId is missing (same rule as SELL upload)", () => {
+		const result = parsePagoMovil(`${"A".repeat(48)}?bank=BANCO_A`, 40);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 
-	it("parses a PagoMóvil QR routed to BANCO_B", () => {
-		const data = unwrap(parsePagoMovil(VEN_BANCO_B, 40));
-		expect(data.paymentAddress).toBe(VEN_BANCO_B);
-	});
-
-	it("parses a PagoMóvil QR routed to BANCO_C", () => {
-		const data = unwrap(parsePagoMovil(VEN_BANCO_C, 40));
-		expect(data.paymentAddress).toBe(VEN_BANCO_C);
-	});
-
-	it("parses a PagoMóvil QR routed to BANCO_D", () => {
-		const data = unwrap(parsePagoMovil(VEN_BANCO_D, 40));
-		expect(data.paymentAddress).toBe(VEN_BANCO_D);
+	it("returns INVALID_QR when the blob is shorter than 40 characters", () => {
+		const result = parsePagoMovil("SGVsbG8=?merchantId=0134", 40);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 });
