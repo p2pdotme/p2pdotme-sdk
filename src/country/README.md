@@ -91,10 +91,13 @@ Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the p
 
 `optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
 
+`transferWarning` — optional i18n key shown before the payer sends fiat (bank outage, delayed credits, etc.). Apps call `getTransferWarning(currency)` and translate with `t(key)`. Omit when there is no warning. Currently set on CUP (`CUP_BANDEC_WARNING`).
+
 ```typescript
 import {
   getStoredQrPayload,
   getPayQrPayload,
+  getTransferWarning,
   packStoredPaymentId,
   uploadsPaymentQR,
   usesCatalogPaymentForm,
@@ -107,6 +110,8 @@ uploadsPaymentQR("VEN"); // true — seller may upload a Pago Móvil QR
 uploadsPaymentQR("BOB"); // true — seller may upload a QR Simple QR
 usesPackedPaymentId("VEN"); // true — has validateQr
 usesCatalogPaymentForm("CUP"); // true — two typed fields, no QR upload
+getTransferWarning("CUP"); // "CUP_BANDEC_WARNING"
+getTransferWarning("INR"); // null
 validateStoredPaymentId("PEN", "987654321"); // true — phone-only
 packStoredPaymentId("PEN", qr, { phone: "987654321", cci: "" });
 getStoredQrPayload("PEN", storedId); // EMVCo blob or null

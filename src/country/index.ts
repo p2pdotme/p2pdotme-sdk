@@ -3,6 +3,7 @@
 export {
 	COUNTRY_OPTIONS,
 	getCountryOption,
+	getTransferWarning,
 	uploadsPaymentQR,
 	usesCatalogPaymentForm,
 	usesPackedPaymentId,

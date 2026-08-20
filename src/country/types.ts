@@ -57,4 +57,10 @@ export interface CountryOption {
 	 * Only used when the typed fallback did not already set the key.
 	 */
 	readonly hydrateFieldsFromQr?: (qr: string) => Partial<Record<string, string>>;
+	/**
+	 * i18n key for a warning shown before the payer sends fiat (e.g. a bank
+	 * outage). Apps call `getTransferWarning(currency)` — do not branch on
+	 * currency. Omit when there is no warning.
+	 */
+	readonly transferWarning?: string;
 }
