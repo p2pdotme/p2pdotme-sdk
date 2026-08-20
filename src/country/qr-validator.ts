@@ -27,11 +27,11 @@ function crc16ccitt(s: string): string {
 }
 
 /**
- * Yape/Plin EMVCo: country PE, currency 604, CRC-16/CCITT-FALSE.
- * CRC is required on upload so we never persist a truncated screenshot.
- * (PAY render in the merchant is looser; that path does not use this.)
+ * Structural EMVCo upload check: parseable TLV, country tag 58, currency tag 53,
+ * and a matching CRC-16/CCITT-FALSE (tag 63). CRC is required on upload so we
+ * never persist a truncated screenshot.
  */
-export function validatePeruvianQr(payload: string): boolean {
+function validateEmvcoQr(payload: string, country: string, currency: string): boolean {
 	if (!payload || payload.trim().length === 0) return false;
 	const data = payload.trim();
 
@@ -47,8 +47,8 @@ export function validatePeruvianQr(payload: string): boolean {
 		pos += 4 + length;
 	}
 
-	if (tags["58"] !== "PE") return false;
-	if (tags["53"] !== "604") return false;
+	if (tags["58"] !== country) return false;
+	if (tags["53"] !== currency) return false;
 
 	const crcTag = tags["63"];
 	if (!crcTag) return false;
@@ -58,6 +58,45 @@ export function validatePeruvianQr(payload: string): boolean {
 
 	const expected = crc16ccitt(data.substring(0, marker + 4));
 	return expected.toUpperCase() === crcTag.toUpperCase();
+}
+
+/**
+ * Yape/Plin EMVCo: country PE, currency 604, CRC-16/CCITT-FALSE.
+ * CRC is required on upload so we never persist a truncated screenshot.
+ * (PAY render in the merchant is looser; that path does not use this.)
+ */
+export function validatePeruvianQr(payload: string): boolean {
+	return validateEmvcoQr(payload, "PE", "604");
+}
+
+/**
+ * Bolivia QR Simple encrypted envelope (Yape Bs, BancoSol dynamic QR, etc.):
+ * `<base64 ciphertext>|<32-hex checksum>`. The payload is bank-encrypted so we
+ * cannot read account/amount — we only validate the envelope shape and store it
+ * verbatim to re-render. Reject packed `||` IDs so a stored compound string is
+ * never mistaken for a QR.
+ */
+function isBolivianEncryptedQr(payload: string): boolean {
+	const trimmed = payload.trim();
+	if (trimmed.includes(PACKED_PAYMENT_ID_SEP)) return false;
+	const sep = trimmed.lastIndexOf("|");
+	if (sep < 40) return false;
+	const blob = trimmed.slice(0, sep);
+	const tag = trimmed.slice(sep + 1);
+	if (blob.length % 4 !== 0) return false;
+	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
+	return /^[0-9A-Fa-f]{32}$/.test(tag);
+}
+
+/**
+ * Bolivia QR Simple. Accepts either the encrypted envelope (Yape Bs, BancoSol
+ * dynamic QR — `<base64>|<32-hex>`) or an EMVCo static QR (country BO, currency
+ * 068, CRC-16/CCITT-FALSE). CRC / envelope shape is required on upload so we
+ * never persist a truncated screenshot.
+ */
+export function validateBolivianQr(payload: string): boolean {
+	if (!payload || payload.trim().length === 0) return false;
+	return isBolivianEncryptedQr(payload) || validateEmvcoQr(payload, "BO", "068");
 }
 
 /**

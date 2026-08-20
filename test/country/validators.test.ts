@@ -903,3 +903,38 @@ describe("validateBolivianQr (BOB)", () => {
 		expect(validateBolivianQr(input)).toBe(false);
 	});
 });
+
+describe("BOB stored payment id (QR upload + account)", () => {
+	function tlv(tag: string, value: string): string {
+		return `${tag}${value.length.toString().padStart(2, "0")}${value}`;
+	}
+
+	const inner = `000201${tlv("53", "068")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+	const QR = `${inner}6304${calculateCRC16(inner)}`;
+	const ACCOUNT = "12345678901";
+
+	it("accepts QR-only, account-only, and packed QR||account", () => {
+		expect(usesPackedPaymentId("BOB")).toBe(true);
+		expect(validateStoredPaymentId("BOB", QR)).toBe(true);
+		expect(validateStoredPaymentId("BOB", ACCOUNT)).toBe(true);
+		expect(validateStoredPaymentId("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toBe(true);
+	});
+
+	it("packs and extracts the QR payload", () => {
+		expect(packStoredPaymentId("BOB", QR, { account: ACCOUNT })).toBe(
+			`${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`,
+		);
+		expect(packStoredPaymentId("BOB", null, { account: ACCOUNT })).toBe(ACCOUNT);
+		expect(getStoredQrPayload("BOB", QR)).toBe(QR);
+		expect(getStoredQrPayload("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toBe(QR);
+		expect(getStoredQrPayload("BOB", ACCOUNT)).toBeNull();
+	});
+
+	it("displays the account, never the raw QR blob", () => {
+		expect(formatStoredPaymentIdForDisplay("BOB", QR)).toBe("");
+		expect(formatStoredPaymentIdForDisplay("BOB", ACCOUNT)).toBe(ACCOUNT);
+		expect(assignStoredPaymentIdToFieldValues("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toEqual(
+			{ account: ACCOUNT },
+		);
+	});
+});

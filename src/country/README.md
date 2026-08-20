@@ -81,7 +81,7 @@ validatePIXId("user@example.com"); // true
 
 `isAlpha: true` — feature-flagged, may not be fully available in production.
 `disabled: true` — hidden from selection in the UI.
-`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
+`uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil, BOB QR Simple). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
 
 Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob (`isPagoMovilQr` / `getStoredQrPayload` / per-currency PAY helpers). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
 
@@ -101,6 +101,7 @@ import {
 
 uploadsPaymentQR("PEN"); // true — seller may upload a Yape/Plin QR
 uploadsPaymentQR("VEN"); // true — seller may upload a Pago Móvil QR
+uploadsPaymentQR("BOB"); // true — seller may upload a QR Simple QR
 usesPackedPaymentId("VEN"); // true — has validateQr
 usesCatalogPaymentForm("CUP"); // true — two typed fields, no QR upload
 validateStoredPaymentId("PEN", "987654321"); // true — phone-only
