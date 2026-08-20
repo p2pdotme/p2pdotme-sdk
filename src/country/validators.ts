@@ -29,6 +29,7 @@ export {
 	validateVenezuelanRif,
 } from "./currencies";
 export {
+	isBolivianPayQr,
 	isPeruvianPayQr,
 	isPhilippinePayQr,
 	isVenezuelanPayQr,

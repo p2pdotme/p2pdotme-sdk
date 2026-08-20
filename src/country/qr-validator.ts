@@ -155,3 +155,22 @@ export function isPhilippinePayQr(payload: string): boolean {
 	if (!payload.startsWith("0002")) return false;
 	return payload.includes("5802PH") && payload.includes("5303608");
 }
+
+/**
+ * PAY display: Bolivia QR Simple. EMVCo (BO / 068) even when CRC fails, or an
+ * encrypted envelope `<base64>|<hex>` with a looser checksum than SELL upload
+ * (16–64 hex vs 24/32). SELL still uses `validateBolivianQr`.
+ */
+export function isBolivianPayQr(payload: string): boolean {
+	if (!payload || payload.includes(PACKED_PAYMENT_ID_SEP)) return false;
+	if (payload.startsWith("0002") && payload.includes("5802BO") && payload.includes("5303068")) {
+		return true;
+	}
+	const sep = payload.lastIndexOf("|");
+	if (sep < 40) return false;
+	const blob = payload.slice(0, sep);
+	const tag = payload.slice(sep + 1);
+	if (blob.length % 4 !== 0) return false;
+	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
+	return /^[0-9A-Fa-f]{16,64}$/.test(tag);
+}

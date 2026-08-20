@@ -22,7 +22,7 @@ Country and currency configuration for the P2P.me SDK — payment methods, valid
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
-├── qr-validator.ts      # SELL QR payload checks (PEN / VEN) — shared by both apps
+├── qr-validator.ts      # SELL QR payload checks (PEN / VEN / BOB) — shared by both apps
 ├── countries.ts         # COUNTRY_OPTIONS — aggregated from currencies/
 ├── payment-fields.ts    # PAYMENT_ID_FIELDS — aggregated from currencies/
 ├── validators.ts        # Re-exports all validators + compound utils
@@ -87,7 +87,7 @@ Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the p
 
 `validateQr` — this currency may store a QR in the payment ID (`qr||fields` or standalone). `usesPackedPaymentId(currency)` is true when `validateQr` exists.
 
-`getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, PHP QR Ph vs InstaPay `phone|bank`). Apps must not branch on currency.
+`getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`, `validateBolivianQr` envelope/CRC). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, BOB EMVCo without CRC or a non-24/32 hex envelope, PHP QR Ph vs InstaPay `phone|bank`). Apps must not branch on currency.
 
 `optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
 
@@ -116,6 +116,7 @@ validateStoredPaymentId("PEN", "987654321"); // true — phone-only
 packStoredPaymentId("PEN", qr, { phone: "987654321", cci: "" });
 getStoredQrPayload("PEN", storedId); // EMVCo blob or null
 getPayQrPayload("PEN", scannedBlob); // same, even if CRC fails
+getPayQrPayload("BOB", scannedBlob); // QR Simple EMVCo or encrypted envelope
 getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 ```
 

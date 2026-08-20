@@ -48,6 +48,18 @@ describe("getPayQrPayload", () => {
 		expect(getPayQrPayload("VEN", VEN_COMPOUND)).toBeNull();
 	});
 
+	it("returns a BOB PAY blob, including EMVCo whose CRC fails validateQr", () => {
+		const bobEmvco =
+			"00020101021153030685802BO5906TIENDA6304ABCD";
+		const bobBadCrc = bobEmvco.replace("6304ABCD", "6304FFFF");
+		const bobEnvelope =
+			"rqeunYVqZLSBH9wP9g9edc2eo8ywIMBYO4Hp6zkL7K/lvplzVgpBfA7UA7nH6aNP7wnaDJe41h4YBHYVo8VCaYpigvLPxmRdbIrykn2IFuJUi+2fCfY2Do7EtQU11c8JyZ0C1L5KRe5I4E59r9zeghuVQUUNtgaSsZS+mqqVQ5z0EDqo21xVmLjD3PWVY/4LJpz9Cn8aFSwGPVk7fUd9SUpCGV812+IK9K1fE2okI+rtKmyWANBFWCUyz3EE2pvoRjMh6EosPnGzU1cRDapU0ZcOnsZAryOrXQz7d0WM/rn6OHm5rW+a5OVt93YqOqfNLXW2VYQPVbTg85+UlkQIpw==|07F204D5938E28075E5BF22340391EE1";
+		expect(getPayQrPayload("BOB", bobEnvelope)).toBe(bobEnvelope);
+		expect(getStoredQrPayload("BOB", bobBadCrc)).toBeNull();
+		expect(getPayQrPayload("BOB", bobBadCrc)).toBe(bobBadCrc);
+		expect(getPayQrPayload("BOB", "12345678901")).toBeNull();
+	});
+
 	it("returns a PHP QR Ph blob and ignores InstaPay phone|bank", () => {
 		expect(getStoredQrPayload("PHP", PHP_QR)).toBeNull();
 		expect(getPayQrPayload("PHP", PHP_QR)).toBe(PHP_QR);
