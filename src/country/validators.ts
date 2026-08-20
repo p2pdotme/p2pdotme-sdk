@@ -6,7 +6,6 @@ import { PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "./types";
 export {
 	validateArgentinePaymentId,
 	validateBolivianAccount,
-	validateBolivianQr,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
 	validateCubanPhoneNumber,
@@ -29,7 +28,7 @@ export {
 	validateVenezuelanPhoneNumber,
 	validateVenezuelanRif,
 } from "./currencies";
-export { validatePeruvianQr, validateVenezuelanQr } from "./qr-validator";
+export { validateBolivianQr, validatePeruvianQr, validateVenezuelanQr } from "./qr-validator";
 export { PACKED_PAYMENT_ID_SEP };
 
 /** Serializes multiple fields into a pipe-separated string. */
