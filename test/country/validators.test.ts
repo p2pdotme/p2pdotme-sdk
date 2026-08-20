@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateArgentinePaymentId } from "../../src/country/currencies/ars";
+import { validateBolivianAccount, validateBolivianQr } from "../../src/country/currencies/bob";
 import { validatePIXId } from "../../src/country/currencies/brl";
 import { validateColombianPaymentId } from "../../src/country/currencies/cop";
 import { validateCubanCardNumber, validateCubanPhoneNumber } from "../../src/country/currencies/cup";
@@ -24,6 +25,7 @@ import {
 	validatePeruvianQr,
 } from "../../src/country/currencies/pen";
 import { validatePhilippinePhoneNumber } from "../../src/country/currencies/php";
+import { calculateCRC16 } from "../../src/qr-parsers/utils/crc16";
 import {
 	assignPaymentIdToFieldValues,
 	assignStoredPaymentIdToFieldValues,
@@ -845,5 +847,111 @@ describe("validatePhilippinePhoneNumber (PHP)", () => {
 		["letters", "91712345a7"],
 	])("rejects %s", (_label, input) => {
 		expect(validatePhilippinePhoneNumber(input)).toBe(false);
+	});
+});
+
+// ── BOB ───────────────────────────────────────────────────────────────────────
+
+describe("validateBolivianAccount (BOB)", () => {
+	it.each([
+		["8-digit account", "12345678"],
+		["20-digit account", "12345678901234567890"],
+		["account with spaces (stripped)", "1234 5678 9012"],
+		["account with dashes (stripped)", "1234-5678-9012"],
+	])("accepts %s", (_label, input) => {
+		expect(validateBolivianAccount(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["too short (7 digits)", "1234567"],
+		["too long (21 digits)", "123456789012345678901"],
+		["contains letters", "1234567a"],
+	])("rejects %s", (_label, input) => {
+		expect(validateBolivianAccount(input)).toBe(false);
+	});
+});
+
+describe("validateBolivianQr (BOB)", () => {
+	function tlv(tag: string, value: string): string {
+		return `${tag}${value.length.toString().padStart(2, "0")}${value}`;
+	}
+
+	const inner = `000201${tlv("53", "068")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+	const SAMPLE = `${inner}6304${calculateCRC16(inner)}`;
+
+	// Real Bolivia QR Simple encrypted envelopes (`<base64>|<hex checksum>`).
+	// BancoSol/Yape use a 32-hex checksum; Banco Fie uses a 24-hex checksum.
+	const BANCOSOL_QR =
+		"rqeunYVqZLSBH9wP9g9edc2eo8ywIMBYO4Hp6zkL7K/lvplzVgpBfA7UA7nH6aNP7wnaDJe41h4YBHYVo8VCaYpigvLPxmRdbIrykn2IFuJUi+2fCfY2Do7EtQU11c8JyZ0C1L5KRe5I4E59r9zeghuVQUUNtgaSsZS+mqqVQ5z0EDqo21xVmLjD3PWVY/4LJpz9Cn8aFSwGPVk7fUd9SUpCGV812+IK9K1fE2okI+rtKmyWANBFWCUyz3EE2pvoRjMh6EosPnGzU1cRDapU0ZcOnsZAryOrXQz7d0WM/rn6OHm5rW+a5OVt93YqOqfNLXW2VYQPVbTg85+UlkQIpw==|07F204D5938E28075E5BF22340391EE1";
+	const YAPE_QR =
+		"zwUp1HWQXCJtIOpnzdz0Va5PY3tpogHLdas/RqJIfNuBldNxmwHleCdbkeKpOLm1kEsm/geWQFIQ8Mwzd3Paz26FhXY/uxt39LdKP2wRimF89iBRlfJkymXCZngbsEnLOO2Uwam8z7QqCCuIQK9qClaVKt8nB7mqEwgJR6/QZW5lD/AqPcxCz+xMuvSGONv1ve+lfWgEcrm0nWyso4qxSdeyGXbO3QVg5FcfFg9MAJXLkD4flE16RAvpEMWcs5OV5gUh2w6UOec44U4ZPwhQXaHE97nEt8blcN9zogIE9HhSaU+iA2pulgAyRZEOo83lXor4nm5zOhoif8kQUxsllg==|0FABBA22E4072538599B68591360A676";
+	const BANCO_FIE_QR =
+		"UGbUtEEepdB6Lu0ZjvDh5rCdCUUw9mc8i8+lV0amjuD94l//AN/b4sE1OkUqxb5MR2WwIAe8L97Ax6GEUc0EAcWk/gA/mqwmoLqdUpJGzSqBFo+FcdjRevpIxNrkBj4L3IM6my02LUbDZUdpoeFzrQ/rJoPu/qtrrf+7JAw2GOSoOGl5jBS2IH6E11geLOs85G7hLkSI8YmI39WbAFqL0mmt+B13CZg5owV2LO9Ul3v9KMbg0D90oL9jk39bxwzuYxAOe5AjoUb4WxdIEO05OaWG2H6St0O4ygHDpTUEg+j10IlqCCBM1h7inYU/BON7S3GSS9OahIt3QnbUqzyRuQ==|76b7a1c09287d8f0a3242c7c";
+
+	it("accepts a valid QR Simple payload (country BO, currency 068, valid CRC)", () => {
+		expect(validateBolivianQr(SAMPLE)).toBe(true);
+	});
+
+	it.each([
+		["BancoSol (32-hex checksum)", BANCOSOL_QR],
+		["Yape Bs (32-hex checksum)", YAPE_QR],
+		["Banco Fie (24-hex checksum)", BANCO_FIE_QR],
+	])("accepts real encrypted envelope: %s", (_label, qr) => {
+		expect(validateBolivianQr(qr)).toBe(true);
+	});
+
+	it("rejects a payload with a non-068 currency (tag 53)", () => {
+		const tweaked = `000201${tlv("53", "840")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+		const bad = `${tweaked}6304${calculateCRC16(tweaked)}`;
+		expect(validateBolivianQr(bad)).toBe(false);
+	});
+
+	it("rejects a payload with a corrupted CRC", () => {
+		const corrupted = SAMPLE.replace(/6304[0-9A-F]{4}$/, "6304FFFF");
+		expect(validateBolivianQr(corrupted)).toBe(false);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+	])("rejects %s", (_label, input) => {
+		expect(validateBolivianQr(input)).toBe(false);
+	});
+});
+
+describe("BOB stored payment id (QR upload + account)", () => {
+	function tlv(tag: string, value: string): string {
+		return `${tag}${value.length.toString().padStart(2, "0")}${value}`;
+	}
+
+	const inner = `000201${tlv("53", "068")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+	const QR = `${inner}6304${calculateCRC16(inner)}`;
+	const ACCOUNT = "12345678901";
+
+	it("accepts QR-only, account-only, and packed QR||account", () => {
+		expect(usesPackedPaymentId("BOB")).toBe(true);
+		expect(validateStoredPaymentId("BOB", QR)).toBe(true);
+		expect(validateStoredPaymentId("BOB", ACCOUNT)).toBe(true);
+		expect(validateStoredPaymentId("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toBe(true);
+	});
+
+	it("packs and extracts the QR payload", () => {
+		expect(packStoredPaymentId("BOB", QR, { account: ACCOUNT })).toBe(
+			`${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`,
+		);
+		expect(packStoredPaymentId("BOB", null, { account: ACCOUNT })).toBe(ACCOUNT);
+		expect(getStoredQrPayload("BOB", QR)).toBe(QR);
+		expect(getStoredQrPayload("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toBe(QR);
+		expect(getStoredQrPayload("BOB", ACCOUNT)).toBeNull();
+	});
+
+	it("displays the account, never the raw QR blob", () => {
+		expect(formatStoredPaymentIdForDisplay("BOB", QR)).toBe("");
+		expect(formatStoredPaymentIdForDisplay("BOB", ACCOUNT)).toBe(ACCOUNT);
+		expect(assignStoredPaymentIdToFieldValues("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toEqual(
+			{ account: ACCOUNT },
+		);
 	});
 });
