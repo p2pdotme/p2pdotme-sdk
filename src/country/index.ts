@@ -30,6 +30,8 @@ export {
 	serializeCompoundPaymentId,
 	unpackPackedPaymentId,
 	validateArgentinePaymentId,
+	validateBolivianAccount,
+	validateBolivianQr,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
 	validateCubanPhoneNumber,

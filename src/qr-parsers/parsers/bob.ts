@@ -6,10 +6,27 @@ import { extractTags } from "../utils/tlv";
 const BOB_TAGS = { AMOUNT: "54", CURRENCY: "53", COUNTRY: "58" } as const;
 
 /**
- * Parses a Bolivian QR Simple EMVCo QR. Validates it is a genuine Bolivia QR
- * (country tag 58 `BO`, currency tag 53 `068`) and returns the raw payload verbatim
- * as `paymentAddress` so the buyer app can re-render the exact QR. Static QRs carry
- * no amount; when tag 54 is present it is converted to usdc via `sellPrice`.
+ * Bolivia QR Simple encrypted envelope: `<base64 ciphertext>|<32-hex checksum>`
+ * (Yape Bs, BancoSol dynamic QR). The payload is bank-encrypted, so amount/account
+ * cannot be read — the buyer re-renders the exact blob for their bank app to scan.
+ */
+function isBolivianEncryptedQr(payload: string): boolean {
+	if (payload.includes("||")) return false;
+	const sep = payload.lastIndexOf("|");
+	if (sep < 40) return false;
+	const blob = payload.slice(0, sep);
+	const tag = payload.slice(sep + 1);
+	if (blob.length % 4 !== 0) return false;
+	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
+	return /^[0-9A-Fa-f]{32}$/.test(tag);
+}
+
+/**
+ * Parses a Bolivian QR Simple QR. Accepts either the encrypted envelope
+ * (`<base64>|<32-hex>`) or an EMVCo static QR (country tag 58 `BO`, currency tag
+ * 53 `068`). Returns the raw payload verbatim as `paymentAddress` so the buyer app
+ * can re-render the exact QR. Static EMVCo QRs carry no amount unless tag 54 is
+ * present, which is converted to usdc via `sellPrice`; encrypted QRs carry none.
  */
 export function parseBolivia(qrData: string, sellPrice: number): ParseResult {
 	if (!qrData || typeof qrData !== "string" || qrData.trim().length === 0) {
@@ -17,6 +34,11 @@ export function parseBolivia(qrData: string, sellPrice: number): ParseResult {
 	}
 
 	const trimmed = qrData.trim();
+
+	if (isBolivianEncryptedQr(trimmed)) {
+		return success({ paymentAddress: trimmed });
+	}
+
 	const tags = extractTags(trimmed, [BOB_TAGS.AMOUNT, BOB_TAGS.CURRENCY, BOB_TAGS.COUNTRY]);
 
 	if (tags[BOB_TAGS.COUNTRY] !== "BO" || tags[BOB_TAGS.CURRENCY] !== "068") {
