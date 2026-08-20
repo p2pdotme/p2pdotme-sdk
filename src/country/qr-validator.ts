@@ -70,11 +70,12 @@ export function validatePeruvianQr(payload: string): boolean {
 }
 
 /**
- * Bolivia QR Simple encrypted envelope (Yape Bs, BancoSol dynamic QR, etc.):
- * `<base64 ciphertext>|<32-hex checksum>`. The payload is bank-encrypted so we
+ * Bolivia QR Simple encrypted envelope (Yape Bs, BancoSol, Banco Fie dynamic QR,
+ * etc.): `<base64 ciphertext>|<hex checksum>`. The payload is bank-encrypted so we
  * cannot read account/amount — we only validate the envelope shape and store it
- * verbatim to re-render. Reject packed `||` IDs so a stored compound string is
- * never mistaken for a QR.
+ * verbatim to re-render. The checksum is a hex digest whose length varies by bank
+ * (24 hex for Banco Fie, 32 hex for Yape/BancoSol). Reject packed `||` IDs so a
+ * stored compound string is never mistaken for a QR.
  */
 function isBolivianEncryptedQr(payload: string): boolean {
 	const trimmed = payload.trim();
@@ -85,7 +86,7 @@ function isBolivianEncryptedQr(payload: string): boolean {
 	const tag = trimmed.slice(sep + 1);
 	if (blob.length % 4 !== 0) return false;
 	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
-	return /^[0-9A-Fa-f]{32}$/.test(tag);
+	return /^(?:[0-9A-Fa-f]{24}|[0-9A-Fa-f]{32})$/.test(tag);
 }
 
 /**
