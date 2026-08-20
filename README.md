@@ -162,7 +162,7 @@ All hooks read from the nearest `<SdkProvider>`:
 
 ## Supported currencies
 
-`INR` · `IDR` · `BRL` · `ARS` · `MEX` · `VEN` · `EUR` · `NGN` · `USD` · `COP` · `ECU`
+`INR` · `IDR` · `BRL` · `ARS` · `MEX` · `VEN` · `BOB` · `EUR` · `NGN` · `USD` · `COP` · `ECU`
 
 ## Development
 
