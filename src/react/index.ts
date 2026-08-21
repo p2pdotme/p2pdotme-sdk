@@ -13,7 +13,11 @@ export {
 	useStake,
 	useZkkyc,
 } from "./sdk-provider";
-
+export {
+	type UsePlacementLimitsParams,
+	type UsePlacementLimitsResult,
+	usePlacementLimits,
+} from "./use-placement-limits";
 export { useWatchOrders } from "./use-watch-orders";
 
 // ── Fraud Engine Hooks ──────────────────────────────────────────────────
