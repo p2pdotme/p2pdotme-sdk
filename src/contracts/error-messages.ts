@@ -62,6 +62,10 @@ export const contractErrorMessages: Record<ContractErrorCode, string> = {
 
 	// Order limits
 	DAILY_BUY_ORDER_LIMIT_EXCEEDED: "Daily buy order count limit exceeded",
+	DAILY_BUY_ORDER_PLACEMENT_LIMIT_EXCEEDED:
+		"You've reached today's buy order limit. Cancelled orders still count towards it — try again tomorrow.",
+	DAILY_SELL_ORDER_PLACEMENT_LIMIT_EXCEEDED:
+		"You've reached today's sell and pay order limit. Cancelled orders still count towards it — try again tomorrow.",
 	MONTHLY_BUY_ORDER_LIMIT_EXCEEDED: "Monthly buy order count limit exceeded",
 	SELL_ORDER_AMOUNT_LIMIT_EXCEEDED: "Sell order amount limit exceeded",
 	BUY_ORDER_AMOUNT_EXCEEDS_LIMIT: "Buy order amount exceeds limit",
