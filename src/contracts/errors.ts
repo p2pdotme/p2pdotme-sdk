@@ -61,6 +61,10 @@ export const contractErrors = {
 	// Order limits
 	DailyBuyOrderLimitExceeded: "DAILY_BUY_ORDER_LIMIT_EXCEEDED",
 	MonthlyBuyOrderLimitExceeded: "MONTHLY_BUY_ORDER_LIMIT_EXCEEDED",
+	// Gross placement caps: counted when the order is placed and never given
+	// back when it is cancelled, unlike the volume limits above.
+	DailyBuyOrderPlacementLimitExceeded: "DAILY_BUY_ORDER_PLACEMENT_LIMIT_EXCEEDED",
+	DailySellOrderPlacementLimitExceeded: "DAILY_SELL_ORDER_PLACEMENT_LIMIT_EXCEEDED",
 	SellOrderAmountLimitExceeded: "SELL_ORDER_AMOUNT_LIMIT_EXCEEDED",
 	BuyOrderAmountExceedsLimit: "BUY_ORDER_AMOUNT_EXCEEDS_LIMIT",
 	SellOrderAmountExceedsLimit: "SELL_ORDER_AMOUNT_EXCEEDS_LIMIT",
@@ -295,6 +299,8 @@ export const hexContractErrors: Record<string, ContractErrorCode> = {
 	// Order limits
 	"0xe595a7bf": contractErrors.DailyBuyOrderLimitExceeded,
 	"0x675dbc86": contractErrors.MonthlyBuyOrderLimitExceeded,
+	"0x917c7aef": contractErrors.DailyBuyOrderPlacementLimitExceeded,
+	"0x4688ce73": contractErrors.DailySellOrderPlacementLimitExceeded,
 	"0x64301cb8": contractErrors.SellOrderAmountLimitExceeded,
 	"0x91da284f": contractErrors.BuyOrderAmountExceedsLimit,
 	"0xb407b9ec": contractErrors.SellOrderAmountExceedsLimit,
