@@ -25,7 +25,7 @@ bun add @zkpassport/sdk                  # only for zkkyc ZK Passport flow
 | Import | Description |
 |--------|-------------|
 | `@p2pdotme/sdk` | Shared types, `SdkError`, `VERSION` |
-| `@p2pdotme/sdk/orders` | [Order reads + writes](./src/orders/README.md) — `getOrder`, `getOrders`, `getFeeConfig`, and `prepare`/`execute` pairs for `placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc` |
+| `@p2pdotme/sdk/orders` | [Order reads + writes](./src/orders/README.md) — `getOrder`, `getOrders`, `getFeeConfig`, `getPlacementLimits`, and `prepare`/`execute` pairs for `placeOrder`, `cancelOrder`, `setSellOrderUpi`, `raiseDispute`, `approveUsdc` |
 | `@p2pdotme/sdk/prices` | [Currency price config](./src/prices/README.md) — `getPriceConfig`, `getReputationPerUsdcLimit` |
 | `@p2pdotme/sdk/profile` | [User-scoped reads](./src/profile/README.md) — USDC balance, USDC allowance, fiat conversion, tx limits |
 | `@p2pdotme/sdk/qr-parsers` | [QR code parsers](./src/qr-parsers/README.md) for UPI, QRIS, PIX, MercadoPago, Pago Movil |
