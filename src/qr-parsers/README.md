@@ -62,12 +62,12 @@ The proxy receives `GET /pix?locationUrl=<url>&orderId=<id>` and should return t
 
 ### Pago Móvil (VEN)
 
-Scan & pay stores the **full** scanned string (`base64?merchantId=…` or `base64?bank=…`) as `paymentAddress`. The merchant re-encodes that same blob with `QRCodeSVG` — do not unpack it as SELL `phone|rif|bank`. Use `isPagoMovilQr` to detect the envelope; SELL upload uses the stricter `validateVenezuelanQr` (minimum blob length + `merchantId`).
+Scan & pay stores the **full** scanned string (`base64?merchantId=NNNN&…`) as `paymentAddress`. Same envelope as SELL upload (`validateVenezuelanQr`: blob ≥ 40 + `merchantId`). The merchant re-encodes that blob with `getPayQrPayload` / `QRCodeSVG` — do not unpack it as SELL `phone|rif|bank`. `getPayQrPayload` may still re-draw an older stored blob without `merchantId`.
 
 ```ts
 import { isPagoMovilQr } from "@p2pdotme/sdk/qr-parsers";
 
-isPagoMovilQr(scanned); // true → QRCodeSVG value={scanned}
+isPagoMovilQr(scanned); // same as validateVenezuelanQr
 ```
 
 ### Transfermóvil (CUP)
