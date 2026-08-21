@@ -33,6 +33,7 @@ import {
 	getStoredQrPayload,
 	PACKED_PAYMENT_ID_SEP,
 	packStoredPaymentId,
+	validateCatalogPaymentDraft,
 	validatePaymentIdFields,
 	validateStoredPaymentId,
 } from "../../src/country/validators";
@@ -307,6 +308,15 @@ describe("validateVenezuelanPaymentId (VEN QR or compound)", () => {
 		expect(
 			validateVenezuelanPaymentId(`${qr}||04121234567|V12345678|Banesco`),
 		).toBe(true);
+	});
+
+	it("rejects a packed QR with an incomplete typed rest", () => {
+		const qr = `${"A".repeat(48)}?merchantId=0134&origin=app`;
+		expect(validateVenezuelanPaymentId(`${qr}||04121234567`)).toBe(false);
+		expect(validateVenezuelanPaymentId(`${qr}||04121234567||`)).toBe(false);
+		expect(validateVenezuelanPaymentId(`${qr}||04121234567|V12345678|`)).toBe(
+			false,
+		);
 	});
 
 	it("does not treat a packed id as a raw QR payload", () => {
@@ -633,6 +643,9 @@ describe("parse/serialize Peruvian packed payment ID", () => {
 		expect(validatePeruvianPaymentId(SAMPLE)).toBe(true);
 		expect(validatePeruvianPaymentId(`${SAMPLE}${PACKED_PAYMENT_ID_SEP}${PHONE}`)).toBe(true);
 		expect(validatePeruvianPaymentId("")).toBe(false);
+		expect(validatePeruvianPaymentId(`${SAMPLE}${PACKED_PAYMENT_ID_SEP}12`)).toBe(
+			false,
+		);
 	});
 
 	it("validateStoredPaymentId / display / hydrate go through the catalog", () => {
@@ -682,6 +695,15 @@ describe("parse/serialize Peruvian packed payment ID", () => {
 		expect(packStoredPaymentId("PEN", SAMPLE, { phone: PHONE, cci: "" })).toBe(
 			`${SAMPLE}${PACKED_PAYMENT_ID_SEP}${PHONE}|`,
 		);
+		expect(packStoredPaymentId("PEN", SAMPLE, { phone: "12", cci: "" })).toBe(
+			`${SAMPLE}${PACKED_PAYMENT_ID_SEP}12|`,
+		);
+		expect(
+			validateStoredPaymentId(
+				"PEN",
+				packStoredPaymentId("PEN", SAMPLE, { phone: "12", cci: "" }),
+			),
+		).toBe(false);
 		expect(packStoredPaymentId("PEN", null, { phone: PHONE, cci: "" })).toBe(`${PHONE}|`);
 		expect(getStoredQrPayload("PEN", SAMPLE)).toBe(SAMPLE);
 		expect(getStoredQrPayload("PEN", `${SAMPLE}${PACKED_PAYMENT_ID_SEP}${PHONE}`)).toBe(SAMPLE);
@@ -696,6 +718,23 @@ describe("parse/serialize Peruvian packed payment ID", () => {
 				bank: "Banesco",
 			}),
 		).toBe(`${venQr}||04121234567|V12345678|Banesco`);
+		expect(
+			packStoredPaymentId("VEN", venQr, {
+				phone: "04121234567",
+				rif: "",
+				bank: "",
+			}),
+		).toBe(`${venQr}||04121234567||`);
+		expect(
+			validateStoredPaymentId(
+				"VEN",
+				packStoredPaymentId("VEN", venQr, {
+					phone: "04121234567",
+					rif: "",
+					bank: "",
+				}),
+			),
+		).toBe(false);
 		expect(getStoredQrPayload("VEN", venQr)).toBe(venQr);
 		expect(getStoredQrPayload("VEN", "04121234567|V12345678|Banesco")).toBeNull();
 	});
@@ -941,6 +980,12 @@ describe("BOB stored payment id (QR upload + account)", () => {
 		expect(packStoredPaymentId("BOB", QR, { account: ACCOUNT })).toBe(
 			`${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`,
 		);
+		expect(packStoredPaymentId("BOB", QR, { account: "12" })).toBe(
+			`${QR}${PACKED_PAYMENT_ID_SEP}12`,
+		);
+		expect(
+			validateStoredPaymentId("BOB", packStoredPaymentId("BOB", QR, { account: "12" })),
+		).toBe(false);
 		expect(packStoredPaymentId("BOB", null, { account: ACCOUNT })).toBe(ACCOUNT);
 		expect(getStoredQrPayload("BOB", QR)).toBe(QR);
 		expect(getStoredQrPayload("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toBe(QR);
@@ -953,5 +998,65 @@ describe("BOB stored payment id (QR upload + account)", () => {
 		expect(assignStoredPaymentIdToFieldValues("BOB", `${QR}${PACKED_PAYMENT_ID_SEP}${ACCOUNT}`)).toEqual(
 			{ account: ACCOUNT },
 		);
+	});
+});
+
+describe("validateCatalogPaymentDraft", () => {
+	const venQr = `${"A".repeat(48)}?merchantId=0134&origin=app`;
+	const venFields = {
+		phone: "04121234567",
+		rif: "V12345678",
+		bank: "Banesco",
+	};
+
+	it("accepts QR-only, typed-only, or both for VEN", () => {
+		expect(validateCatalogPaymentDraft("VEN", venQr, { phone: "", rif: "", bank: "" })).toBe(
+			true,
+		);
+		expect(validateCatalogPaymentDraft("VEN", null, venFields)).toBe(true);
+		expect(validateCatalogPaymentDraft("VEN", venQr, venFields)).toBe(true);
+	});
+
+	it("rejects an empty draft and a partial typed trio", () => {
+		expect(validateCatalogPaymentDraft("VEN", null, { phone: "", rif: "", bank: "" })).toBe(
+			false,
+		);
+		expect(
+			validateCatalogPaymentDraft("VEN", venQr, {
+				phone: "04121234567",
+				rif: "",
+				bank: "",
+			}),
+		).toBe(false);
+		expect(
+			validateCatalogPaymentDraft("VEN", null, {
+				phone: "04121234567",
+				rif: "",
+				bank: "",
+			}),
+		).toBe(false);
+	});
+
+	it("accepts PEN QR-only and rejects QR plus an invalid phone", () => {
+		const penQr =
+			"0002010102113932acfba6cb922753c690f09280f365d7a25204561153036045802PE5906YAPERO6004Lima6304ECE9";
+		expect(validateCatalogPaymentDraft("PEN", penQr, { phone: "", cci: "" })).toBe(true);
+		expect(validateCatalogPaymentDraft("PEN", penQr, { phone: "987654321", cci: "" })).toBe(
+			true,
+		);
+		expect(validateCatalogPaymentDraft("PEN", penQr, { phone: "12", cci: "" })).toBe(false);
+		expect(validateCatalogPaymentDraft("PEN", null, { phone: "12", cci: "" })).toBe(false);
+	});
+
+	it("accepts BOB QR-only and rejects QR plus a short account", () => {
+		function tlv(tag: string, value: string): string {
+			return `${tag}${value.length.toString().padStart(2, "0")}${value}`;
+		}
+		const inner = `000201${tlv("53", "068")}${tlv("58", "BO")}${tlv("59", "TIENDA")}`;
+		const bobQr = `${inner}6304${calculateCRC16(inner)}`;
+		expect(validateCatalogPaymentDraft("BOB", bobQr, { account: "" })).toBe(true);
+		expect(validateCatalogPaymentDraft("BOB", bobQr, { account: "12345678901" })).toBe(true);
+		expect(validateCatalogPaymentDraft("BOB", bobQr, { account: "12" })).toBe(false);
+		expect(validateCatalogPaymentDraft("BOB", null, { account: "12" })).toBe(false);
 	});
 });
