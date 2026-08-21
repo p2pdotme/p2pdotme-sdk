@@ -22,7 +22,7 @@ Country and currency configuration for the P2P.me SDK — payment methods, valid
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
-├── qr-validator.ts      # SELL QR payload checks (PEN / VEN) — shared by both apps
+├── qr-validator.ts      # SELL QR payload checks (PEN / VEN / BOB) — shared by both apps
 ├── countries.ts         # COUNTRY_OPTIONS — aggregated from currencies/
 ├── payment-fields.ts    # PAYMENT_ID_FIELDS — aggregated from currencies/
 ├── validators.ts        # Re-exports all validators + compound utils
@@ -83,19 +83,26 @@ validatePIXId("user@example.com"); // true
 `disabled: true` — hidden from selection in the UI.
 `uploadPaymentQR: true` — merchant/seller uploads a QR image as the payment address (PEN Yape/Plin, VEN Pago Móvil, BOB QR Simple). Omit or leave unset for everyone else. Distinct from `disabledPaymentTypes: ["PAY"]`, which gates the buyer scanning a QR to pay.
 
-Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob (`isPagoMovilQr` / `getStoredQrPayload` / per-currency PAY helpers). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
+Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the payment ID. The merchant re-encodes that blob with `getPayQrPayload(currency, id)` (strict `getStoredQrPayload` first, then a per-country PAY hook). Do not reuse `uploadPaymentQR` to decide whether a PAY order shows a QR.
 
 `validateQr` — this currency may store a QR in the payment ID (`qr||fields` or standalone). `usesPackedPaymentId(currency)` is true when `validateQr` exists.
 
-`optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
+`getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`, `validateBolivianQr` envelope/CRC). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, BOB EMVCo without CRC or a non-24/32 hex envelope, PHP QR Ph vs InstaPay `phone|bank`). Apps must not branch on currency.
+
+`optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`. QR and typed fields may coexist; if any typed field has text, non-optional catalog fields are all required. Forms call `validateCatalogPaymentDraft(currency, qr, fieldValues)` and show `field.validationErrorMessage` on invalid fields. Layout copy (one generic “if they cannot scan, fill the details” hint) stays in the apps — not a per-country catalog hook.
+
+`transferWarning` — optional i18n key shown before the payer sends fiat (bank outage, delayed credits, etc.). Apps call `getTransferWarning(currency)` and translate with `t(key)`. Omit when there is no warning. Currently set on CUP (`CUP_BANDEC_WARNING`).
 
 ```typescript
 import {
   getStoredQrPayload,
+  getPayQrPayload,
+  getTransferWarning,
   packStoredPaymentId,
   uploadsPaymentQR,
   usesCatalogPaymentForm,
   usesPackedPaymentId,
+  validateCatalogPaymentDraft,
   validateStoredPaymentId,
 } from "@p2pdotme/sdk/country";
 
@@ -104,9 +111,14 @@ uploadsPaymentQR("VEN"); // true — seller may upload a Pago Móvil QR
 uploadsPaymentQR("BOB"); // true — seller may upload a QR Simple QR
 usesPackedPaymentId("VEN"); // true — has validateQr
 usesCatalogPaymentForm("CUP"); // true — two typed fields, no QR upload
+getTransferWarning("CUP"); // "CUP_BANDEC_WARNING"
+getTransferWarning("INR"); // null
 validateStoredPaymentId("PEN", "987654321"); // true — phone-only
 packStoredPaymentId("PEN", qr, { phone: "987654321", cci: "" });
 getStoredQrPayload("PEN", storedId); // EMVCo blob or null
+getPayQrPayload("PEN", scannedBlob); // same, even if CRC fails
+getPayQrPayload("BOB", scannedBlob); // QR Simple EMVCo or encrypted envelope
+getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 ```
 
 ## Validators
@@ -137,7 +149,7 @@ getStoredQrPayload("PEN", storedId); // EMVCo blob or null
 
 ### Compound payment IDs
 
-Venezuela (VEN) requires three fields: phone, RIF, and bank name. Peru (PEN) has two **optional** fields (Yape/Plin phone and CCI); at least one must be present. Use the compound utilities to serialize/deserialize:
+Venezuela (VEN) requires three fields when the typed path is used: phone, RIF, and bank name. QR-only is also valid. Peru (PEN) has two **optional** fields (Yape/Plin phone and CCI); at least one must be present if there is typed text.
 
 ```typescript
 import {
