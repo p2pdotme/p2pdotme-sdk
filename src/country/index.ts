@@ -3,6 +3,7 @@
 export {
 	COUNTRY_OPTIONS,
 	getCountryOption,
+	getTransferWarning,
 	uploadsPaymentQR,
 	usesCatalogPaymentForm,
 	usesPackedPaymentId,
@@ -25,6 +26,7 @@ export {
 	deserializeCompoundPaymentId,
 	formatCompoundPaymentIdForDisplay,
 	formatStoredPaymentIdForDisplay,
+	getPayQrPayload,
 	getStoredQrPayload,
 	packStoredPaymentId,
 	serializeCompoundPaymentId,
@@ -32,6 +34,7 @@ export {
 	validateArgentinePaymentId,
 	validateBolivianAccount,
 	validateBolivianQr,
+	validateCatalogPaymentDraft,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
 	validateCubanPhoneNumber,

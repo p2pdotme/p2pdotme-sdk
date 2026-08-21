@@ -49,10 +49,20 @@ describe("parseQR dispatcher", () => {
 	});
 
 	it("dispatches VEN to PagoMovil parser", async () => {
-		const data = unwrap(
-			await parseQR({ qrData: "SGVsbG8=?x=1", currency: "VEN", sellPrice: 40 }),
-		);
-		expect(data.paymentAddress).toBe("SGVsbG8=?x=1");
+		const sample =
+			"dBKxwilNo3+ATaUX7YpeGfb+DOGtIBnj2DpAypb7U6gqar/JxjhLFaXIKyv9O+Z6xh3rX2B6huFupypAZjcj0istG7bYvJ5XO3NfqXYAeVR+hEwkuuBBcCy+9MKH7OJMvDGEXU143a7+bgcrTjaCzQ==?merchantId=0163&strong_id=1786921164-3";
+		const data = unwrap(await parseQR({ qrData: sample, currency: "VEN", sellPrice: 40 }));
+		expect(data.paymentAddress).toBe(sample);
+	});
+
+	it("rejects a VEN envelope that fails catalog validateQr (no merchantId)", async () => {
+		const result = await parseQR({
+			qrData: "SGVsbG9Xb3JsZA==?param=1",
+			currency: "VEN",
+			sellPrice: 40,
+		});
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 
 	it("dispatches BOB to the Bolivia parser", async () => {

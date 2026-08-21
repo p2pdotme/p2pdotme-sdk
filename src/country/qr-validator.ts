@@ -6,8 +6,8 @@
  * call `CountryOption.validateQr` instead of copying peru/ven parsers.
  *
  * This is not `@p2pdotme/sdk/qr-parsers`. Parsers are Scan & Pay: they
- * pull amount/address out of a live scan. Upload is stricter — a bad file
- * must not become the stored payment ID.
+ * pull amount/address out of a live scan. Peru Scan & Pay (`parsePeru`)
+ * reuses `validatePeruvianQr` so a bad CRC cannot become the stored ID.
  *
  * Image → string stays in the apps (`qr-scanner` needs a File / canvas).
  * This module only sees the decoded payload string.
@@ -29,7 +29,8 @@ function crc16ccitt(s: string): string {
 /**
  * Structural EMVCo upload check: parseable TLV, country tag 58, currency tag 53,
  * and a matching CRC-16/CCITT-FALSE (tag 63). CRC is required on upload so we
- * never persist a truncated screenshot.
+ * never persist a truncated screenshot. `getPayQrPayload` may still re-draw a
+ * stored blob whose CRC later fails.
  */
 function validateEmvcoQr(payload: string, country: string, currency: string): boolean {
 	if (!payload || payload.trim().length === 0) return false;
@@ -62,8 +63,8 @@ function validateEmvcoQr(payload: string, country: string, currency: string): bo
 
 /**
  * Yape/Plin EMVCo: country PE, currency 604, CRC-16/CCITT-FALSE.
- * CRC is required on upload so we never persist a truncated screenshot.
- * (PAY render in the merchant is looser; that path does not use this.)
+ * Same rule for SELL upload and Scan & Pay (`parsePeru`).
+ * `getPayQrPayload` may still re-draw a stored blob whose CRC later fails.
  */
 export function validatePeruvianQr(payload: string): boolean {
 	return validateEmvcoQr(payload, "PE", "604");
@@ -104,7 +105,8 @@ export function validateBolivianQr(payload: string): boolean {
  * Suiche 7B / Pago Móvil collection QR: `base64?merchantId=NNNN&…`.
  * The base64 is bank AES — we cannot decode phone/RIF from it, only the
  * envelope. Reject packed `||` IDs so a stored compound string is never
- * treated as a QR. Scan & Pay uses the looser `isPagoMovilQr` envelope.
+ * treated as a QR. Same rule for SELL upload and Scan & Pay (`parsePagoMovil`).
+ * `getPayQrPayload` may still re-draw a stored blob without `merchantId`.
  */
 export function validateVenezuelanQr(payload: string): boolean {
 	if (!payload || typeof payload !== "string") return false;
@@ -115,4 +117,60 @@ export function validateVenezuelanQr(payload: string): boolean {
 	const blob = trimmed.substring(0, qIdx);
 	if (!/^[A-Za-z0-9+/=]+$/.test(blob)) return false;
 	return /(?:^|[?&])merchantId=\d{3,4}(?:&|$)/.test(trimmed.substring(qIdx));
+}
+
+/** Left side of `qr||fields`, or the whole string when not packed. */
+export function payQrCandidate(paymentId: string): string {
+	const trimmed = paymentId.trim();
+	const sep = trimmed.indexOf(PACKED_PAYMENT_ID_SEP);
+	return (sep >= 0 ? trimmed.slice(0, sep) : trimmed).trim();
+}
+
+/**
+ * PAY display: Yape/Plin EMVCo (PE / 604) even when CRC fails.
+ * SELL upload still uses `validatePeruvianQr`.
+ */
+export function isPeruvianPayQr(payload: string): boolean {
+	if (!payload.startsWith("0002")) return false;
+	return payload.includes("5802PE") && payload.includes("5303604");
+}
+
+/**
+ * PAY display: Pago Móvil envelope `base64?…` without requiring merchantId.
+ * SELL upload still uses `validateVenezuelanQr`.
+ */
+export function isVenezuelanPayQr(payload: string): boolean {
+	if (!payload || payload.includes(PACKED_PAYMENT_ID_SEP)) return false;
+	const qIdx = payload.indexOf("?");
+	if (qIdx === -1) return false;
+	const blob = payload.slice(0, qIdx);
+	return blob.length > 0 && /^[A-Za-z0-9+/=]+$/.test(blob);
+}
+
+/**
+ * PAY display: QR Ph EMVCo (PH / 608). SELL PHP is `phone|bank-name`, not a QR.
+ * CRC is not required here — Scan & Pay already gated it on create.
+ */
+export function isPhilippinePayQr(payload: string): boolean {
+	if (!payload.startsWith("0002")) return false;
+	return payload.includes("5802PH") && payload.includes("5303608");
+}
+
+/**
+ * PAY display: Bolivia QR Simple. EMVCo (BO / 068) even when CRC fails, or an
+ * encrypted envelope `<base64>|<hex>` with a looser checksum than SELL upload
+ * (16–64 hex vs 24/32). SELL still uses `validateBolivianQr`.
+ */
+export function isBolivianPayQr(payload: string): boolean {
+	if (!payload || payload.includes(PACKED_PAYMENT_ID_SEP)) return false;
+	if (payload.startsWith("0002") && payload.includes("5802BO") && payload.includes("5303068")) {
+		return true;
+	}
+	const sep = payload.lastIndexOf("|");
+	if (sep < 40) return false;
+	const blob = payload.slice(0, sep);
+	const tag = payload.slice(sep + 1);
+	if (blob.length % 4 !== 0) return false;
+	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
+	return /^[0-9A-Fa-f]{16,64}$/.test(tag);
 }

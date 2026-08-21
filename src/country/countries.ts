@@ -62,10 +62,18 @@ export function usesPackedPaymentId(currency: CurrencyCode | null | undefined): 
 }
 
 /**
- * Apps mount the catalog form (PackedPaymentInput): QR upload and/or
- * more than one typed field.
+ * Apps mount the catalog form (PackedPaymentInput): QR upload and typed
+ * fields may both show — they are not exclusive.
  */
 export function usesCatalogPaymentForm(currency: CurrencyCode | null | undefined): boolean {
 	if (!currency) return false;
 	return uploadsPaymentQR(currency) || (PAYMENT_ID_FIELDS[currency]?.length ?? 0) > 1;
+}
+
+/**
+ * i18n key for a warning shown before the payer sends fiat, or `null` when the
+ * currency has none. Apps translate with `t(key)` — do not branch on currency.
+ */
+export function getTransferWarning(currency: CurrencyCode | null | undefined): string | null {
+	return getCountryOption(currency)?.transferWarning ?? null;
 }
