@@ -1,4 +1,4 @@
-import { CURRENCY } from "../country";
+import { CURRENCY, getCountryOption } from "../country";
 import { parseMercadoPago } from "./parsers/ars";
 import { parseBolivia } from "./parsers/bob";
 import { parsePIX } from "./parsers/brl";
@@ -23,6 +23,9 @@ import { failure } from "./types";
  * a signed JWT whose `valor.original` field holds the amount. All other parsers
  * (UPI, QRIS, QR Ph, MercadoPago, PagoMovil, Transfermóvil) and static PIX are synchronous and
  * resolve immediately.
+ *
+ * When the country has `validateQr` (PEN, VEN, BOB), Scan & Pay must pass the
+ * same check as SELL upload — not a looser envelope.
  */
 export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 	const { qrData, currency, sellPrice, proxyUrl, orderId } = params;
@@ -31,32 +34,52 @@ export async function parseQR(params: ParseQRParams): Promise<ParseResult> {
 		return failure("INVALID_QR", "QR data is empty or invalid");
 	}
 
+	let result: ParseResult;
 	switch (currency) {
 		case CURRENCY.INR:
-			return parseUPI(qrData, sellPrice);
+			result = parseUPI(qrData, sellPrice);
+			break;
 		case CURRENCY.IDR:
-			return parseQRIS(qrData, sellPrice);
+			result = parseQRIS(qrData, sellPrice);
+			break;
 		case CURRENCY.BRL:
-			return parsePIX(qrData, sellPrice, { proxyUrl, orderId });
+			result = await parsePIX(qrData, sellPrice, { proxyUrl, orderId });
+			break;
 		case CURRENCY.ARS:
-			return parseMercadoPago(qrData, sellPrice);
+			result = parseMercadoPago(qrData, sellPrice);
+			break;
 		case CURRENCY.VEN:
-			return parsePagoMovil(qrData, sellPrice);
+			result = parsePagoMovil(qrData, sellPrice);
+			break;
 		case CURRENCY.BOB:
-			return parseBolivia(qrData, sellPrice);
+			result = parseBolivia(qrData, sellPrice);
+			break;
 		case CURRENCY.NGN:
-			return parseNGN(qrData, sellPrice);
+			result = parseNGN(qrData, sellPrice);
+			break;
 		case CURRENCY.COP:
-			return parseCOP(qrData, sellPrice);
+			result = parseCOP(qrData, sellPrice);
+			break;
 		case CURRENCY.CUP:
-			return parseTransfermovil(qrData, sellPrice);
+			result = parseTransfermovil(qrData, sellPrice);
+			break;
 		case CURRENCY.ECU:
-			return parseDeUna(qrData, sellPrice);
+			result = parseDeUna(qrData, sellPrice);
+			break;
 		case CURRENCY.PEN:
-			return parsePeru(qrData, sellPrice);
+			result = parsePeru(qrData, sellPrice);
+			break;
 		case CURRENCY.PHP:
-			return parseQRPh(qrData, sellPrice);
+			result = parseQRPh(qrData, sellPrice);
+			break;
 		default:
 			return failure("INVALID_CURRENCY", `Currency "${currency}" is not supported`);
 	}
+
+	const validateQr = getCountryOption(currency)?.validateQr;
+	if (result.isOk() && validateQr && !validateQr(qrData.trim())) {
+		return failure("INVALID_QR", "QR does not match catalog validateQr");
+	}
+
+	return result;
 }

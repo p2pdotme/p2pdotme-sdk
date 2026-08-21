@@ -1,4 +1,5 @@
 import { CURRENCY } from "../currency";
+import { isPhilippinePayQr, payQrCandidate } from "../qr-validator";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const PHP_PLACEHOLDER_PHONE = "9171234567";
@@ -80,4 +81,8 @@ export const PHP_COUNTRY_OPTION: CountryOption = {
 	isAlpha: true,
 	disabled: false,
 	disabledPaymentTypes: [],
+	getPayQrPayload: (paymentId) => {
+		const candidate = payQrCandidate(paymentId);
+		return isPhilippinePayQr(candidate) ? candidate : null;
+	},
 };
