@@ -1,5 +1,5 @@
 import { CURRENCY } from "../currency";
-import { validateBolivianQr } from "../qr-validator";
+import { isBolivianPayQr, payQrCandidate, validateBolivianQr } from "../qr-validator";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export { validateBolivianQr };
@@ -52,4 +52,8 @@ export const BOB_COUNTRY_OPTION: CountryOption = {
 	disabledPaymentTypes: [],
 	uploadPaymentQR: true,
 	validateQr: validateBolivianQr,
+	getPayQrPayload: (paymentId) => {
+		const candidate = payQrCandidate(paymentId);
+		return isBolivianPayQr(candidate) ? candidate : null;
+	},
 };
