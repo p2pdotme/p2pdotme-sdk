@@ -89,7 +89,7 @@ Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the p
 
 `getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`, `validateBolivianQr` envelope/CRC). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, BOB EMVCo without CRC or a non-24/32 hex envelope, PHP QR Ph vs InstaPay `phone|bank`). Apps must not branch on currency.
 
-`optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`.
+`optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`. QR and typed fields may coexist; if any typed field has text, non-optional catalog fields are all required. Forms call `validateCatalogPaymentDraft(currency, qr, fieldValues)` and show `field.validationErrorMessage` on invalid fields. Layout copy (one generic “if they cannot scan, fill the details” hint) stays in the apps — not a per-country catalog hook.
 
 `transferWarning` — optional i18n key shown before the payer sends fiat (bank outage, delayed credits, etc.). Apps call `getTransferWarning(currency)` and translate with `t(key)`. Omit when there is no warning. Currently set on CUP (`CUP_BANDEC_WARNING`).
 
@@ -102,6 +102,7 @@ import {
   uploadsPaymentQR,
   usesCatalogPaymentForm,
   usesPackedPaymentId,
+  validateCatalogPaymentDraft,
   validateStoredPaymentId,
 } from "@p2pdotme/sdk/country";
 
@@ -148,7 +149,7 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 
 ### Compound payment IDs
 
-Venezuela (VEN) requires three fields: phone, RIF, and bank name. Peru (PEN) has two **optional** fields (Yape/Plin phone and CCI); at least one must be present. Use the compound utilities to serialize/deserialize:
+Venezuela (VEN) requires three fields when the typed path is used: phone, RIF, and bank name. QR-only is also valid. Peru (PEN) has two **optional** fields (Yape/Plin phone and CCI); at least one must be present if there is typed text.
 
 ```typescript
 import {

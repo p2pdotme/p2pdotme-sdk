@@ -34,6 +34,7 @@ export {
 	validateArgentinePaymentId,
 	validateBolivianAccount,
 	validateBolivianQr,
+	validateCatalogPaymentDraft,
 	validateColombianPaymentId,
 	validateCubanCardNumber,
 	validateCubanPhoneNumber,

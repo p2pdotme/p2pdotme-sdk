@@ -166,11 +166,29 @@ export function serializePeruvianPaymentId(
 	return q || fallback;
 }
 
-/** QR payload and/or CCI and/or Yape/Plin phone. */
+function isValidPeruvianTypedRest(value: string): boolean {
+	const nonempty = value
+		.split("|")
+		.map((token) => token.trim())
+		.filter((token) => token.length > 0);
+	if (nonempty.length === 0) return false;
+	return nonempty.every((token) => validatePeruvianPhone(token) || validatePeruvianCci(token));
+}
+
+/** QR payload and/or CCI and/or Yape/Plin phone. A packed rest must be valid typed fields. */
 export function validatePeruvianPaymentId(value: string): boolean {
 	if (!value || typeof value !== "string") return false;
-	const { qr, phone, cci } = parsePeruvianPaymentId(value);
-	return Boolean(qr || phone || cci);
+	const trimmed = value.trim();
+	const sep = trimmed.indexOf(PACKED_PAYMENT_ID_SEP);
+	if (sep >= 0) {
+		const left = trimmed.slice(0, sep);
+		const right = trimmed.slice(sep + PACKED_PAYMENT_ID_SEP.length);
+		const qrOk = validatePeruvianQr(left);
+		if (right.trim()) return qrOk && isValidPeruvianTypedRest(right);
+		return qrOk;
+	}
+	if (validatePeruvianQr(trimmed)) return true;
+	return isValidPeruvianTypedRest(trimmed);
 }
 
 /** Payment ID field configuration for PEN (Peru). At least one of phone / CCI. */

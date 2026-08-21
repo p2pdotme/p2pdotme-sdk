@@ -198,11 +198,7 @@ function packedTypedRest(
 	fields: readonly PaymentIdFieldConfig[],
 	fieldValues: Record<string, string>,
 ): string {
-	const parts = fields.map((field) => {
-		const value = (fieldValues[field.key] ?? "").trim();
-		if (!value) return "";
-		return field.validate(value) ? value : "";
-	});
+	const parts = fields.map((field) => (fieldValues[field.key] ?? "").trim());
 	if (!parts.some((part) => part.length > 0)) return "";
 	return serializeCompoundPaymentId(...parts);
 }
@@ -227,11 +223,26 @@ export function packStoredPaymentId(
 function fieldsMatchStoredId(fields: readonly PaymentIdFieldConfig[], paymentId: string): boolean {
 	if (validatePaymentIdFields(fields, paymentId)) return true;
 	const assigned = assignPaymentIdToFieldValues(fields, paymentId);
-	const filled = fields.filter((field) => (assigned[field.key] || "").trim().length > 0);
-	if (filled.length === 0) return false;
-	return fields.every(
-		(field) => field.optional === true || (assigned[field.key] || "").trim().length > 0,
-	);
+	const values = fields.map((field) => (assigned[field.key] || "").trim());
+	if (!values.some((value) => value.length > 0)) return false;
+	return fields.every((field, i) => {
+		const value = values[i];
+		if (!value) return field.optional === true;
+		return field.validate(value);
+	});
+}
+
+/**
+ * Catalog payment form draft: optional QR and/or typed fields may coexist.
+ * Neither path is required relative to the other. If any typed field has text,
+ * non-optional fields must all be present and valid (`optional` on the catalog).
+ */
+export function validateCatalogPaymentDraft(
+	currency: CurrencyCode,
+	qr: string | null | undefined,
+	fieldValues: Record<string, string>,
+): boolean {
+	return validateStoredPaymentId(currency, packStoredPaymentId(currency, qr, fieldValues));
 }
 
 /**

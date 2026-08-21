@@ -93,11 +93,21 @@ export function serializeVenezuelanPaymentId(
 
 /**
  * Accepts a Suiche 7B QR payload, the typed `phone|rif|bank` fallback,
- * or both packed as `qr||phone|rif|bank`.
+ * or both packed as `qr||phone|rif|bank`. A non-empty packed rest must be a
+ * valid compound — QR does not mask an incomplete trio.
  */
 export function validateVenezuelanPaymentId(value: string): boolean {
 	if (!value || typeof value !== "string") return false;
-	const { qr, compound } = parseVenezuelanPaymentId(value);
+	const trimmed = value.trim();
+	const sep = trimmed.indexOf(PACKED_PAYMENT_ID_SEP);
+	if (sep >= 0) {
+		const left = trimmed.slice(0, sep);
+		const right = trimmed.slice(sep + PACKED_PAYMENT_ID_SEP.length);
+		const qrOk = validateVenezuelanQr(left);
+		if (right.trim()) return qrOk && isValidVenezuelanCompound(right);
+		return qrOk;
+	}
+	const { qr, compound } = parseVenezuelanPaymentId(trimmed);
 	return qr !== null || compound !== null;
 }
 

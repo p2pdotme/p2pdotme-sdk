@@ -62,8 +62,8 @@ export function usesPackedPaymentId(currency: CurrencyCode | null | undefined): 
 }
 
 /**
- * Apps mount the catalog form (PackedPaymentInput): QR upload and/or
- * more than one typed field.
+ * Apps mount the catalog form (PackedPaymentInput): QR upload and typed
+ * fields may both show — they are not exclusive.
  */
 export function usesCatalogPaymentForm(currency: CurrencyCode | null | undefined): boolean {
 	if (!currency) return false;
