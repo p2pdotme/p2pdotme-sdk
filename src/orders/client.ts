@@ -19,19 +19,22 @@ import { OrdersError } from "./errors";
 import { createOrderRouter } from "./internal/routing/client";
 import { normalizeContractOrder } from "./normalize";
 import { createInMemoryRelayStore, resolveRelayIdentity } from "./relay-identity";
-import { getOrdersForUser } from "./subgraph";
+import { getOrdersForUser, getPlacementLimitsForUser } from "./subgraph";
 import type {
 	FeeConfig,
 	GetFeeConfigParams,
 	GetOrderParams,
 	GetOrdersParams,
+	GetPlacementLimitsParams,
 	Order,
 	OrdersConfig,
+	PlacementLimits,
 } from "./types";
 import {
 	ZodGetFeeConfigParamsSchema,
 	ZodGetOrderParamsSchema,
 	ZodGetOrdersParamsSchema,
+	ZodGetPlacementLimitsParamsSchema,
 } from "./validation";
 import { createWatchEvents, type WatchEvents } from "./watch-events";
 
@@ -53,6 +56,16 @@ export interface OrdersClient {
 	 * fee itself. Both are 6-decimal bigints.
 	 */
 	getFeeConfig(params: GetFeeConfigParams): ResultAsync<FeeConfig, OrdersError>;
+
+	/**
+	 * Reads the user's daily order placement allowances from the subgraph — how
+	 * many buy and sell/pay orders they have placed today and the caps in force.
+	 * Cancelled orders still count; SELL and PAY share one bucket.
+	 *
+	 * Advisory only: the subgraph lags the chain, so use it to warn or disable a
+	 * button, never as the final word on whether a placement will succeed.
+	 */
+	getPlacementLimits(params: GetPlacementLimitsParams): ResultAsync<PlacementLimits, OrdersError>;
 
 	// ── Writes (layered prepare/execute) ────────────────────────────────
 
@@ -157,6 +170,21 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 					}),
 			).asyncAndThen(({ userAddress, skip, limit }) =>
 				getOrdersForUser(subgraphUrl, userAddress, skip, limit, logger),
+			);
+		},
+
+		getPlacementLimits(params) {
+			return validate(
+				ZodGetPlacementLimitsParamsSchema,
+				params,
+				(message, cause, d) =>
+					new OrdersError(message, {
+						code: "INVALID_PLACEMENT_LIMITS_PARAMS",
+						cause,
+						context: { params: d },
+					}),
+			).asyncAndThen(({ userAddress }) =>
+				getPlacementLimitsForUser(subgraphUrl, userAddress, Math.floor(Date.now() / 1000), logger),
 			);
 		},
 
