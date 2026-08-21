@@ -74,4 +74,5 @@ export const CUP_COUNTRY_OPTION: CountryOption = {
 	isAlpha: true,
 	disabled: false,
 	disabledPaymentTypes: [],
+	transferWarning: "CUP_BANDEC_WARNING",
 };
