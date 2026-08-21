@@ -26,7 +26,7 @@ describe("parseQR dispatcher", () => {
 	});
 
 	it("dispatches IDR to QRIS parser", async () => {
-		const qr = `000201${tlv("59", "STORE")}${tlv("54", "16000")}`;
+		const qr = withCrc(`000201${tlv("59", "STORE")}${tlv("54", "16000")}`);
 		const data = unwrap(await parseQR({ qrData: qr, currency: "IDR", sellPrice: 16000 }));
 		expect(data.paymentAddress).toBe("STORE");
 	});
