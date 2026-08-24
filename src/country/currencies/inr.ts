@@ -27,7 +27,12 @@ export const INR_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 	},
 ];
 
-/** Country option for India (INR). */
+/**
+ * Country option for India (INR).
+ *
+ * SELL is a typed VPA (`user@bank`). Scan & Pay stores the full UPI intent
+ * (`upi://pay?pa=user@bank&…`) as the payment ID.
+ */
 export const INR_COUNTRY_OPTION: CountryOption = {
 	country: "India",
 	currency: CURRENCY.INR,
@@ -47,10 +52,19 @@ export const INR_COUNTRY_OPTION: CountryOption = {
 	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
+	/**
+	 * PAY display: re-draw a Scan & Pay UPI intent as a QR.
+	 * `upi://pay?pa=merchant@upi&cu=INR&…` → that same string (scannable).
+	 * `merchant@upi` alone is a typed SELL VPA → null (show as text).
+	 */
 	getPayQrPayload: (paymentId) => {
 		const candidate = payQrCandidate(paymentId);
 		return isIndianPayQr(candidate) ? candidate : null;
 	},
+	/**
+	 * Read `pa=` from the intent so the receipt label is the VPA
+	 * (`merchant@upi`), not the raw `upi://pay?…` blob.
+	 */
 	hydrateFieldsFromQr: (qr) => {
 		let paramString = qr.trim();
 		if (paramString.startsWith("upi://pay?")) {

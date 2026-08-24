@@ -119,7 +119,7 @@ getStoredQrPayload("PEN", storedId); // EMVCo blob or null
 getPayQrPayload("PEN", scannedBlob); // same, even if CRC fails
 getPayQrPayload("BOB", scannedBlob); // QR Simple EMVCo or encrypted envelope
 getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
-getPayQrPayload("INR", "upi://pay?pa=m@b&cu=INR"); // UPI intent; null for m@b
+getPayQrPayload("INR", "upi://pay?pa=user@bank"); // UPI intent; null for `user@bank`
 ```
 
 ## Validators
