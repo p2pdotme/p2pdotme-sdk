@@ -1,4 +1,5 @@
 import { CURRENCY } from "../currency";
+import { isIndianPayQr, payQrCandidate } from "../qr-validator";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const INR_PLACEHOLDER = "merchant@upi";
@@ -46,4 +47,18 @@ export const INR_COUNTRY_OPTION: CountryOption = {
 	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
+	getPayQrPayload: (paymentId) => {
+		const candidate = payQrCandidate(paymentId);
+		return isIndianPayQr(candidate) ? candidate : null;
+	},
+	hydrateFieldsFromQr: (qr) => {
+		let paramString = qr.trim();
+		if (paramString.startsWith("upi://pay?")) {
+			paramString = paramString.slice(10);
+		} else if (paramString.includes("?")) {
+			paramString = paramString.split("?")[1] ?? "";
+		}
+		const pa = new URLSearchParams(paramString).get("pa")?.trim() ?? "";
+		return pa && validateUPIId(pa) ? { upi: pa } : {};
+	},
 };

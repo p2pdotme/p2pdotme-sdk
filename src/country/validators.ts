@@ -30,6 +30,7 @@ export {
 } from "./currencies";
 export {
 	isBolivianPayQr,
+	isIndianPayQr,
 	isPeruvianPayQr,
 	isPhilippinePayQr,
 	isVenezuelanPayQr,
