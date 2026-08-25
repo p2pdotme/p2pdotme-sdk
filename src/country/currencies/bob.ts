@@ -43,7 +43,7 @@ export const BOB_COUNTRY_OPTION: CountryOption = {
 	flag: "🇧🇴",
 	flagUrl: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f1e7-1f1f4.png",
 	phoneCode: "+591",
-	telegramSupportChannel: "https://t.me/p2pmebolivia",
+	telegramSupportChannel: "https://t.me/p2pme_bolivia_merchants",
 	twitterUsername: "p2pmebolivia",
 	smsCountryCodes: ["BO"],
 	precision: 2,
