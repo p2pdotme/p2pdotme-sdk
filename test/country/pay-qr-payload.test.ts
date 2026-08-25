@@ -77,4 +77,31 @@ describe("getPayQrPayload", () => {
 			"bank-name": "GCash",
 		});
 	});
+
+	it("returns an INR UPI intent and ignores a bare VPA", () => {
+		const intent =
+			"upi://pay?pa=chandoo@nsdl&pn=Merchant&cu=INR&mode=02&purpose=00&orgid=159772&sing=abc";
+		expect(getStoredQrPayload("INR", intent)).toBeNull();
+		expect(getPayQrPayload("INR", intent)).toBe(intent);
+		expect(getPayQrPayload("INR", "chandoo@nsdl")).toBeNull();
+	});
+
+	it("does not dump an INR PAY intent into the UPI field", () => {
+		const intent = "upi://pay?pa=chandoo@nsdl&cu=INR&mode=02";
+		expect(assignStoredPaymentIdToFieldValues("INR", intent)).toEqual({
+			upi: "chandoo@nsdl",
+		});
+		expect(formatStoredPaymentIdForDisplay("INR", intent)).toBe("chandoo@nsdl");
+		expect(assignStoredPaymentIdToFieldValues("INR", "merchant@ybl")).toEqual({
+			upi: "merchant@ybl",
+		});
+	});
+
+	it("redraws a signed INR static QR without am= (production BharatQR shape)", () => {
+		const intent =
+			"upi://pay?pa=chandoo@nsdl&pn=Merchant%20Name&cu=INR&mode=02&purpose=00&orgid=159772&sing=WM7QoTvWzabc";
+		expect(getPayQrPayload("INR", intent)).toBe(intent);
+		expect(formatStoredPaymentIdForDisplay("INR", intent)).toBe("chandoo@nsdl");
+		expect(formatStoredPaymentIdForDisplay("INR", intent)).not.toBe(intent);
+	});
 });

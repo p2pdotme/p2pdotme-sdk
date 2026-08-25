@@ -174,3 +174,26 @@ export function isBolivianPayQr(payload: string): boolean {
 	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blob)) return false;
 	return /^[0-9A-Fa-f]{16,64}$/.test(tag);
 }
+
+/**
+ * PAY display: UPI intent (`upi://pay?pa=…`). A bare VPA (`user@bank`) is not a
+ * QR — SELL India stores that as a typed field. Scan & Pay persists the scanned
+ * URI; CRC/signature (`sign`/`sing`) is not required to re-draw.
+ */
+export function isIndianPayQr(payload: string): boolean {
+	if (!payload || payload.includes(PACKED_PAYMENT_ID_SEP)) return false;
+	const trimmed = payload.trim();
+	if (/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$/.test(trimmed)) return false;
+
+	let paramString: string;
+	if (trimmed.startsWith("upi://pay?")) {
+		paramString = trimmed.slice(10);
+	} else if (trimmed.includes("?")) {
+		paramString = trimmed.split("?")[1] ?? "";
+	} else {
+		return false;
+	}
+
+	const pa = new URLSearchParams(paramString).get("pa");
+	return !!pa && /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$/.test(pa.trim());
+}

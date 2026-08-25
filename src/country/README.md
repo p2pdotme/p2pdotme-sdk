@@ -87,7 +87,7 @@ Scan & pay (PAY) is a different path: `parseQR` stores the scanned blob as the p
 
 `validateQr` — this currency may store a QR in the payment ID (`qr||fields` or standalone). `usesPackedPaymentId(currency)` is true when `validateQr` exists.
 
-`getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`, `validateBolivianQr` envelope/CRC). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, BOB EMVCo without CRC or a non-24/32 hex envelope, PHP QR Ph vs InstaPay `phone|bank`). Apps must not branch on currency.
+`getPayQrPayload` — optional CountryOption hook for PAY **display**. Scan & Pay uses the same `validateQr` as SELL (`parsePeru` CRC, `parsePagoMovil` `merchantId`, `validateBolivianQr` envelope/CRC). The hook may still re-draw a blob already stored (PEN without CRC, VEN without `merchantId`, BOB EMVCo without CRC or a non-24/32 hex envelope, PHP QR Ph vs InstaPay `phone|bank`, INR `upi://pay?…` vs a typed VPA). Apps must not branch on currency.
 
 `optional: true` — empty value allowed for that field. If every field is optional, at least one must still be filled (`validatePaymentIdFields`). Packed QR + fields are validated with `validateStoredPaymentId`. QR and typed fields may coexist; if any typed field has text, non-optional catalog fields are all required. Forms call `validateCatalogPaymentDraft(currency, qr, fieldValues)` and show `field.validationErrorMessage` on invalid fields. Layout copy (one generic “if they cannot scan, fill the details” hint) stays in the apps — not a per-country catalog hook.
 
@@ -119,6 +119,7 @@ getStoredQrPayload("PEN", storedId); // EMVCo blob or null
 getPayQrPayload("PEN", scannedBlob); // same, even if CRC fails
 getPayQrPayload("BOB", scannedBlob); // QR Simple EMVCo or encrypted envelope
 getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
+getPayQrPayload("INR", "upi://pay?pa=user@bank"); // UPI intent; null for `user@bank`
 ```
 
 ## Validators
