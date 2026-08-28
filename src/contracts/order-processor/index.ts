@@ -72,15 +72,23 @@ export interface RawFeeConfig {
 	smallOrderFixedFee: bigint;
 }
 
+const FIXED_FEE_GETTER_BY_ORDER_TYPE = {
+	buy: "getSmallOrderFixedFeeBuy",
+	sell: "getSmallOrderFixedFeeSell",
+	pay: "getSmallOrderFixedFeePay",
+} as const;
+
 /**
- * Reads the per-currency small-order threshold and fixed fee from the Diamond.
- * Uses viem `multicall` when available (1 RPC) and falls back to two parallel
- * `readContract` calls otherwise. Amounts are returned as 6-decimal bigints.
+ * Reads the per-currency small-order threshold and the fixed fee for the given
+ * order type from the Diamond. Uses viem `multicall` when available (1 RPC) and
+ * falls back to two parallel `readContract` calls otherwise. Amounts are
+ * returned as 6-decimal bigints.
  */
 export function readFeeConfigMulticall(
 	publicClient: PublicClientLike,
 	diamondAddress: Address,
 	currency: string,
+	orderType: "buy" | "sell" | "pay",
 ): ResultAsync<RawFeeConfig, Error> {
 	const currencyHex = stringToHex(currency, { size: 32 });
 	const calls = [
@@ -93,7 +101,7 @@ export function readFeeConfigMulticall(
 		{
 			address: diamondAddress,
 			abi: ABIS.FACETS.ORDER_PROCESSOR,
-			functionName: "getSmallOrderFixedFee",
+			functionName: FIXED_FEE_GETTER_BY_ORDER_TYPE[orderType],
 			args: [currencyHex] as const,
 		},
 	];
