@@ -1,4 +1,5 @@
 import { CURRENCY } from "../currency";
+import { isNepalFonepayQr, payQrCandidate } from "../qr-validator";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const INR_PLACEHOLDER = "merchant@upi";
@@ -46,4 +47,8 @@ export const INR_COUNTRY_OPTION: CountryOption = {
 	isAlpha: false,
 	disabled: false,
 	disabledPaymentTypes: [],
+	getPayQrPayload: (paymentId) => {
+		const candidate = payQrCandidate(paymentId);
+		return isNepalFonepayQr(candidate) ? candidate : null;
+	},
 };
