@@ -10,6 +10,7 @@ export {
 } from "./countries";
 export { CURRENCY, CURRENCY_CODES } from "./currency";
 export { PAYMENT_ID_FIELDS } from "./payment-fields";
+export { isNepalFonepayQr } from "./qr-validator";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
