@@ -157,6 +157,18 @@ export function isPhilippinePayQr(payload: string): boolean {
 }
 
 /**
+ * PAY display: Fonepay (Nepal NPQR) EMVCo QR. INR PAY orders accept these
+ * through the NPCI–Fonepay cross-border link, so the payer's UPI app can scan
+ * the exact merchant QR. Detected by the `fonepay.com` reverse-domain marker
+ * and country tag 58 = NP. SELL INR is a plain UPI ID, not a QR.
+ * CRC is not required here — Scan & Pay already gated it on create.
+ */
+export function isNepalFonepayQr(payload: string): boolean {
+	if (!payload.startsWith("0002")) return false;
+	return payload.includes("fonepay.com") && payload.includes("5802NP");
+}
+
+/**
  * PAY display: Bolivia QR Simple. EMVCo (BO / 068) even when CRC fails, or an
  * encrypted envelope `<base64>|<hex>` with a looser checksum than SELL upload
  * (16–64 hex vs 24/32). SELL still uses `validateBolivianQr`.
