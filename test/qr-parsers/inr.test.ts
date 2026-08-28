@@ -100,3 +100,29 @@ describe("parseUPI (INR) — real-world examples", () => {
 		expect(data.amount?.fiat).toBe(99.99);
 	});
 });
+
+describe("parseUPI (INR) — Fonepay (Nepal) cross-border QR", () => {
+	// Static Fonepay NPQR (country NP, currency 524 NPR, valid CRC). Indian UPI
+	// apps can pay these via the NPCI–Fonepay cross-border link.
+	const FONEPAY_QR =
+		"0002010102110216427142002163748726400011fonepay.com07162222170021637482110115204939953035245802NP5927PM DAIBI PRAKOP UDDHAR KOSH6011PUTALISADAK6211070722244026304ecfd";
+
+	it("accepts a Fonepay QR and returns the payload verbatim", () => {
+		const result = parseUPI(FONEPAY_QR, SELL_PRICE);
+		expect(result.isOk()).toBe(true);
+		const data = unwrap(result);
+		expect(data.paymentAddress).toBe(FONEPAY_QR);
+	});
+
+	it("does not read an NPR amount from the Fonepay QR", () => {
+		const data = unwrap(parseUPI(FONEPAY_QR, SELL_PRICE));
+		expect(data.amount).toBeUndefined();
+	});
+
+	it("rejects a Fonepay-looking QR with a broken CRC", () => {
+		const broken = `${FONEPAY_QR.slice(0, -4)}0000`;
+		const result = parseUPI(broken, SELL_PRICE);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
+	});
+});
