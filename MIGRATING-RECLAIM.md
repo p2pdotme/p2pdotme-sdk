@@ -1,4 +1,4 @@
-# Migrating to the Reclaim session endpoint (`@p2pdotme/sdk` 1.3.0)
+# Migrating to the Reclaim session endpoint (`@p2pdotme/sdk` 1.2.23)
 
 `createReclaimFlow` no longer accepts the Reclaim **app secret**. It now calls a
 backend that holds the secret and mints the proof request for you.
@@ -6,6 +6,11 @@ backend that holds the secret and mints the proof request for you.
 **This is a breaking change to `ReclaimFlowParams`.** If your app calls
 `createReclaimFlow`, you must migrate. If it doesn't, upgrading is a no-op — read
 [Do I need to do anything?](#do-i-need-to-do-anything) and stop there.
+
+> ⚠️ **It shipped in 1.2.23 — a patch bump, not a major.** So the version number
+> does not warn you, and a `^1.2.x` range upgrades you into it automatically. If
+> you call `createReclaimFlow` and pin with a caret, you can be broken by a routine
+> `npm install`. Pin exactly, or migrate now.
 
 ---
 
@@ -98,7 +103,7 @@ So the service owns the wording per tenant per locale, and you choose a language
 ### 1. Bump the SDK
 
 ```bash
-npm install @p2pdotme/sdk@^1.3.0     # or bun add / pnpm add
+npm install @p2pdotme/sdk@^1.2.23    # or bun add / pnpm add
 ```
 
 ### 2. Point at the session service
@@ -131,10 +136,11 @@ Deleting it from `.env` alone does nothing if it is still set in the dashboard.
 
 `tenant` selects which app's copy the service renders. Currently defined:
 
-| tenant | app |
-|---|---|
-| `p2p` | user-app-client |
-| `coinsme` | coins.me |
+| tenant | app | status |
+|---|---|---|
+| `p2p` | user-app-client (app.p2p.me, app.p2p.lol) | live |
+| `coinsme` | coins.me (app.coins.me) | live |
+| `0xramp` | 0xramp.app (0xramp.app, www.0xramp.app) | live |
 
 **If your app is not listed, it needs a tenant added before it will work** — the
 service rejects unknown tenants with `400 invalid_request`. Open a PR against
@@ -202,7 +208,7 @@ for phone testing use an HTTPS tunnel, and have its host allowlisted.
 | `403` on preflight | Origin not in `ALLOWED_ORIGINS` (step 5) |
 | `429 rate_limited` | 30/IP/hour, 20/wallet/hour |
 | `503 busy` | Concurrent mint ceiling; retry |
-| Type error: `sessionEndpoint` not in `ReclaimFlowParams` | Still on an SDK older than 1.3.0 |
+| Type error: `sessionEndpoint` not in `ReclaimFlowParams` | Still on an SDK older than 1.2.23 |
 
 ---
 
