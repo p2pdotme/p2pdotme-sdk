@@ -5,10 +5,20 @@ import { SOCIAL_PLATFORM_NAMES } from "./types";
 
 const RECLAIM_SESSION_API = "https://api.reclaimprotocol.org/api/sdk/session";
 
+/** Shape returned by reclaim-session-service's POST /v1/reclaim/sessions. */
+interface SessionServiceResponse {
+	/** `ReclaimProofRequest.toJsonString()` — carries the signature, never the app secret. */
+	config: string;
+	sessionId: string;
+}
+
 /**
- * Initializes a Reclaim social verification flow and returns a session. `init()`
- * runs eagerly here, so call this on page load; the returned session's `start()`
- * triggers the in-app flow and polls for the proof, so call that on user action.
+ * Initializes a Reclaim social verification flow and returns a session. The
+ * proof request is minted by reclaim-session-service (which holds the app
+ * secret) and rebuilt here with `fromJsonString`, so the secret never reaches
+ * the browser. That network call runs eagerly, so call this on page load; the
+ * returned session's `start()` triggers the in-app flow and polls for the proof,
+ * so call that on user action.
  */
 export function createReclaimFlow(
 	params: ReclaimFlowParams,
@@ -25,21 +35,19 @@ export function createReclaimFlow(
 			const { ReclaimProofRequest, transformForOnchain } = mod;
 
 			const {
-				appId,
-				appSecret,
-				providerIds,
+				sessionEndpoint,
+				tenant,
 				platform,
 				walletAddress,
 				redirectUrl,
 				sessionId: existingSessionId,
-				contextDescription,
+				locale,
 				onStatus,
 				signal,
 				pollingIntervalMs = 5000,
 			} = params;
 
 			const socialName = SOCIAL_PLATFORM_NAMES[platform];
-			const providerId = providerIds[platform];
 
 			// biome-ignore lint/suspicious/noExplicitAny: optional peer dependency
 			let reclaimProofRequest: any = null;
@@ -47,31 +55,44 @@ export function createReclaimFlow(
 			let requestUrl = "";
 
 			if (existingSessionId) {
+				// Resuming after the redirect back: the proof already exists on
+				// Reclaim's side, so we only need to poll. No session to mint.
 				sessionId = existingSessionId;
 			} else {
-				reclaimProofRequest = await ReclaimProofRequest.init(appId, appSecret, providerId, {
-					launchOptions: {
-						canUseDeferredDeepLinksFlow: true,
-						verificationMode: "app",
-					},
-					useAppClip: true,
-					log: true,
-				});
-
-				const statusUrl = reclaimProofRequest.getStatusUrl();
-				sessionId = statusUrl.split("/").pop() || "";
-
-				if (redirectUrl) {
-					const separator = redirectUrl.includes("?") ? "&" : "?";
-					reclaimProofRequest.setRedirectUrl(
-						`${redirectUrl}${separator}sessionId=${sessionId}&socialPlatform=${socialName}`,
-					);
+				if (!redirectUrl) {
+					throw new ZkkycError("redirectUrl is required to start a Reclaim session", {
+						code: "VALIDATION_ERROR",
+					});
 				}
 
-				reclaimProofRequest.addContext(
-					walletAddress,
-					contextDescription ?? `Social verification for ${socialName}`,
-				);
+				// The service maps platform -> providerId, renders the context
+				// message, and signs the request with the app secret. It also
+				// validates redirectUrl against its own host allowlist.
+				const response = await fetch(`${sessionEndpoint.replace(/\/$/, "")}/v1/reclaim/sessions`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ tenant, platform, walletAddress, redirectUrl, locale }),
+					signal,
+				});
+
+				if (!response.ok) {
+					const body = await response.text().catch(() => "");
+					throw new ZkkycError(`Reclaim session creation failed: ${response.status} ${body}`, {
+						code: "RECLAIM_SESSION_ENDPOINT_FAILED",
+						context: { status: response.status, platform },
+					});
+				}
+
+				const data = (await response.json()) as SessionServiceResponse;
+				if (!data?.config || !data?.sessionId) {
+					throw new ZkkycError("Reclaim session service returned an incomplete response", {
+						code: "RECLAIM_SESSION_ENDPOINT_FAILED",
+						context: { platform },
+					});
+				}
+
+				reclaimProofRequest = await ReclaimProofRequest.fromJsonString(data.config);
+				sessionId = data.sessionId;
 
 				requestUrl = await reclaimProofRequest.getRequestUrl();
 

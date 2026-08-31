@@ -19,26 +19,43 @@ export const SOCIAL_PLATFORM_NAMES: Record<SocialPlatform, string> = {
 
 // ── Reclaim (Social Verification) ────────────────────────────────────────────
 
+/** Locales the session service can render the Reclaim context message in. */
+export type ReclaimLocale = "en" | "es" | "hi" | "id" | "pt";
+
+/** Tenants the session service knows, one per consuming app. */
+export type ReclaimTenant = "p2p" | "coinsme";
+
 /**
  * Single-object params for `createReclaimFlow`. Merges the app-level config
- * (appId, appSecret, providerIds) with the per-call options (platform,
- * walletAddress, callbacks, …) into one argument.
+ * (sessionEndpoint, tenant) with the per-call options (platform, walletAddress,
+ * callbacks, …) into one argument.
  */
 export interface ReclaimFlowParams {
 	// ── App-level config ──────────────────────────────────────────────
-	readonly appId: string;
-	readonly appSecret: string;
-	readonly providerIds: Record<SocialPlatform, string>;
+	/**
+	 * Base URL of the reclaim-session-service, which holds the Reclaim app
+	 * secret and mints proof-request configs (e.g. https://reclaim.p2p.me).
+	 *
+	 * The secret must never reach the browser: it is a private key whose address
+	 * is the appId, and bundlers inline build-time env vars into shipped JS.
+	 */
+	readonly sessionEndpoint: string;
+	/** Selects the app's branding/copy on the session service. */
+	readonly tenant: ReclaimTenant;
 
 	// ── Per-call options ──────────────────────────────────────────────
 	readonly platform: SocialPlatform;
 	readonly walletAddress: Address;
-	/** Base URL for redirect after Reclaim flow. SDK appends ?sessionId={id}&socialPlatform={Name}. */
+	/** Base URL for redirect after Reclaim flow. Service appends ?sessionId={id}&socialPlatform={Name}. */
 	readonly redirectUrl?: string;
 	/** Resume polling for an existing session (redirect-back case). */
 	readonly sessionId?: string;
-	/** Description added to Reclaim context. */
-	readonly contextDescription?: string;
+	/**
+	 * Locale for the message shown inside the Reclaim Verifier app. The wording
+	 * itself is owned by the service — that string renders under our app
+	 * identity, so callers choose a language, not the words.
+	 */
+	readonly locale?: ReclaimLocale;
 	/** Called with status updates during the flow. */
 	readonly onStatus?: (status: ReclaimStatus) => void;
 	/** AbortSignal to cancel polling. */
