@@ -140,7 +140,7 @@ Deleting it from `.env` alone does nothing if it is still set in the dashboard.
 |---|---|---|
 | `p2p` | user-app-client (app.p2p.me, app.p2p.lol) | live |
 | `coinsme` | coins.me (app.coins.me) | live |
-| `0xramp` | 0xramp.app | ⏳ pending [reclaim-session-service#2](https://github.com/p2pdotme/reclaim-session-service/pull/2) — merge **and deploy** before use |
+| `0xramp` | 0xramp.app (0xramp.app, www.0xramp.app) | live |
 
 **If your app is not listed, it needs a tenant added before it will work** — the
 service rejects unknown tenants with `400 invalid_request`. Open a PR against
