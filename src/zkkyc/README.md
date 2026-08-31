@@ -40,23 +40,20 @@ to be registered separately on each, against the same contract address.
 ## Usage
 
 ```ts
-import {
-  createZkkyc,
-  createReclaimFlow,
-  DEFAULT_RECLAIM_PROVIDER_IDS,
-} from "@p2pdotme/sdk/zkkyc";
+import { createZkkyc, createReclaimFlow } from "@p2pdotme/sdk/zkkyc";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 
-// 1. Initialize the Reclaim session (on page load). `init()` runs here, so the
+// 1. Initialize the Reclaim session (on page load). This calls your
+//    reclaim-session-service, which mints and signs the proof request, so the
 //    request URL is ready immediately for display as a QR / deep link.
 const sessionResult = await createReclaimFlow({
-  appId: RECLAIM_APP_ID,
-  appSecret: RECLAIM_APP_SECRET,
-  providerIds: DEFAULT_RECLAIM_PROVIDER_IDS,
+  sessionEndpoint: RECLAIM_BASE_URL,
+  tenant: "p2p",
   platform: "github",
   walletAddress: account.address,
+  redirectUrl: `${window.location.origin}/limits`,
   onStatus: (s) => console.log(s),
 });
 if (sessionResult.isErr()) throw sessionResult.error;
@@ -113,19 +110,20 @@ Single-object `ReclaimFlowParams` (app-level config + per-call options merged):
 
 | Param | Type | Notes |
 |-------|------|-------|
-| `appId` | `string` | Reclaim app id |
-| `appSecret` | `string` | Reclaim app secret |
-| `providerIds` | `Record<SocialPlatform, string>` | Use `DEFAULT_RECLAIM_PROVIDER_IDS` for sensible defaults |
-| `platform` | `"linkedin" \| "github" \| "x" \| "instagram" \| "facebook"` | — |
+| `sessionEndpoint` | `string` | Base URL of your reclaim-session-service |
+| `tenant` | `"p2p" \| "coinsme"` | Selects the app's copy on the service |
+| `platform` | `"linkedin" \| "github" \| "x" \| "instagram" \| "facebook" \| "binance"` | — |
 | `walletAddress` | `Address` | Bound into the Reclaim context |
-| `redirectUrl` | `string?` | Appends `?sessionId=…&socialPlatform=…` |
-| `sessionId` | `string?` | Resume polling an existing session |
-| `contextDescription` | `string?` | Shown in Reclaim UI |
+| `redirectUrl` | `string?` | Required to start a session; service appends `?sessionId=…&socialPlatform=…` |
+| `sessionId` | `string?` | Resume polling an existing session (no service call) |
+| `locale` | `"en" \| "es" \| "hi" \| "id" \| "pt"` | Language of the Reclaim UI message; the wording is owned by the service |
 | `onStatus` | `(status) => void` | `session_created` / `polling_started` / `proof_received` / `proof_transformed` |
 | `signal` | `AbortSignal?` | Cancel polling |
 | `pollingIntervalMs` | `number` (default `5000`) | — |
 
-Errors: `PEER_DEPENDENCY_MISSING`, `RECLAIM_POLLING_ABORTED`, `RECLAIM_PROOF_INVALID`, `VALIDATION_ERROR`, `ENCODING_ERROR`.
+Errors: `PEER_DEPENDENCY_MISSING`, `RECLAIM_SESSION_ENDPOINT_FAILED`, `RECLAIM_POLLING_ABORTED`, `RECLAIM_PROOF_INVALID`, `VALIDATION_ERROR`, `ENCODING_ERROR`.
+
+> **The app secret never reaches the browser.** It is a private key whose address *is* the appId, and bundlers inline build-time env vars into shipped JS. `createReclaimFlow` calls your session service, which holds the secret, mints the proof request, and returns `toJsonString()` output — appId / providerId / sessionId / signature, no secret. The client rebuilds it with `fromJsonString`. The service also owns the providerId and the context message, so neither can be steered by whoever calls it.
 
 ### `createZkPassportFlow(params)` → `ResultAsync<ZkPassportProofResult, ZkkycError>`
 
