@@ -4,6 +4,7 @@ import { PAYMENT_ID_FIELDS } from "./payment-fields";
 import { PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "./types";
 
 export {
+	getKenyanPaymentType,
 	validateArgentinePaymentId,
 	validateBolivianAccount,
 	validateColombianPaymentId,
@@ -13,6 +14,7 @@ export {
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
 	validateIndonesianPhoneNumber,
+	validateKenyanPaymentId,
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
 	validateNigerianAccountNumber,
