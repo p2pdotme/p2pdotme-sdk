@@ -19,6 +19,7 @@ Country and currency configuration for the P2P.me SDK — payment methods, valid
 │   ├── ecu.ts           # Ecuador — Transferencia / DeUna QR
 │   ├── pen.ts           # Peru — Yape / Plin QR / CCI
 │   ├── php.ts           # Philippines — InstaPay (GCash / Maya), QR Ph
+│   ├── kes.ts           # Kenya — M-Pesa (phone or till number)
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
@@ -76,6 +77,7 @@ validatePIXId("user@example.com"); // true
 | ECU | Ecuador | Transferencia / DeUna | Yes | No |
 | PEN | Peru | Yape / Plin / CCI | Yes | No |
 | PHP | Philippines | InstaPay | Yes | Yes |
+| KES | Kenya | M-Pesa (phone / till) | Yes | No |
 | EUR | Revolut EUR | Revolut | Yes | No |
 | USD | Revolut USD | Revolut | Yes | No |
 
@@ -145,6 +147,7 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 | `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC). Source: `qr-validator.ts`. |
 | `validateVenezuelanQr` | VEN | Pago Móvil S7B envelope (`base64?merchantId=`). Source: `qr-validator.ts`. |
 | `validatePhilippinePhoneNumber` | PHP | Mobile number `9XXXXXXXXX` (optional `0` or `+63` prefix) |
+| `validateKenyanPaymentId` | KES | M-Pesa phone (`07XX`/`01XX`/`254…`) **or** Buy Goods till number (5–7 digits) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs

@@ -14,6 +14,7 @@ export { isNepalFonepayQr } from "./qr-validator";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
+export type { KenyanPaymentType } from "./currencies/kes";
 export type { PeruvianPaymentIdParts } from "./currencies/pen";
 export type { VenezuelanPaymentIdParts } from "./currencies/ven";
 export type { CurrencyCode } from "./currency";
@@ -27,6 +28,7 @@ export {
 	deserializeCompoundPaymentId,
 	formatCompoundPaymentIdForDisplay,
 	formatStoredPaymentIdForDisplay,
+	getKenyanPaymentType,
 	getPayQrPayload,
 	getStoredQrPayload,
 	packStoredPaymentId,
@@ -43,6 +45,7 @@ export {
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
 	validateIndonesianPhoneNumber,
+	validateKenyanPaymentId,
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
 	validateNigerianAccountNumber,
