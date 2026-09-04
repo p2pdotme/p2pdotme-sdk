@@ -4,7 +4,6 @@ import { PAYMENT_ID_FIELDS } from "./payment-fields";
 import { PACKED_PAYMENT_ID_SEP, type PaymentIdFieldConfig } from "./types";
 
 export {
-	getKenyanPaymentType,
 	validateArgentinePaymentId,
 	validateBolivianAccount,
 	validateColombianPaymentId,
@@ -14,7 +13,8 @@ export {
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
 	validateIndonesianPhoneNumber,
-	validateKenyanPaymentId,
+	validateKenyanPhone,
+	validateKenyanTill,
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
 	validateNigerianAccountNumber,
@@ -119,9 +119,20 @@ export function assignPaymentIdToFieldValues(
 	const { rest } = unpackPackedPaymentId(paymentId);
 	if (!rest) return result;
 
-	const tokens = deserializeCompoundPaymentId(rest)
-		.map((part) => part.trim())
-		.filter((part) => part.length > 0);
+	const rawParts = deserializeCompoundPaymentId(rest).map((part) => part.trim());
+
+	// A fully-positioned compound (one slot per field, as written by
+	// `packStoredPaymentId`) is authoritative — assign by position so a value
+	// that also satisfies another field's validator (e.g. a 7-digit KES till
+	// number typed into the phone slot) stays in the field the user chose.
+	if (rawParts.length === fields.length) {
+		fields.forEach((field, i) => {
+			result[field.key] = rawParts[i] ?? "";
+		});
+		return result;
+	}
+
+	const tokens = rawParts.filter((part) => part.length > 0);
 
 	const claimed = new Set<string>();
 	for (const token of tokens) {
