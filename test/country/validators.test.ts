@@ -12,7 +12,7 @@ import {
 import { validateRevolutId } from "../../src/country/currencies/eur";
 import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr";
 import { validateUPIId } from "../../src/country/currencies/inr";
-import { validateKenyanPaymentId } from "../../src/country/currencies/kes";
+import { validateKenyanPhone, validateKenyanTill } from "../../src/country/currencies/kes";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
 import {
@@ -209,7 +209,7 @@ describe("validateMexicanPaymentId (MEX)", () => {
 
 // ── KES ─────────────────────────────────────────────────────────────────────
 
-describe("validateKenyanPaymentId (KES)", () => {
+describe("validateKenyanPhone (KES)", () => {
 	it.each([
 		["07XX phone", "0712345678"],
 		["01XX phone", "0112345678"],
@@ -218,12 +218,31 @@ describe("validateKenyanPaymentId (KES)", () => {
 		["+254 phone (stripped)", "+254712345678"],
 		["bare 7XX phone", "712345678"],
 		["bare 1XX phone", "112345678"],
+		["phone with spaces (stripped)", "0712 345 678"],
+	])("accepts %s", (_label, input) => {
+		expect(validateKenyanPhone(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["till number", "123456"],
+		["11-digit non-254 number", "01234567890"],
+		["13-digit number", "2541234567890"],
+		["letters only", "abcdefghij"],
+	])("rejects %s", (_label, input) => {
+		expect(validateKenyanPhone(input)).toBe(false);
+	});
+});
+
+describe("validateKenyanTill (KES)", () => {
+	it.each([
 		["5-digit till", "12345"],
 		["6-digit till", "123456"],
 		["7-digit till", "1234567"],
-		["phone with spaces (stripped)", "0712 345 678"],
+		["till with spaces (stripped)", "12 345"],
 	])("accepts %s", (_label, input) => {
-		expect(validateKenyanPaymentId(input)).toBe(true);
+		expect(validateKenyanTill(input)).toBe(true);
 	});
 
 	it.each([
@@ -231,11 +250,10 @@ describe("validateKenyanPaymentId (KES)", () => {
 		["whitespace only", "   "],
 		["4-digit number", "1234"],
 		["8-digit number", "12345678"],
-		["11-digit non-254 number", "01234567890"],
-		["13-digit number", "2541234567890"],
-		["letters only", "abcdefghij"],
+		["phone number", "0712345678"],
+		["letters only", "abcdef"],
 	])("rejects %s", (_label, input) => {
-		expect(validateKenyanPaymentId(input)).toBe(false);
+		expect(validateKenyanTill(input)).toBe(false);
 	});
 });
 

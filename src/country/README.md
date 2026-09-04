@@ -147,7 +147,8 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 | `validatePeruvianQr` | PEN | Yape/Plin EMVCo QR (country `PE`, currency `604`, valid CRC). Source: `qr-validator.ts`. |
 | `validateVenezuelanQr` | VEN | Pago Móvil S7B envelope (`base64?merchantId=`). Source: `qr-validator.ts`. |
 | `validatePhilippinePhoneNumber` | PHP | Mobile number `9XXXXXXXXX` (optional `0` or `+63` prefix) |
-| `validateKenyanPaymentId` | KES | M-Pesa phone (`07XX`/`01XX`/`254…`) **or** Buy Goods till number (5–7 digits) |
+| `validateKenyanPhone` | KES | M-Pesa phone number (`07XX`/`01XX`/`254…`/bare `7XX`/`1XX`) |
+| `validateKenyanTill` | KES | M-Pesa Buy Goods till number (5–7 digits) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs
