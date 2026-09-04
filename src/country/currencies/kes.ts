@@ -1,52 +1,56 @@
 import { CURRENCY } from "../currency";
 import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
-export const KES_PLACEHOLDER = "0712345678 or 123456";
-export const KES_VALIDATION_ERROR = "Please enter a valid M-Pesa phone number or till number";
-
-/** Kind of Kenyan M-Pesa payment ID: a mobile phone number or a Buy Goods till number. */
-export type KenyanPaymentType = "phone" | "till";
+export const KES_PHONE_PLACEHOLDER = "0712345678";
+export const KES_TILL_PLACEHOLDER = "123456";
+export const KES_PHONE_VALIDATION_ERROR = "Please enter a valid M-Pesa phone number";
+export const KES_TILL_VALIDATION_ERROR = "Please enter a valid M-Pesa till number";
 
 /**
- * Classifies a Kenyan M-Pesa payment ID as a `"phone"` number or a `"till"`
- * number, or `null` if it is neither. Phone numbers accept the `07XXXXXXXX`,
- * `01XXXXXXXX`, `2547XXXXXXXX`, `2541XXXXXXXX`, or bare `7XXXXXXXX`/`1XXXXXXXX`
- * forms; till numbers are 5–7 digits. The two are mutually exclusive by length.
+ * Validates a Kenyan M-Pesa phone number (Send Money). Accepts the
+ * `07XXXXXXXX`, `01XXXXXXXX`, `2547XXXXXXXX`, `2541XXXXXXXX`, or bare
+ * `7XXXXXXXX`/`1XXXXXXXX` forms.
  */
-export function getKenyanPaymentType(paymentId: string): KenyanPaymentType | null {
-	if (!paymentId || paymentId.trim().length === 0) return null;
+export function validateKenyanPhone(phone: string): boolean {
+	if (!phone || phone.trim().length === 0) return false;
 
-	const cleaned = paymentId.trim().replace(/\D/g, "");
+	const cleaned = phone.trim().replace(/\D/g, "");
 
-	if (
-		/^254[17]\d{8}$/.test(cleaned) ||
-		/^0[17]\d{8}$/.test(cleaned) ||
-		/^[17]\d{8}$/.test(cleaned)
-	) {
-		return "phone";
-	}
-	if (/^\d{5,7}$/.test(cleaned)) return "till";
-
-	return null;
+	return (
+		/^254[17]\d{8}$/.test(cleaned) || /^0[17]\d{8}$/.test(cleaned) || /^[17]\d{8}$/.test(cleaned)
+	);
 }
 
 /**
- * Validates a Kenyan M-Pesa payment ID — either a mobile phone number
- * (Send Money) or a Buy Goods till number.
+ * Validates a Kenyan M-Pesa Buy Goods till number (5–7 digits).
  */
-export function validateKenyanPaymentId(paymentId: string): boolean {
-	return getKenyanPaymentType(paymentId) !== null;
+export function validateKenyanTill(till: string): boolean {
+	if (!till || till.trim().length === 0) return false;
+
+	const cleaned = till.trim().replace(/\D/g, "");
+
+	return /^\d{5,7}$/.test(cleaned);
 }
 
-/** Payment ID field configuration for KES (Kenya, M-Pesa). */
+/** Payment ID field configuration for KES (Kenya, M-Pesa). Fill phone number or till number. */
 export const KES_PAYMENT_FIELDS: PaymentIdFieldConfig[] = [
 	{
-		key: "mpesa",
-		label: "MPESA_ID",
-		placeholder: KES_PLACEHOLDER,
-		displayLabel: "Phone or Till",
-		validate: validateKenyanPaymentId,
-		validationErrorMessage: KES_VALIDATION_ERROR,
+		key: "phone",
+		label: "PHONE_NUMBER",
+		placeholder: KES_PHONE_PLACEHOLDER,
+		displayLabel: "Phone Number",
+		validate: validateKenyanPhone,
+		validationErrorMessage: KES_PHONE_VALIDATION_ERROR,
+		optional: true,
+	},
+	{
+		key: "till",
+		label: "TILL_NUMBER",
+		placeholder: KES_TILL_PLACEHOLDER,
+		displayLabel: "Till Number",
+		validate: validateKenyanTill,
+		validationErrorMessage: KES_TILL_VALIDATION_ERROR,
+		optional: true,
 	},
 ];
 
