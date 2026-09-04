@@ -43,6 +43,8 @@ export {
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
 	validateIndonesianPhoneNumber,
+	validateKenyanPhone,
+	validateKenyanTill,
 	validateMexicanPaymentId,
 	validateNigerianAccountName,
 	validateNigerianAccountNumber,
