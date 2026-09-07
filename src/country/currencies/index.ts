@@ -7,6 +7,7 @@ export * from "./ecu";
 export * from "./eur";
 export * from "./idr";
 export * from "./inr";
+export * from "./kes";
 export * from "./mex";
 export * from "./ngn";
 export * from "./pen";
