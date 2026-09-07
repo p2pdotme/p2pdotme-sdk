@@ -12,6 +12,11 @@ import {
 import { validateRevolutId } from "../../src/country/currencies/eur";
 import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr";
 import { validateUPIId } from "../../src/country/currencies/inr";
+import {
+	KES_PAYMENT_FIELDS,
+	validateKenyanPhone,
+	validateKenyanTill,
+} from "../../src/country/currencies/kes";
 import { validateMexicanPaymentId } from "../../src/country/currencies/mex";
 import { validateNigerianAccountName, validateNigerianAccountNumber } from "../../src/country/currencies/ngn";
 import {
@@ -203,6 +208,136 @@ describe("validateMexicanPaymentId (MEX)", () => {
 		["letters only", "abcdefghij"],
 	])("rejects %s", (_label, input) => {
 		expect(validateMexicanPaymentId(input)).toBe(false);
+	});
+});
+
+// ── KES ─────────────────────────────────────────────────────────────────────
+
+describe("validateKenyanPhone (KES)", () => {
+	it.each([
+		["07XX phone", "0712345678"],
+		["01XX phone", "0112345678"],
+		["254 7XX phone", "254712345678"],
+		["254 1XX phone", "254112345678"],
+		["+254 phone (stripped)", "+254712345678"],
+		["bare 7XX phone", "712345678"],
+		["bare 1XX phone", "112345678"],
+		["phone with spaces (stripped)", "0712 345 678"],
+	])("accepts %s", (_label, input) => {
+		expect(validateKenyanPhone(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["till number", "123456"],
+		["11-digit non-254 number", "01234567890"],
+		["13-digit number", "2541234567890"],
+		["letters only", "abcdefghij"],
+	])("rejects %s", (_label, input) => {
+		expect(validateKenyanPhone(input)).toBe(false);
+	});
+});
+
+describe("validateKenyanTill (KES)", () => {
+	it.each([
+		["5-digit till", "12345"],
+		["6-digit till", "123456"],
+		["7-digit till", "1234567"],
+		["till with spaces (stripped)", "12 345"],
+	])("accepts %s", (_label, input) => {
+		expect(validateKenyanTill(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["4-digit number", "1234"],
+		["8-digit number", "12345678"],
+		["phone number", "0712345678"],
+		["letters only", "abcdef"],
+	])("rejects %s", (_label, input) => {
+		expect(validateKenyanTill(input)).toBe(false);
+	});
+});
+
+describe("KES compound phone|till payment id", () => {
+	it.each([
+		["phone only", { phone: "0712345678", till: "" }, "0712345678|"],
+		["till only", { phone: "", till: "123456" }, "|123456"],
+		["both fields", { phone: "0712345678", till: "123456" }, "0712345678|123456"],
+	])("packs %s positionally", (_label, values, expected) => {
+		expect(packStoredPaymentId("KES", null, values)).toBe(expected);
+	});
+
+	it.each([
+		[
+			"7-digit value typed into phone slot stays in phone (regression)",
+			"8333333|",
+			{ phone: "8333333", till: "" },
+		],
+		["till-only compound", "|123456", { phone: "", till: "123456" }],
+		["phone-only compound", "0712345678|", { phone: "0712345678", till: "" }],
+		["both filled", "0712345678|123456", { phone: "0712345678", till: "123456" }],
+	])("assigns %s by position", (_label, stored, expected) => {
+		expect(assignStoredPaymentIdToFieldValues("KES", stored)).toEqual(expected);
+	});
+
+	it.each([
+		["legacy phone token", "0712345678", { phone: "0712345678", till: "" }],
+		["legacy till token", "123456", { phone: "", till: "123456" }],
+	])("hydrates legacy single token %s by validator", (_label, stored, expected) => {
+		expect(assignPaymentIdToFieldValues(KES_PAYMENT_FIELDS, stored)).toEqual(expected);
+	});
+
+	it.each([
+		["phone-only", "0712345678|", "Phone Number: 0712345678"],
+		["till-only", "|123456", "Till Number: 123456"],
+		["7-digit phone slot value", "8333333|", "Phone Number: 8333333"],
+		["both", "0712345678|123456", "Phone Number: 0712345678 | Till Number: 123456"],
+	])("formats %s for display", (_label, stored, expected) => {
+		expect(formatStoredPaymentIdForDisplay("KES", stored)).toBe(expected);
+	});
+
+	it.each([
+		["valid phone", { phone: "0712345678", till: "" }],
+		["valid till", { phone: "", till: "123456" }],
+		["both valid", { phone: "0712345678", till: "123456" }],
+	])("accepts draft %s", (_label, values) => {
+		expect(validateCatalogPaymentDraft("KES", null, values)).toBe(true);
+	});
+
+	it.each([
+		["both empty", { phone: "", till: "" }],
+		["invalid phone", { phone: "12", till: "" }],
+		// A 7-digit value is a valid till but an invalid phone; typed into the
+		// phone slot it stays there for display (positional) yet is not a valid
+		// draft, so the form rejects it rather than silently rebucketing to till.
+		["7-digit value in phone slot", { phone: "8333333", till: "" }],
+	])("rejects draft %s", (_label, values) => {
+		expect(validateCatalogPaymentDraft("KES", null, values)).toBe(false);
+	});
+
+	it.each([
+		["phone-only compound", "0712345678|", true],
+		["till-only compound", "|123456", true],
+		["both filled", "0712345678|123456", true],
+		["both empty", "|", false],
+		["empty string", "", false],
+	])("validates stored id %s", (_label, stored, expected) => {
+		expect(validateStoredPaymentId("KES", stored)).toBe(expected);
+	});
+});
+
+describe("assignStoredPaymentIdToFieldValues positional (NGN regression)", () => {
+	it("keeps each NGN field in its own slot", () => {
+		expect(
+			assignStoredPaymentIdToFieldValues("NGN", "0123456789|Access Bank|Jane Smith"),
+		).toEqual({
+			account: "0123456789",
+			"bank-name": "Access Bank",
+			"account-name": "Jane Smith",
+		});
 	});
 });
 
