@@ -14,6 +14,17 @@ export { isNepalFonepayQr } from "./qr-validator";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
+export {
+	IDR_BANK_ACCOUNT_PLACEHOLDER,
+	IDR_BANK_ACCOUNT_VALIDATION_ERROR,
+	IDR_PAYMENT_PROVIDERS,
+	IDR_PLACEHOLDER,
+	type IndonesianPaymentIdDisplayPart,
+	type IndonesianPaymentIdParts,
+	type IndonesianStoredPaymentIdDisplay,
+	type IndonesianPaymentProviderOption,
+	type IndonesianPaymentProviderType,
+} from "./currencies/idr";
 export type { PeruvianPaymentIdParts } from "./currencies/pen";
 export type { VenezuelanPaymentIdParts } from "./currencies/ven";
 export type { CurrencyCode } from "./currency";
@@ -27,6 +38,9 @@ export {
 	deserializeCompoundPaymentId,
 	formatCompoundPaymentIdForDisplay,
 	formatStoredPaymentIdForDisplay,
+	getIndonesianPaymentProviderType,
+	parseIndonesianPaymentId,
+	resolveIndonesianStoredPaymentIdDisplay,
 	getPayQrPayload,
 	getStoredQrPayload,
 	packStoredPaymentId,
@@ -42,7 +56,10 @@ export {
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
+	validateIndonesianBankAccount,
+	validateIndonesianPaymentId,
 	validateIndonesianPhoneNumber,
+	validateIndonesianStoredPaymentId,
 	validateKenyanPhone,
 	validateKenyanTill,
 	validateMexicanPaymentId,
