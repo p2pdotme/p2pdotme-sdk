@@ -15,6 +15,7 @@ export {
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
+	validateEgyptianPhone,
 	validateIndonesianBankAccount,
 	validateIndonesianPaymentId,
 	validateIndonesianPhoneNumber,
