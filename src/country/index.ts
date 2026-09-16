@@ -21,9 +21,9 @@ export {
 	IDR_PLACEHOLDER,
 	type IndonesianPaymentIdDisplayPart,
 	type IndonesianPaymentIdParts,
-	type IndonesianStoredPaymentIdDisplay,
 	type IndonesianPaymentProviderOption,
 	type IndonesianPaymentProviderType,
+	type IndonesianStoredPaymentIdDisplay,
 } from "./currencies/idr";
 export type { PeruvianPaymentIdParts } from "./currencies/pen";
 export type { VenezuelanPaymentIdParts } from "./currencies/ven";
@@ -39,11 +39,11 @@ export {
 	formatCompoundPaymentIdForDisplay,
 	formatStoredPaymentIdForDisplay,
 	getIndonesianPaymentProviderType,
-	parseIndonesianPaymentId,
-	resolveIndonesianStoredPaymentIdDisplay,
 	getPayQrPayload,
 	getStoredQrPayload,
 	packStoredPaymentId,
+	parseIndonesianPaymentId,
+	resolveIndonesianStoredPaymentIdDisplay,
 	serializeCompoundPaymentId,
 	unpackPackedPaymentId,
 	validateArgentinePaymentId,
@@ -56,6 +56,7 @@ export {
 	validateEcuadorianAccountName,
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
+	validateEgyptianPhone,
 	validateIndonesianBankAccount,
 	validateIndonesianPaymentId,
 	validateIndonesianPhoneNumber,

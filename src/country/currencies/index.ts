@@ -4,6 +4,7 @@ export * from "./brl";
 export * from "./cop";
 export * from "./cup";
 export * from "./ecu";
+export * from "./egp";
 export * from "./eur";
 export * from "./idr";
 export * from "./inr";
