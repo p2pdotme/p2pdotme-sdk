@@ -20,6 +20,7 @@ Country and currency configuration for the P2P.me SDK — payment methods, valid
 │   ├── pen.ts           # Peru — Yape / Plin QR / CCI
 │   ├── php.ts           # Philippines — InstaPay (GCash / Maya), QR Ph
 │   ├── kes.ts           # Kenya — M-Pesa (phone or till number)
+│   ├── egp.ts           # Egypt — Vodafone Cash (phone number)
 │   ├── eur.ts           # Revolut EUR
 │   ├── usd.ts           # Revolut USD
 │   └── index.ts         # Re-exports all currency files
@@ -78,6 +79,7 @@ validatePIXId("user@example.com"); // true
 | PEN | Peru | Yape / Plin / CCI | Yes | No |
 | PHP | Philippines | InstaPay | Yes | Yes |
 | KES | Kenya | M-Pesa (phone / till) | Yes | No |
+| EGP | Egypt | Vodafone Cash | Yes | No |
 | EUR | Revolut EUR | Revolut | Yes | No |
 | USD | Revolut USD | Revolut | Yes | No |
 
@@ -149,6 +151,7 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 | `validatePhilippinePhoneNumber` | PHP | Mobile number `9XXXXXXXXX` (optional `0` or `+63` prefix) |
 | `validateKenyanPhone` | KES | M-Pesa phone number (`07XX`/`01XX`/`254…`/bare `7XX`/`1XX`) |
 | `validateKenyanTill` | KES | M-Pesa Buy Goods till number (5–7 digits) |
+| `validateEgyptianPhone` | EGP | Vodafone Cash phone number (`01[0125]XXXXXXXX`, optional `+20`, or bare `1[0125]XXXXXXXX`) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
 ### Compound payment IDs
