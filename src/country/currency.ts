@@ -22,6 +22,7 @@ export const CURRENCY = {
 	PEN: "PEN",
 	PHP: "PHP",
 	KES: "KES",
+	EGP: "EGP",
 } as const;
 
 /** Union of supported currency codes. */

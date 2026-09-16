@@ -9,6 +9,7 @@ import {
 	validateEcuadorianAccountNumber,
 	validateEcuadorianCedula,
 } from "../../src/country/currencies/ecu";
+import { validateEgyptianPhone } from "../../src/country/currencies/egp";
 import { validateRevolutId } from "../../src/country/currencies/eur";
 import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr";
 import { validateUPIId } from "../../src/country/currencies/inr";
@@ -208,6 +209,39 @@ describe("validateMexicanPaymentId (MEX)", () => {
 		["letters only", "abcdefghij"],
 	])("rejects %s", (_label, input) => {
 		expect(validateMexicanPaymentId(input)).toBe(false);
+	});
+});
+
+// ── EGP ─────────────────────────────────────────────────────────────────────
+
+describe("validateEgyptianPhone (EGP)", () => {
+	it.each([
+		["010 Vodafone phone", "01012345678"],
+		["011 Etisalat phone", "01112345678"],
+		["012 Orange phone", "01212345678"],
+		["015 WE phone", "01512345678"],
+		["20 international phone", "201012345678"],
+		["+20 international phone (stripped)", "+201012345678"],
+		["bare 10-digit phone", "1012345678"],
+		["phone with spaces (stripped)", "0101 234 5678"],
+		["phone with dashes (stripped)", "010-1234-5678"],
+	])("accepts %s", (_label, input) => {
+		expect(validateEgyptianPhone(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["013 unassigned prefix", "01312345678"],
+		["landline (02)", "0212345678"],
+		["10-digit local number", "0101234567"],
+		["12-digit local number", "010123456789"],
+		["13-digit international number", "2010123456789"],
+		["Kenyan phone", "0712345678"],
+		["letters mixed in", "0101234567a"],
+		["letters only", "abcdefghijk"],
+	])("rejects %s", (_label, input) => {
+		expect(validateEgyptianPhone(input)).toBe(false);
 	});
 });
 
