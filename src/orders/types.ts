@@ -56,7 +56,7 @@ export interface Order {
 	 */
 	encUpi: string;
 	/**
-	 * Encrypted merchant UPI for the seller-side flow (set by `setSellOrderUpi`).
+	 * Encrypted merchant UPI for the seller-side flow (set by `setSellOrderUpiWithFiat`).
 	 * Empty string until set.
 	 */
 	encMerchantUpi: string;

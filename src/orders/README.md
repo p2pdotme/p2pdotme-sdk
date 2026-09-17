@@ -151,16 +151,18 @@ Every write action has two methods with matching params:
 |-------|------|
 | `orderId` | `bigint` |
 
-### `orders.setSellOrderUpi`
+### `orders.setSellOrderUpiWithFiat`
 
-Used on SELL and PAY once the merchant has accepted. Encrypts `paymentAddress` with the merchant's pubkey before encoding calldata.
+Used on SELL and PAY once the merchant has accepted. Encrypts `paymentAddress` with the merchant's pubkey before encoding calldata and flips the order to PAID. A PAY-order amount update is expressed as the exact **fiat** the merchant must settle; the Diamond derives the USDC to pull from the order's implied rate, rounding up so it always covers the fiat.
+
+> The Diamond also exposes a legacy `setSellOrderUpi(orderId, encUpi, updatedUsdcAmount)` that fixes the USDC leg and leaves the settled fiat a rounded figure. The SDK no longer wraps it (removed in 1.3.0); use this action instead.
 
 | Param | Type |
 |-------|------|
 | `orderId` | `bigint` |
 | `paymentAddress` | `string` (plaintext, e.g. `"user@upi"`) |
 | `merchantPublicKey` | `string` (128 hex chars, no `0x04` prefix) |
-| `updatedAmount` | `bigint` (PAY only; `0n` keeps the original) |
+| `updatedFiatAmount` | `bigint` (6-dec scaled like `Order.fiatAmount`; PAY only; `0n` keeps the original) |
 
 `meta.relayIdentity` is surfaced on the result.
 
@@ -263,8 +265,8 @@ Single unified error surface across reads and writes.
 | `ORDER_NOT_FOUND` · `MALFORMED_ORDER` · `CONTRACT_READ_FAILED` | reads |
 | `SUBGRAPH_REQUEST_FAILED` · `SUBGRAPH_VALIDATION_FAILED` | `getOrders` |
 | `CIRCLE_SELECTION_FAILED` | `placeOrder` |
-| `ENCRYPTION_FAILED` | `setSellOrderUpi` |
-| `RELAY_IDENTITY_CORRUPT` · `RELAY_IDENTITY_STORE_FAILED` | `placeOrder` / `setSellOrderUpi` |
+| `ENCRYPTION_FAILED` | `setSellOrderUpiWithFiat` |
+| `RELAY_IDENTITY_CORRUPT` · `RELAY_IDENTITY_STORE_FAILED` | `placeOrder` / `setSellOrderUpiWithFiat` |
 | `TX_SUBMISSION_FAILED` · `RECEIPT_TIMEOUT` · `TX_REVERTED` | any `execute()` |
 
 ## Example

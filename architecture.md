@@ -15,7 +15,7 @@ High-level shape of `@p2pdotme/sdk`. For deeper per-module docs, see the READMEs
 
 ```
 @p2pdotme/sdk
-├── /orders           # reads + write actions (placeOrder, cancel, setSellOrderUpi, raiseDispute, approveUsdc)
+├── /orders           # reads + write actions (placeOrder, cancel, setSellOrderUpiWithFiat, raiseDispute, approveUsdc)
 ├── /prices           # getPriceConfig, getReputationPerUsdcLimit
 ├── /profile          # getUsdcBalance, getTxLimits, getBalances
 ├── /qr-parsers       # parseQR for INR/IDR/BRL/ARS/VEN
@@ -87,7 +87,7 @@ Particular behaviors worth noting:
 
 - **`placeOrder.execute({ waitForReceipt: true })`** parses the `OrderPlaced` event out of the receipt logs and populates `meta.orderId`. Best-effort: decoding failures return the result unchanged, never an error.
 - **SELL / PAY require explicit USDC approval first** — the Diamond pulls USDC via `transferFrom`. Consumers call `orders.approveUsdc.execute({ amount })` (or check allowance via `profile.getUsdcAllowance({ owner })`) before `placeOrder`. There is no auto-approve flag; the hidden second tx made logging and error-handling ambiguous.
-- **`setSellOrderUpi.prepare`** ECIES-encrypts `paymentAddress` with the merchant's pubkey before encoding calldata. The sender relay identity used for signing is surfaced in `meta.relayIdentity`.
+- **`setSellOrderUpiWithFiat.prepare`** ECIES-encrypts `paymentAddress` with the merchant's pubkey before encoding `setSellOrderUpiWithFiat(orderId, encUpi, updatedFiatAmount)` — the amount update fixes the fiat leg and the Diamond derives USDC (rounded up). The sender relay identity used for signing is surfaced in `meta.relayIdentity`. The legacy USDC-denominated `setSellOrderUpi` is intentionally not wrapped.
 
 ### Relay identity
 
