@@ -26,8 +26,8 @@ describe("createOrders", () => {
 		expect(typeof client.placeOrder.execute).toBe("function");
 		expect(typeof client.cancelOrder.prepare).toBe("function");
 		expect(typeof client.cancelOrder.execute).toBe("function");
-		expect(typeof client.setSellOrderUpi.prepare).toBe("function");
-		expect(typeof client.setSellOrderUpi.execute).toBe("function");
+		expect(typeof client.setSellOrderUpiWithFiat.prepare).toBe("function");
+		expect(typeof client.setSellOrderUpiWithFiat.execute).toBe("function");
 		expect(typeof client.raiseDispute.prepare).toBe("function");
 		expect(typeof client.raiseDispute.execute).toBe("function");
 		expect(typeof client.approveUsdc.prepare).toBe("function");
