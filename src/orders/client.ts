@@ -8,9 +8,9 @@ import { createPaidBuyOrderAction, type PaidBuyOrderAction } from "./actions/pai
 import { createPlaceOrderAction, type PlaceOrderAction } from "./actions/place-order";
 import { createRaiseDisputeAction, type RaiseDisputeAction } from "./actions/raise-dispute";
 import {
-	createSetSellOrderUpiAction,
-	type SetSellOrderUpiAction,
-} from "./actions/set-sell-order-upi";
+	createSetSellOrderUpiWithFiatAction,
+	type SetSellOrderUpiWithFiatAction,
+} from "./actions/set-sell-order-upi-with-fiat";
 import {
 	decryptPaymentAddress as decryptPaymentAddressFn,
 	encryptPaymentAddress as encryptPaymentAddressFn,
@@ -71,7 +71,13 @@ export interface OrdersClient {
 
 	readonly placeOrder: PlaceOrderAction;
 	readonly cancelOrder: CancelOrderAction;
-	readonly setSellOrderUpi: SetSellOrderUpiAction;
+	/**
+	 * Hands the encrypted payment address to the merchant and flips the order to
+	 * PAID. A PAY-order amount update is given as the exact *fiat* the merchant
+	 * must settle; the Diamond derives the USDC to pull (rounded up). Replaces the
+	 * legacy USDC-denominated `setSellOrderUpi`, which the SDK no longer wraps.
+	 */
+	readonly setSellOrderUpiWithFiat: SetSellOrderUpiWithFiatAction;
 	readonly raiseDispute: RaiseDisputeAction;
 	readonly approveUsdc: ApproveUsdcAction;
 	readonly paidBuyOrder: PaidBuyOrderAction;
@@ -90,7 +96,7 @@ export interface OrdersClient {
 	 * Signs `paymentAddress` with the resolved relay identity and ECIES-encrypts
 	 * the payload for `recipientPublicKey`. Returns the hex-stringified ciphertext
 	 * suitable for on-chain storage (e.g. as the merchant's encUpi when calling
-	 * `setSellOrderUpi`).
+	 * `setSellOrderUpiWithFiat`).
 	 */
 	encryptPaymentAddress(params: {
 		paymentAddress: string;
@@ -100,8 +106,8 @@ export interface OrdersClient {
 
 /**
  * Creates the unified orders client — reads (getOrder, getOrders, getFeeConfig)
- * and circle-routing-backed writes (placeOrder, cancelOrder, setSellOrderUpi,
- * raiseDispute, approveUsdc). The relay identity store defaults to in-memory
+ * and circle-routing-backed writes (placeOrder, cancelOrder,
+ * setSellOrderUpiWithFiat, raiseDispute, approveUsdc). The relay identity store defaults to in-memory
  * when none is supplied.
  *
  * For USDC balance / allowance reads use `@p2pdotme/sdk/profile` (those are
@@ -224,7 +230,7 @@ export function createOrders(config: OrdersConfig): OrdersClient {
 			relayIdentity,
 		}),
 		cancelOrder: createCancelOrderAction({ publicClient, diamondAddress }),
-		setSellOrderUpi: createSetSellOrderUpiAction({
+		setSellOrderUpiWithFiat: createSetSellOrderUpiWithFiatAction({
 			publicClient,
 			diamondAddress,
 			relayIdentityStore,
