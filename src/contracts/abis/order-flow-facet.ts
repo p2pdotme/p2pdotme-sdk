@@ -65,6 +65,20 @@ export const orderFlowFacetAbi = [
 		type: "function",
 	},
 	{
+		// Fiat-denominated sibling of setSellOrderUpi: the third arg is the updated
+		// *fiat* amount (6-dec scaled); the Diamond derives the USDC leg from the
+		// order's implied rate, rounding up so the pulled USDC always covers the fiat.
+		inputs: [
+			{ internalType: "uint256", name: "_orderId", type: "uint256" },
+			{ internalType: "string", name: "_userEncUpi", type: "string" },
+			{ internalType: "uint256", name: "_updatedFiatAmount", type: "uint256" },
+		],
+		name: "setSellOrderUpiWithFiat",
+		outputs: [],
+		stateMutability: "nonpayable",
+		type: "function",
+	},
+	{
 		type: "event",
 		name: "OrderPlaced",
 		anonymous: false,
