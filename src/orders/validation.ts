@@ -52,13 +52,18 @@ export const ZodCancelOrderParamsSchema = z.object({
 });
 export type CancelOrderParams = z.infer<typeof ZodCancelOrderParamsSchema>;
 
-export const ZodSetSellOrderUpiParamsSchema = z.object({
+/**
+ * Params for `setSellOrderUpiWithFiat`. The optional PAY-order amount update is
+ * expressed in *fiat* (6-dec scaled, same scale as `Order.fiatAmount`); the
+ * Diamond derives the USDC leg. `0n` keeps the order unchanged.
+ */
+export const ZodSetSellOrderUpiWithFiatParamsSchema = z.object({
 	orderId: z.bigint().nonnegative(),
 	paymentAddress: z.string().min(1),
 	merchantPublicKey: z.string().min(1),
-	updatedAmount: z.bigint(),
+	updatedFiatAmount: z.bigint().nonnegative(),
 });
-export type SetSellOrderUpiParams = z.infer<typeof ZodSetSellOrderUpiParamsSchema>;
+export type SetSellOrderUpiWithFiatParams = z.infer<typeof ZodSetSellOrderUpiWithFiatParamsSchema>;
 
 export const ZodRaiseDisputeParamsSchema = z.object({
 	orderId: z.bigint().nonnegative(),
