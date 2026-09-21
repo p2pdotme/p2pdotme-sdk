@@ -134,4 +134,4 @@ type QRParserErrorCode =
 See [`example/`](../../example/) for standalone scripts. The QR parser isn't
 exercised directly in the current example set — use it inline wherever your
 app needs to turn a scanned QR into a `paymentAddress` + `amount`, then feed
-the address into [`orders.setSellOrderUpi`](../orders/README.md#orderssellsellorderupi).
+the address into [`orders.setSellOrderUpiWithFiat`](../orders/README.md#orderssetsellorderupiwithfiat).

@@ -115,7 +115,7 @@ export function createPlaceOrderAction(input: {
 							v.amount,
 							v.recipientAddr,
 							v.orderType,
-							"", // _userUpi — set later via setSellOrderUpi if applicable
+							"", // _userUpi — set later via setSellOrderUpiWithFiat if applicable
 							userPubKey,
 							currencyBytes32,
 							pcConfigId,
