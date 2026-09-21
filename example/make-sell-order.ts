@@ -9,7 +9,7 @@
  *   2. Place the order on-chain — the contract pulls your USDC into escrow.
  *   3. Wait for a merchant to accept.
  *   4. Send the merchant the ECIES-encrypted destination for your fiat payout
- *      via setSellOrderUpi.
+ *      via setSellOrderUpiWithFiat.
  *   5. Merchant sends you fiat off-chain, then marks the order completed.
  *
  * Edit the CONFIG block below before running. Use a funded account — this
@@ -154,18 +154,18 @@ async function main(): Promise<void> {
 	kv("Merchant pubkey", `${accepted.pubkey.slice(0, 16)}…`);
 
 	// ── 5. Send encrypted payment address ─────────────────────────────
-	step(5, "Send encrypted payment address to merchant (setSellOrderUpi)");
+	step(5, "Send encrypted payment address to merchant (setSellOrderUpiWithFiat)");
 	console.log(`   Encrypting "${PAYMENT_ADDRESS}" with the merchant's pubkey…`);
-	const set = await orders.setSellOrderUpi.execute({
+	const set = await orders.setSellOrderUpiWithFiat.execute({
 		walletClient,
 		waitForReceipt: true,
 		orderId,
 		paymentAddress: PAYMENT_ADDRESS,
 		merchantPublicKey: accepted.pubkey,
-		updatedAmount: 0n,
+		updatedFiatAmount: 0n,
 	});
 	if (set.isErr()) {
-		console.error(`   ✖ setSellOrderUpi failed (${set.error.code}): ${set.error.message}`);
+		console.error(`   ✖ setSellOrderUpiWithFiat failed (${set.error.code}): ${set.error.message}`);
 		process.exit(1);
 	}
 	kv("tx hash", set.value.hash);

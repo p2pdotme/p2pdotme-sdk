@@ -48,12 +48,13 @@ export type {
 	PaidBuyOrderParams,
 	PlaceOrderParams,
 	RaiseDisputeParams,
-	SetSellOrderUpiParams,
+	SetSellOrderUpiWithFiatParams,
 } from "./validation";
 
 // ── Action types ────────────────────────────────────────────────────────
 
 export type { PaidBuyOrderAction } from "./actions/paid-buy-order";
+export type { SetSellOrderUpiWithFiatAction } from "./actions/set-sell-order-upi-with-fiat";
 
 // ── Watch events ────────────────────────────────────────────────────────
 
