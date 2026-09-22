@@ -12,6 +12,7 @@ export type GetOrderParams = z.infer<typeof ZodGetOrderParamsSchema>;
 
 export const ZodGetFeeConfigParamsSchema = z.object({
 	currency: ZodCurrencySchema,
+	orderType: z.enum(["buy", "sell", "pay"]),
 });
 
 export type GetFeeConfigParams = z.infer<typeof ZodGetFeeConfigParamsSchema>;
