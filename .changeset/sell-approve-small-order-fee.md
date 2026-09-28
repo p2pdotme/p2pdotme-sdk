@@ -1,0 +1,12 @@
+---
+"@p2pdotme/sdk": major
+---
+
+orders: fix `getFeeConfig` against the live Diamond, and approve the amount the Diamond actually pulls
+
+- `getFeeConfig` called `getSmallOrderFixedFee(bytes32)`, which is not registered on the Diamond — `facetAddress(0xc1c8ce50)` is the zero address, so every call reverted with `Diamond: Function does not exist`. It now reads the three per-order-type getters (`getSmallOrderFixedFee{Buy,Sell,Pay}`) alongside the threshold in one multicall.
+- **Breaking:** `FeeConfig.smallOrderFixedFee` is replaced by `smallOrderFixedFeeBuy` / `smallOrderFixedFeeSell` / `smallOrderFixedFeePay`. The fee differs per order type on-chain (ARS is 25000 on BUY, 50000 on SELL), so a single field cannot be correct. Nothing could depend on the old field's value — reading it always threw.
+- Documented that the BUY fee is charged in fiat, not USDC: on BUY the contract inflates `actualFiatAmount` and leaves the USDC amount alone, so `smallOrderFixedFeeBuy` must never be added to an approval.
+- SELL/PAY approve guidance was wrong everywhere (`README.md`, `architecture.md`, `CLAUDE.md`, `src/orders/README.md`, `src/profile/README.md`, both examples): it told integrators to approve the bare order `amount` before `placeOrder`. In fact `placeOrder` pulls no USDC — the only `transferFrom` is inside `setSellOrderUpiWithFiat`, and it pulls `additionalOrderDetails[orderId].actualUsdtAmount`, frozen at placement as `amount + smallOrderFixedFee{Sell,Pay}` for orders at or below `smallOrderThreshold`. A fee-short allowance makes that pull revert, and the contract catches the revert and **cancels the order** instead of failing, so the user sees an unexplained cancellation with their USDC untouched.
+- Guidance and examples now place first and approve `order.actualUsdcAmount` — the exact figure, read from the chain rather than recomputed, so a fee-config change between placement and the UPI call cannot desync it. The PAY `updatedFiatAmount` path is called out: the argument is fiat, and the Diamond re-derives the USDC pull from it and rounds up, so a previously-read `actualUsdcAmount` can be *lower* than the new pull, not merely stale.
+- Adds `test/orders/fee-config.test.ts`: all four reads are `bigint`, so a Buy/Sell/Pay positional mix-up is type-invisible. The test pins each getter to its field on both the `multicall` and `readContract` paths and asserts the dead unified getter is never requested.
