@@ -36,14 +36,29 @@ function isValidCedulaCore(cedula: string): boolean {
 }
 
 /**
- * Validates an Ecuadorian cédula (10-digit, módulo-10 checksum) or a 13-digit RUC
- * whose first 10 digits form a valid cédula. Province must be 01–24 and the third
- * digit < 6 (natural person).
+ * Validates a 13-digit RUC (business tax ID). Province 01–24 and a non-zero
+ * establishment suffix. Third digit 0–5 is a natural person whose first 10 digits
+ * must be a valid cédula; 6 (public entity) and 9 (private company) are checked
+ * structurally only — SRI has issued company RUCs that fail the módulo-11 check.
+ */
+function isValidRuc(ruc: string): boolean {
+	if (!/^\d{13}$/.test(ruc)) return false;
+	if (ruc.endsWith("000")) return false;
+	const thirdDigit = Number(ruc[2]);
+	if (thirdDigit < 6) return isValidCedulaCore(ruc.slice(0, 10));
+	if (thirdDigit !== 6 && thirdDigit !== 9) return false;
+	const province = Number(ruc.slice(0, 2));
+	return province >= 1 && province <= 24;
+}
+
+/**
+ * Validates an Ecuadorian document ID: a 10-digit cédula (person, módulo-10
+ * checksum, province 01–24, third digit < 6) or a 13-digit RUC (person or business).
  */
 export function validateEcuadorianCedula(value: string): boolean {
 	if (!value || value.trim().length === 0) return false;
 	const cleaned = value.trim().replace(/\D/g, "");
-	if (cleaned.length === 13) return isValidCedulaCore(cleaned.slice(0, 10));
+	if (cleaned.length === 13) return isValidRuc(cleaned);
 	if (cleaned.length !== 10) return false;
 	return isValidCedulaCore(cleaned);
 }
