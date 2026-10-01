@@ -142,7 +142,7 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 | `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
 | `validateCubanPhoneNumber` | CUP | 8-digit phone (optional `+53` prefix) |
 | `validateCubanCardNumber` | CUP | 16-digit bank card (spaces/dashes allowed) |
-| `validateEcuadorianCedula` | ECU | 10-digit cédula (módulo-10) or 13-digit RUC |
+| `validateEcuadorianCedula` | ECU | 10-digit cédula (módulo-10) or 13-digit RUC (person, public entity or company) |
 | `validatePeruvianPhone` | PEN | Yape/Plin phone (`9XXXXXXXX`, optional `+51`) |
 | `validatePeruvianCci` | PEN | 20-digit CCI |
 | `validatePeruvianPaymentKey` | PEN | CCI **or** Yape/Plin phone (legacy single-field) |
