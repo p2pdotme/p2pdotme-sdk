@@ -41,6 +41,25 @@ export const ZodLinkOrderParamsSchema = z.object({
 	orderId: z.string().min(1),
 });
 
+// ── Response schemas ───────────────────────────────────────────────────
+
+export const ZodFraudCheckApiResponseSchema = z.object({
+	success: z.boolean(),
+	approved: z.boolean(),
+	activity_log_id: z.number(),
+	message: z.string(),
+});
+
+export const ZodLinkOrderResultSchema = z.object({
+	success: z.boolean(),
+	message: z.string(),
+});
+
+export const ZodFingerprintLogResultSchema = z.object({
+	success: z.boolean(),
+	message: z.string(),
+});
+
 // ── Validate helper ────────────────────────────────────────────────────
 
 export function validate<S extends z.ZodType>(
