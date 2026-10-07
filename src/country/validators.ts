@@ -20,6 +20,8 @@ export {
 	validateIndonesianPaymentId,
 	validateIndonesianPhoneNumber,
 	validateIndonesianStoredPaymentId,
+	validateKenyanPaybill,
+	validateKenyanPaybillAccount,
 	validateKenyanPhone,
 	validateKenyanTill,
 	validateMexicanPaymentId,
@@ -78,9 +80,48 @@ export function formatCompoundPaymentIdForDisplay(
 }
 
 /**
+ * Whether `field` must be filled given the other values: true when it is not
+ * optional, or when a filled field lists it in `requires` (paired fields such
+ * as a KES paybill number + account number).
+ */
+export function isPaymentIdFieldRequired(
+	fields: readonly PaymentIdFieldConfig[],
+	field: PaymentIdFieldConfig,
+	values: Readonly<Record<string, string>>,
+): boolean {
+	if (field.optional !== true) return true;
+	return fields.some(
+		(other) =>
+			other.key !== field.key &&
+			other.requires?.includes(field.key) === true &&
+			(values[other.key] ?? "").trim().length > 0,
+	);
+}
+
+/**
+ * Per-field check shared by stored-id and draft validation: empty values are
+ * allowed only when the field is not required (see `isPaymentIdFieldRequired`).
+ */
+function fieldValuesValid(
+	fields: readonly PaymentIdFieldConfig[],
+	values: readonly string[],
+): boolean {
+	const byKey: Record<string, string> = {};
+	fields.forEach((field, i) => {
+		byKey[field.key] = values[i] ?? "";
+	});
+	return fields.every((field, i) => {
+		const value = values[i];
+		if (!value) return !isPaymentIdFieldRequired(fields, field, byKey);
+		return field.validate(value);
+	});
+}
+
+/**
  * Validates a stored payment ID against `PAYMENT_ID_FIELDS`.
  * Optional fields may be empty; if every field is optional, at least one must
- * be filled. A legacy single token (no `|`) matches any one field's validator.
+ * be filled, and a filled field's `requires` partners must be filled too. A
+ * legacy single token (no `|`) matches any one unpaired field's validator.
  */
 export function validatePaymentIdFields(
 	fields: readonly PaymentIdFieldConfig[],
@@ -97,16 +138,11 @@ export function validatePaymentIdFields(
 
 	if (parts.length === 1) {
 		if (!fields.some((field) => field.optional)) return false;
-		return fields.some((field) => field.validate(parts[0]));
+		return fields.some((field) => !field.requires?.length && field.validate(parts[0]));
 	}
 
 	const values = fields.map((_, i) => (parts[i] ?? "").trim());
-	const eachOk = fields.every((field, i) => {
-		const value = values[i];
-		if (!value) return field.optional === true;
-		return field.validate(value);
-	});
-	if (!eachOk) return false;
+	if (!fieldValuesValid(fields, values)) return false;
 
 	return values.some((value) => value.length > 0);
 }
@@ -123,7 +159,11 @@ export function assignPaymentIdToFieldValues(
 	for (const field of fields) result[field.key] = "";
 	if (!paymentId) return result;
 
-	const { rest } = unpackPackedPaymentId(paymentId);
+	// A fully-positioned compound is taken as-is: with several optional fields,
+	// empty slots can produce `||` (e.g. KES `phone|||`), which must not be
+	// mistaken for the QR pack separator.
+	const direct = deserializeCompoundPaymentId(paymentId);
+	const rest = direct.length === fields.length ? paymentId : unpackPackedPaymentId(paymentId).rest;
 	if (!rest) return result;
 
 	const rawParts = deserializeCompoundPaymentId(rest).map((part) => part.trim());
@@ -132,7 +172,10 @@ export function assignPaymentIdToFieldValues(
 	// `packStoredPaymentId`) is authoritative — assign by position so a value
 	// that also satisfies another field's validator (e.g. a 7-digit KES till
 	// number typed into the phone slot) stays in the field the user chose.
-	if (rawParts.length === fields.length) {
+	//
+	// A shorter compound written before trailing optional fields were added to
+	// the catalog (e.g. KES `phone|till` before paybill) is positional too.
+	if (isPositionalCompound(fields, rawParts.length)) {
 		fields.forEach((field, i) => {
 			result[field.key] = rawParts[i] ?? "";
 		});
@@ -164,6 +207,12 @@ export function assignPaymentIdToFieldValues(
 	return result;
 }
 
+function isPositionalCompound(fields: readonly PaymentIdFieldConfig[], partCount: number): boolean {
+	if (partCount === fields.length) return true;
+	if (partCount < 2 || partCount > fields.length) return false;
+	return fields.slice(partCount).every((field) => field.optional === true);
+}
+
 export function unpackPackedPaymentId(paymentId: string): {
 	qr: string;
 	rest: string;
@@ -174,6 +223,18 @@ export function unpackPackedPaymentId(paymentId: string): {
 		qr: paymentId.slice(0, sep),
 		rest: paymentId.slice(sep + PACKED_PAYMENT_ID_SEP.length),
 	};
+}
+
+/**
+ * Like `unpackPackedPaymentId`, but only currencies that accept a QR can carry
+ * a `qr||…` prefix — elsewhere `||` is just adjacent empty optional fields.
+ */
+function unpackForCurrency(
+	validateQr: ((payload: string) => boolean) | undefined,
+	paymentId: string,
+): { qr: string; rest: string } {
+	if (!validateQr) return { qr: "", rest: paymentId };
+	return unpackPackedPaymentId(paymentId);
 }
 
 function isStandaloneQr(
@@ -245,11 +306,7 @@ function fieldsMatchStoredId(fields: readonly PaymentIdFieldConfig[], paymentId:
 	const assigned = assignPaymentIdToFieldValues(fields, paymentId);
 	const values = fields.map((field) => (assigned[field.key] || "").trim());
 	if (!values.some((value) => value.length > 0)) return false;
-	return fields.every((field, i) => {
-		const value = values[i];
-		if (!value) return field.optional === true;
-		return field.validate(value);
-	});
+	return fieldValuesValid(fields, values);
 }
 
 /**
@@ -275,7 +332,7 @@ export function validateStoredPaymentId(currency: CurrencyCode, paymentId: strin
 	if (!fields?.length) return false;
 	const option = getCountryOption(currency);
 	const trimmed = paymentId.trim();
-	const { qr, rest } = unpackPackedPaymentId(trimmed);
+	const { qr, rest } = unpackForCurrency(option?.validateQr, trimmed);
 
 	if (qr) {
 		if (!option?.validateQr?.(qr)) return false;
@@ -297,7 +354,7 @@ export function assignStoredPaymentIdToFieldValues(
 	const fields = PAYMENT_ID_FIELDS[currency] ?? [];
 	const option = getCountryOption(currency);
 	const trimmed = paymentId.trim();
-	const { qr, rest } = unpackPackedPaymentId(trimmed);
+	const { qr, rest } = unpackForCurrency(option?.validateQr, trimmed);
 
 	let qrPayload = "";
 	let typed = rest.trim();
