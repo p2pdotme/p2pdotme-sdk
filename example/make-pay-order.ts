@@ -4,12 +4,12 @@
  *   bun run example/make-pay-order.ts
  *
  * The PAY user journey (you pay someone else in fiat, the merchant fronts it):
- *   1. Approve USDC — explicit tx via orders.approveUsdc (PAY pulls USDC via
- *      transferFrom, so the Diamond needs an allowance).
- *   2. Place the order on-chain — the contract pulls your USDC into escrow.
+ *   1. Place the order on-chain — no USDC moves yet.
+ *   2. Approve the exact USDC the Diamond will pull (`order.actualUsdcAmount`,
+ *      which includes the small-order fee) via orders.approveUsdc.
  *   3. Wait for a merchant to accept.
  *   4. Send the merchant the ECIES-encrypted payee destination via
- *      setSellOrderUpiWithFiat.
+ *      setSellOrderUpiWithFiat — this is where the USDC is pulled into escrow.
  *   5. Merchant pays the payee off-chain, then marks the order completed.
  *
  * Edit the CONFIG block below before running. Use a funded account — this
@@ -130,31 +130,25 @@ async function main(): Promise<void> {
 	kv("orderId", orderId.toString());
 	kv("circleId", place.value.meta?.circleId?.toString() ?? "—");
 
-	// ── 3. Wait for merchant to accept ────────────────────────────────
-	step(3, "Wait for merchant acceptance");
-	const accepted = await waitForStatus(orders, orderId, "accepted");
-	console.log();
-	kv("Merchant", accepted.acceptedMerchant);
-	kv("Accepted at", new Date(Number(accepted.acceptedAt) * 1000).toISOString());
-	if (!accepted.pubkey) {
-		console.error("   ✖ merchant pubkey missing from accepted order — aborting");
-		process.exit(1);
-	}
-	kv("Merchant pubkey", `${accepted.pubkey.slice(0, 16)}…`);
-
-	// ── 4. Approve the exact amount the Diamond will pull ─────────────
+	// ── 3. Approve the exact amount the Diamond will pull ─────────────
 	// `setSellOrderUpiWithFiat` pulls `additionalOrderDetails[orderId].actualUsdtAmount`,
 	// which the contract fixed at placement as `amount + smallOrderFixedFeePay`
 	// for orders at or below the currency's `smallOrderThreshold`. Read that
 	// field rather than recomputing it: approving only `amount` makes the pull
 	// revert, and `setSellOrderUpiWithFiat` swallows the revert and CANCELS the order.
-	step(4, "Approve the exact USDC the Diamond will pull");
-	const pull = accepted.actualUsdcAmount;
-	// Guard: never approve less than the order amount. Orders placed before
-	// `additionalOrderDetails` existed report 0 here (verified on-chain for
-	// legacy ids), and a cancelled order is zeroed by `_cancelOrder` — either
-	// would have us approve a short amount and trip the very failure this
-	// step exists to avoid.
+	// It is readable as soon as `placeOrder` is mined, so approve now — after
+	// acceptance the approve tx would eat into the window before the order expires.
+	// `getOrder` reads the Diamond; the subgraph (`getOrders`) reads 0 until indexed.
+	step(3, "Approve the exact USDC the Diamond will pull");
+	const placed = await orders.getOrder({ orderId });
+	if (placed.isErr()) {
+		console.error(`   ✖ getOrder failed (${placed.error.code}): ${placed.error.message}`);
+		process.exit(1);
+	}
+	const pull = placed.value.actualUsdcAmount;
+	// Guard: never approve less than the order amount. Legacy orders report 0
+	// here and `_cancelOrder` zeroes the field, so a short figure means the
+	// order is not in a state where approving it makes sense.
 	if (pull < USDC_AMOUNT) {
 		console.error(
 			`   ✖ actualUsdcAmount (${pull}) is below the order amount (${USDC_AMOUNT}) — refusing to approve short`,
@@ -175,6 +169,18 @@ async function main(): Promise<void> {
 	}
 	kv("approve tx", approve.value.hash);
 
+	// ── 4. Wait for merchant to accept ────────────────────────────────
+	step(4, "Wait for merchant acceptance");
+	const accepted = await waitForStatus(orders, orderId, "accepted");
+	console.log();
+	kv("Merchant", accepted.acceptedMerchant);
+	kv("Accepted at", new Date(Number(accepted.acceptedAt) * 1000).toISOString());
+	if (!accepted.pubkey) {
+		console.error("   ✖ merchant pubkey missing from accepted order — aborting");
+		process.exit(1);
+	}
+	kv("Merchant pubkey", `${accepted.pubkey.slice(0, 16)}…`);
+
 	// ── 5. Send encrypted payee destination ───────────────────────────
 	step(5, "Send encrypted payee destination to merchant (setSellOrderUpiWithFiat)");
 	console.log(`   Encrypting "${PAYEE_ADDRESS}" with the merchant's pubkey…`);
@@ -185,10 +191,12 @@ async function main(): Promise<void> {
 		paymentAddress: PAYEE_ADDRESS,
 		merchantPublicKey: accepted.pubkey,
 		// Keep this 0n. A non-zero `updatedFiatAmount` makes the contract
-		// RE-DERIVE the USDC pull from the new fiat figure and round it UP, so the
-		// `actualUsdcAmount` approved above would be stale — and possibly too low
-		// — and the order would be cancelled. If you pin a fiat amount (e.g. read
-		// from a merchant QR), derive and approve the USDC from that figure instead.
+		// RE-DERIVE the pull: the USDC at the order's own rate, rounded UP, plus the
+		// small-order PAY fee configured NOW if that USDC is at or below the
+		// threshold. The `actualUsdcAmount` approved above would then be stale —
+		// possibly too low — and the order would be cancelled. If you pin a fiat
+		// amount (e.g. read from a merchant QR), approve the re-derived pull
+		// instead; src/orders/README.md has the exact formula.
 		updatedFiatAmount: 0n,
 	});
 	if (set.isErr()) {
