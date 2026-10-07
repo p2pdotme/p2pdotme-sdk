@@ -15,6 +15,8 @@ import { validateIndonesianPhoneNumber } from "../../src/country/currencies/idr"
 import { validateUPIId } from "../../src/country/currencies/inr";
 import {
 	KES_PAYMENT_FIELDS,
+	validateKenyanPaybill,
+	validateKenyanPaybillAccount,
 	validateKenyanPhone,
 	validateKenyanTill,
 } from "../../src/country/currencies/kes";
@@ -37,6 +39,7 @@ import {
 	assignStoredPaymentIdToFieldValues,
 	formatStoredPaymentIdForDisplay,
 	getStoredQrPayload,
+	isPaymentIdFieldRequired,
 	PACKED_PAYMENT_ID_SEP,
 	packStoredPaymentId,
 	validateCatalogPaymentDraft,
@@ -295,11 +298,53 @@ describe("validateKenyanTill (KES)", () => {
 	});
 });
 
-describe("KES compound phone|till payment id", () => {
+describe("validateKenyanPaybill (KES)", () => {
 	it.each([
-		["phone only", { phone: "0712345678", till: "" }, "0712345678|"],
-		["till only", { phone: "", till: "123456" }, "|123456"],
-		["both fields", { phone: "0712345678", till: "123456" }, "0712345678|123456"],
+		["5-digit paybill", "12345"],
+		["6-digit paybill", "542542"],
+		["7-digit paybill", "1234567"],
+		["paybill with spaces (stripped)", "542 542"],
+	])("accepts %s", (_label, input) => {
+		expect(validateKenyanPaybill(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["4-digit number", "1234"],
+		["8-digit number", "12345678"],
+		["letters", "54254a"],
+	])("rejects %s", (_label, input) => {
+		expect(validateKenyanPaybill(input)).toBe(false);
+	});
+});
+
+describe("validateKenyanPaybillAccount (KES)", () => {
+	it.each([
+		["bank account number", "00403881496150"],
+		["short reference", "1"],
+		["alphanumeric reference", "ACC123"],
+		["20 characters", "A".repeat(20)],
+		["with spaces (stripped)", "0040 3881 4961 50"],
+	])("accepts %s", (_label, input) => {
+		expect(validateKenyanPaybillAccount(input)).toBe(true);
+	});
+
+	it.each([
+		["empty string", ""],
+		["whitespace only", "   "],
+		["21 characters", "A".repeat(21)],
+		["symbols", "ACC-123"],
+	])("rejects %s", (_label, input) => {
+		expect(validateKenyanPaybillAccount(input)).toBe(false);
+	});
+});
+
+describe("KES compound phone|till|paybill|account payment id", () => {
+	it.each([
+		["phone only", { phone: "0712345678", till: "", paybill: "", paybillAccount: "" }, "0712345678|||"],
+		["till only", { phone: "", till: "123456", paybill: "", paybillAccount: "" }, "|123456||"],
+		["paybill + account", { phone: "", till: "", paybill: "542542", paybillAccount: "00403881496150" }, "||542542|00403881496150"],
+		["phone and till", { phone: "0712345678", till: "123456", paybill: "", paybillAccount: "" }, "0712345678|123456||"],
 	])("packs %s positionally", (_label, values, expected) => {
 		expect(packStoredPaymentId("KES", null, values)).toBe(expected);
 	});
@@ -307,59 +352,102 @@ describe("KES compound phone|till payment id", () => {
 	it.each([
 		[
 			"7-digit value typed into phone slot stays in phone (regression)",
-			"8333333|",
-			{ phone: "8333333", till: "" },
+			"8333333|||",
+			{ phone: "8333333", till: "", paybill: "", paybillAccount: "" },
 		],
-		["till-only compound", "|123456", { phone: "", till: "123456" }],
-		["phone-only compound", "0712345678|", { phone: "0712345678", till: "" }],
-		["both filled", "0712345678|123456", { phone: "0712345678", till: "123456" }],
+		["till-only compound", "|123456||", { phone: "", till: "123456", paybill: "", paybillAccount: "" }],
+		["phone-only compound", "0712345678|||", { phone: "0712345678", till: "", paybill: "", paybillAccount: "" }],
+		["paybill compound", "||542542|00403881496150", { phone: "", till: "", paybill: "542542", paybillAccount: "00403881496150" }],
+		// Stored before paybill fields existed (`phone|till`).
+		["legacy 2-part phone-only", "0712345678|", { phone: "0712345678", till: "", paybill: "", paybillAccount: "" }],
+		["legacy 2-part 7-digit phone slot", "8333333|", { phone: "8333333", till: "", paybill: "", paybillAccount: "" }],
+		["legacy 2-part till-only", "|123456", { phone: "", till: "123456", paybill: "", paybillAccount: "" }],
+		["legacy 2-part both", "0712345678|123456", { phone: "0712345678", till: "123456", paybill: "", paybillAccount: "" }],
 	])("assigns %s by position", (_label, stored, expected) => {
 		expect(assignStoredPaymentIdToFieldValues("KES", stored)).toEqual(expected);
 	});
 
 	it.each([
-		["legacy phone token", "0712345678", { phone: "0712345678", till: "" }],
-		["legacy till token", "123456", { phone: "", till: "123456" }],
+		["legacy phone token", "0712345678", { phone: "0712345678", till: "", paybill: "", paybillAccount: "" }],
+		["legacy till token", "123456", { phone: "", till: "123456", paybill: "", paybillAccount: "" }],
 	])("hydrates legacy single token %s by validator", (_label, stored, expected) => {
 		expect(assignPaymentIdToFieldValues(KES_PAYMENT_FIELDS, stored)).toEqual(expected);
 	});
 
 	it.each([
-		["phone-only", "0712345678|", "Phone Number: 0712345678"],
-		["till-only", "|123456", "Till Number: 123456"],
-		["7-digit phone slot value", "8333333|", "Phone Number: 8333333"],
-		["both", "0712345678|123456", "Phone Number: 0712345678 | Till Number: 123456"],
+		["phone-only", "0712345678|||", "Phone Number: 0712345678"],
+		["till-only", "|123456||", "Till Number: 123456"],
+		["legacy phone-only", "0712345678|", "Phone Number: 0712345678"],
+		["7-digit phone slot value", "8333333|||", "Phone Number: 8333333"],
+		[
+			"paybill",
+			"||542542|00403881496150",
+			"Paybill Number: 542542 | Account Number: 00403881496150",
+		],
+		["phone and till", "0712345678|123456||", "Phone Number: 0712345678 | Till Number: 123456"],
 	])("formats %s for display", (_label, stored, expected) => {
 		expect(formatStoredPaymentIdForDisplay("KES", stored)).toBe(expected);
 	});
 
 	it.each([
-		["valid phone", { phone: "0712345678", till: "" }],
-		["valid till", { phone: "", till: "123456" }],
-		["both valid", { phone: "0712345678", till: "123456" }],
+		["valid phone", { phone: "0712345678", till: "", paybill: "", paybillAccount: "" }],
+		["valid till", { phone: "", till: "123456", paybill: "", paybillAccount: "" }],
+		["phone and till", { phone: "0712345678", till: "123456", paybill: "", paybillAccount: "" }],
+		["paybill + account", { phone: "", till: "", paybill: "542542", paybillAccount: "00403881496150" }],
+		["phone + paybill + account", { phone: "0712345678", till: "", paybill: "542542", paybillAccount: "00403881496150" }],
 	])("accepts draft %s", (_label, values) => {
 		expect(validateCatalogPaymentDraft("KES", null, values)).toBe(true);
 	});
 
 	it.each([
-		["both empty", { phone: "", till: "" }],
-		["invalid phone", { phone: "12", till: "" }],
+		["all empty", { phone: "", till: "", paybill: "", paybillAccount: "" }],
+		["invalid phone", { phone: "12", till: "", paybill: "", paybillAccount: "" }],
 		// A 7-digit value is a valid till but an invalid phone; typed into the
 		// phone slot it stays there for display (positional) yet is not a valid
 		// draft, so the form rejects it rather than silently rebucketing to till.
-		["7-digit value in phone slot", { phone: "8333333", till: "" }],
+		["7-digit value in phone slot", { phone: "8333333", till: "", paybill: "", paybillAccount: "" }],
+		["paybill without account", { phone: "", till: "", paybill: "542542", paybillAccount: "" }],
+		["account without paybill", { phone: "", till: "", paybill: "", paybillAccount: "00403881496150" }],
+		["phone + paybill without account", { phone: "0712345678", till: "", paybill: "542542", paybillAccount: "" }],
+		["invalid paybill", { phone: "", till: "", paybill: "12", paybillAccount: "00403881496150" }],
 	])("rejects draft %s", (_label, values) => {
 		expect(validateCatalogPaymentDraft("KES", null, values)).toBe(false);
 	});
 
 	it.each([
-		["phone-only compound", "0712345678|", true],
-		["till-only compound", "|123456", true],
-		["both filled", "0712345678|123456", true],
-		["both empty", "|", false],
+		["phone-only compound", "0712345678|||", true],
+		["till-only compound", "|123456||", true],
+		["paybill compound", "||542542|00403881496150", true],
+		["legacy phone-only", "0712345678|", true],
+		["legacy till-only", "|123456", true],
+		["legacy both", "0712345678|123456", true],
+		["paybill without account", "||542542|", false],
+		["account without paybill", "|||00403881496150", false],
+		["all empty", "|||", false],
 		["empty string", "", false],
 	])("validates stored id %s", (_label, stored, expected) => {
 		expect(validateStoredPaymentId("KES", stored)).toBe(expected);
+	});
+});
+
+describe("isPaymentIdFieldRequired (KES paybill pairing)", () => {
+	const field = (key: string) => KES_PAYMENT_FIELDS.find((f) => f.key === key)!;
+
+	it("requires the account once a paybill is typed", () => {
+		expect(
+			isPaymentIdFieldRequired(KES_PAYMENT_FIELDS, field("paybillAccount"), { phone: "", till: "", paybill: "542542", paybillAccount: "" }),
+		).toBe(true);
+	});
+
+	it("requires the paybill once an account is typed", () => {
+		expect(
+			isPaymentIdFieldRequired(KES_PAYMENT_FIELDS, field("paybill"), { phone: "", till: "", paybill: "", paybillAccount: "00403881496150" }),
+		).toBe(true);
+	});
+
+	it("leaves unpaired optional fields optional", () => {
+		expect(isPaymentIdFieldRequired(KES_PAYMENT_FIELDS, field("till"), { phone: "0712345678", till: "", paybill: "", paybillAccount: "" })).toBe(false);
+		expect(isPaymentIdFieldRequired(KES_PAYMENT_FIELDS, field("paybill"), { phone: "", till: "", paybill: "", paybillAccount: "" })).toBe(false);
 	});
 });
 
