@@ -20,20 +20,31 @@ const BY_FN: Record<string, bigint> = {
 	getSmallOrderFixedFeePay: FEE_PAY,
 };
 
-function clientWith(seen: string[], mode: "multicall" | "readContract") {
+// Mirrors the live Diamond: a selector with no facet reverts with
+// "Diamond: Function does not exist" (the fate of the old unified getter), and
+// `revertFn` lets a test make one registered getter revert as well.
+function diamondRead(functionName: string, revertFn?: string): bigint {
+	if (functionName === revertFn || !(functionName in BY_FN)) {
+		throw new Error("Diamond: Function does not exist");
+	}
+	return BY_FN[functionName];
+}
+
+function clientWith(seen: string[], mode: "multicall" | "readContract", revertFn?: string) {
 	const readContract = vi.fn(async ({ functionName }: { functionName: string }) => {
 		seen.push(functionName);
-		return BY_FN[functionName];
+		return diamondRead(functionName, revertFn);
 	});
 	const publicClient =
 		mode === "multicall"
 			? {
 					readContract,
+					// allowFailure: false — any one failing call rejects the whole batch.
 					multicall: vi.fn(
 						async ({ contracts }: { contracts: { functionName: string }[] }) =>
 							contracts.map((c) => {
 								seen.push(c.functionName);
-								return BY_FN[c.functionName];
+								return diamondRead(c.functionName, revertFn);
 							}),
 					),
 				}
@@ -74,19 +85,14 @@ describe("orders.getFeeConfig", () => {
 		},
 	);
 
-	it("surfaces a contract read failure as CONTRACT_READ_FAILED", async () => {
-		const client = createOrders({
-			publicClient: {
-				readContract: vi.fn(async () => {
-					throw new Error("Diamond: Function does not exist");
-				}),
-			} as never,
-			diamondAddress: DIAMOND,
-			usdcAddress: USDC,
-			subgraphUrl: SUBGRAPH,
-		});
+	it.each(
+		(["multicall", "readContract"] as const).flatMap((mode) =>
+			Object.keys(BY_FN).map((fn) => [mode, fn] as const),
+		),
+	)("fails the whole read when %s hits a reverting %s", async (mode, fn) => {
+		const result = await clientWith([], mode, fn).getFeeConfig({ currency: "INR" });
 
-		const result = await client.getFeeConfig({ currency: "INR" });
+		// Never a half-filled FeeConfig: one reverting getter is a read failure.
 		expect(result.isErr()).toBe(true);
 		expect(result._unsafeUnwrapErr().code).toBe("CONTRACT_READ_FAILED");
 	});
