@@ -152,7 +152,7 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 | `validateKenyanPhone` | KES | M-Pesa phone number (`07XX`/`01XX`/`254…`/bare `7XX`/`1XX`) |
 | `validateKenyanTill` | KES | M-Pesa Buy Goods till number (5–7 digits) |
 | `validateKenyanPaybill` | KES | M-Pesa Pay Bill business number (5–7 digits); paired with account via `requires` |
-| `validateKenyanPaybillAccount` | KES | Pay Bill account number (1–20 letters/digits, e.g. bank account `00403881496150`) |
+| `validateKenyanPaybillAccount` | KES | Pay Bill account number (1–20 letters/digits, e.g. a bank account number) |
 | `validateEgyptianPhone` | EGP | Vodafone Cash phone number (`01[0125]XXXXXXXX`, optional `+20`, or bare `1[0125]XXXXXXXX`) |
 | `validateRevolutId` | EUR/USD | Username, email, or phone |
 
