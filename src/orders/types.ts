@@ -71,8 +71,12 @@ export interface Order {
 export interface FeeConfig {
 	/** Order amounts at or below this threshold are billed the fixed fee. */
 	smallOrderThreshold: bigint;
-	/** Fixed fee applied to small orders (6 decimals). */
-	smallOrderFixedFee: bigint;
+	/** Fixed fee applied to small BUY orders (6 decimals). */
+	smallOrderFixedFeeBuy: bigint;
+	/** Fixed fee applied to small SELL orders (6 decimals). */
+	smallOrderFixedFeeSell: bigint;
+	/** Fixed fee applied to small PAY orders (6 decimals). */
+	smallOrderFixedFeePay: bigint;
 }
 
 /**
