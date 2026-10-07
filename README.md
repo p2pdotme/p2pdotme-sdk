@@ -96,7 +96,13 @@ function BuyFlow() {
 }
 ```
 
-SELL and PAY follow the same shape, but the Diamond pulls USDC via `transferFrom`, so you must approve first — call `orders.approveUsdc.execute({ amount })` (pre-flight the current allowance with `profile.getUsdcAllowance({ owner })` if you want to skip redundant approvals). After the order is accepted, call `orders.setSellOrderUpiWithFiat.execute({...})` to hand off the (ECIES-encrypted) payment destination to the merchant. For a PAY order, `updatedFiatAmount` pins the order to an exact fiat figure (e.g. read from a merchant QR); pass `0n` to keep the amount as placed.
+SELL and PAY follow the same shape, but the Diamond pulls USDC via `transferFrom` — inside `setSellOrderUpiWithFiat`, not `placeOrder`. So place first, then approve, then hand off the payment destination:
+
+1. `orders.placeOrder.execute({...})` — pulls no USDC, needs no allowance.
+2. Read the order with `orders.getOrder` (on-chain — the subgraph reads `0` until indexed) and approve **`order.actualUsdcAmount`** — the exact figure the Diamond will pull. Do it right after placement, so the approve tx does not eat into the accept → hand-off window. For an order at or below the currency's `smallOrderThreshold` that is `amount + smallOrderFixedFee{Sell,Pay}`, **not** `amount`. Approving only `amount` makes the pull revert, and `setSellOrderUpiWithFiat` swallows the revert and **cancels the order** — the user sees an unexplained cancellation with their USDC untouched.
+3. `orders.setSellOrderUpiWithFiat.execute({...})` — hands the (ECIES-encrypted) payment destination to the merchant. `updatedFiatAmount` pins the order to an exact fiat figure (e.g. read from a merchant QR); pass `0n` to keep the amount as placed. A non-zero value makes the Diamond re-derive the pull — the USDC rounded up, **plus the small-order PAY fee configured at that moment** if the new USDC is at or below the threshold — so approve that figure rather than the cached `actualUsdcAmount` (formula in [`src/orders/README.md`](./src/orders/README.md#ordersplaceorder)).
+
+Approving an unlimited allowance once instead is also safe. `profile.getUsdcAllowance({ owner })` pre-flights the current allowance — compare it against `order.actualUsdcAmount`, not `amount`.
 
 See [example/](./example/) for runnable walkthroughs of each flow.
 
