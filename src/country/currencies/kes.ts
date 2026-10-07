@@ -3,8 +3,8 @@ import type { CountryOption, PaymentIdFieldConfig } from "../types";
 
 export const KES_PHONE_PLACEHOLDER = "0712345678";
 export const KES_TILL_PLACEHOLDER = "123456";
-export const KES_PAYBILL_PLACEHOLDER = "542542";
-export const KES_PAYBILL_ACCOUNT_PLACEHOLDER = "00403881496150";
+export const KES_PAYBILL_PLACEHOLDER = "654321";
+export const KES_PAYBILL_ACCOUNT_PLACEHOLDER = "1234567890";
 export const KES_PHONE_VALIDATION_ERROR = "Please enter a valid M-Pesa phone number";
 export const KES_TILL_VALIDATION_ERROR = "Please enter a valid M-Pesa till number";
 export const KES_PAYBILL_VALIDATION_ERROR = "Please enter a valid M-Pesa paybill number";
@@ -49,7 +49,7 @@ export function validateKenyanPaybill(paybill: string): boolean {
 
 /**
  * Validates a Kenyan M-Pesa Pay Bill account number: 1–20 letters/digits
- * (bank paybills use the bank account number, e.g. `00403881496150`).
+ * (bank paybills use the bank account number).
  */
 export function validateKenyanPaybillAccount(account: string): boolean {
 	if (!account || account.trim().length === 0) return false;
