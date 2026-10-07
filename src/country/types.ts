@@ -15,6 +15,11 @@ export interface PaymentIdFieldConfig {
 	 * one field must still be filled (see `validatePaymentIdFields`).
 	 */
 	readonly optional?: boolean;
+	/**
+	 * Keys of other fields that must also be filled whenever this one is
+	 * (e.g. a KES paybill number needs its account number, and vice versa).
+	 */
+	readonly requires?: readonly string[];
 }
 
 export interface CountryOption {
