@@ -1,5 +1,5 @@
 ---
-"@p2pdotme/sdk": minor
+"@p2pdotme/sdk": patch
 ---
 
 orders: fix `getFeeConfig` against the live Diamond, and approve the amount the Diamond actually pulls
