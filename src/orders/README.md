@@ -68,12 +68,23 @@ Paginated list of a user's orders from the subgraph, newest first. `skip` defaul
 
 ### `orders.getFeeConfig({ currency })` → `ResultAsync<FeeConfig, OrdersError>`
 
-Per-currency small-order threshold + fixed fee, read via multicall.
+Per-currency small-order threshold + fixed fees, read via multicall. The fee is
+per order type on-chain, so all three are returned — pick the one matching the
+order you are placing. They are not interchangeable: e.g. ARS is `25000` on BUY
+and `50000` on SELL.
+
+**The BUY fee is charged in fiat, not USDC.** On BUY the contract leaves the USDC
+amount alone and inflates `actualFiatAmount` instead, so `smallOrderFixedFeeBuy`
+must never be added to a USDC approval or shown as a USDC charge. Only SELL and
+PAY add to the USDC pulled. Use these values for quoting *before* placement; for
+the approval itself see `orders.placeOrder` below.
 
 ```ts
 interface FeeConfig {
-  smallOrderThreshold: bigint;  // orders ≤ this are billed the fixed fee
-  smallOrderFixedFee: bigint;   // 6 decimals
+  smallOrderThreshold: bigint;    // orders ≤ this are billed the fixed fee
+  smallOrderFixedFeeBuy: bigint;  // 6 decimals
+  smallOrderFixedFeeSell: bigint;
+  smallOrderFixedFeePay: bigint;
 }
 ```
 
@@ -138,7 +149,66 @@ Every write action has two methods with matching params:
 | `preferredPaymentChannelConfigId` | `bigint?` | Optional channel pinning |
 | `pubKey` | `string?` | Overrides the auto-generated relay pubkey |
 
-**SELL and PAY require an explicit USDC approval first** — the Diamond pulls USDC via `transferFrom`. Call `orders.approveUsdc.execute({ amount })` before `placeOrder`. There is no auto-approve flag.
+**SELL and PAY require an explicit USDC approval** — the Diamond pulls USDC
+via `transferFrom`, but inside `setSellOrderUpiWithFiat`, not `placeOrder`. Call
+`orders.approveUsdc.execute({ amount })` any time before `setSellOrderUpiWithFiat`
+— simplest is right after `placeOrder` is mined, so the approve tx does not eat
+into the accept → hand-off window that counts against the order's expiry. There
+is no auto-approve flag.
+
+> **Approve `order.actualUsdcAmount`, not the bare `amount` — right after
+> placement.** `placeOrder` pulls no USDC; the only `transferFrom` on this
+> path is inside `setSellOrderUpiWithFiat`, and it pulls
+> `additionalOrderDetails[orderId].actualUsdtAmount`, which the contract froze at
+> placement as `amount + smallOrderFixedFee{Sell,Pay}` for an order at or below
+> the currency's `smallOrderThreshold`.
+>
+> If the allowance covers only `amount`, that pull reverts — and
+> `setSellOrderUpiWithFiat` catches the revert and **cancels the order** instead of
+> failing. The user sees an unexplained cancellation with their USDC untouched
+> and no error to show them. This is the single most common SELL integration bug.
+>
+> ```ts
+> const { meta } = (await orders.placeOrder.execute({ ...p, waitForReceipt: true }))._unsafeUnwrap();
+> const order = (await orders.getOrder({ orderId: meta!.orderId! }))._unsafeUnwrap();
+> await orders.approveUsdc.execute({ walletClient, amount: order.actualUsdcAmount });
+> // …then setSellOrderUpiWithFiat once a merchant has accepted.
+> ```
+>
+> Use `orders.getOrder`, which reads the Diamond. `orders.getOrders` comes from
+> the subgraph, where `actualUsdcAmount` reads `0` until the placement event is
+> indexed.
+>
+> Read the field; don't recompute it from `getFeeConfig`. The contract uses the
+> fee that was in force at *placement*, so a config change between placement and
+> the UPI call would make a recomputed figure wrong. Approving an unlimited
+> allowance once instead is also safe.
+>
+> Sanity-check `order.actualUsdcAmount >= order.usdcAmount` before approving. It is `0` for
+> orders placed before `additionalOrderDetails` existed, and `_cancelOrder`
+> zeroes it on cancellation — approving a short amount would trip the exact
+> failure this is meant to avoid.
+>
+> **PAY with a non-zero `updatedFiatAmount`:** the third argument to
+> `setSellOrderUpiWithFiat` is **fiat**, not USDC. When it differs from
+> `order.fiatAmount`, the Diamond rewrites the order and re-derives the pull, so
+> a previously-read `actualUsdcAmount` is not merely stale — it can be *lower*
+> than the new pull. The new pull is the USDC at the order's own rate, rounded
+> **up**, **plus the small-order PAY fee again** if that USDC is at or below the
+> threshold — and this time it is the fee configured *now*, not at placement:
+>
+> ```ts
+> const order = (await orders.getOrder({ orderId }))._unsafeUnwrap();
+> const fee = (await orders.getFeeConfig({ currency }))._unsafeUnwrap(); // the order's currency code
+> const sellPrice = (order.fiatAmount * 1_000_000n) / order.usdcAmount; // floored, as on-chain
+> const newUsdc = (updatedFiatAmount * 1_000_000n + sellPrice - 1n) / sellPrice; // rounded up
+> const pull = newUsdc + (newUsdc <= fee.smallOrderThreshold ? fee.smallOrderFixedFeePay : 0n);
+> await orders.approveUsdc.execute({ walletClient, amount: pull });
+> ```
+>
+> Approving only `newUsdc` leaves the allowance fee-short and the order is
+> cancelled — the same failure as above. An unlimited allowance avoids the
+> arithmetic entirely.
 
 **Meta on success:**
 - `meta.circleId` — circle selected by the internal epsilon-greedy router.
@@ -175,7 +245,9 @@ Used on SELL and PAY once the merchant has accepted. Encrypts `paymentAddress` w
 
 ### `orders.approveUsdc`
 
-Wrapper over `IERC20(usdc).approve(diamond, amount)` — call before SELL/PAY placeOrder.
+Wrapper over `IERC20(usdc).approve(diamond, amount)` — must be in place before
+`setSellOrderUpiWithFiat` on SELL/PAY. Pass `order.actualUsdcAmount` (see the note under
+`orders.placeOrder`); this action does not add the small-order fee for you.
 
 | Param | Type |
 |-------|------|
