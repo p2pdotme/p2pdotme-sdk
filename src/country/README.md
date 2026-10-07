@@ -79,7 +79,7 @@ validatePIXId("user@example.com"); // true
 | PEN | Peru | Yape / Plin / CCI | Yes | No |
 | PHP | Philippines | InstaPay | Yes | Yes |
 | KES | Kenya | M-Pesa (phone / till / paybill) | Yes | No |
-| EGP | Egypt | Vodafone Cash | Yes | No |
+| EGP | Egypt | Vodafone Cash | Yes | Yes |
 | EUR | Revolut EUR | Revolut | Yes | No |
 | USD | Revolut USD | Revolut | Yes | No |
 
