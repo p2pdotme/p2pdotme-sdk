@@ -69,13 +69,20 @@ export function readOrderMulticall(
 
 export interface RawFeeConfig {
 	smallOrderThreshold: bigint;
-	smallOrderFixedFee: bigint;
+	smallOrderFixedFeeBuy: bigint;
+	smallOrderFixedFeeSell: bigint;
+	smallOrderFixedFeePay: bigint;
 }
 
 /**
- * Reads the per-currency small-order threshold and fixed fee from the Diamond.
- * Uses viem `multicall` when available (1 RPC) and falls back to two parallel
- * `readContract` calls otherwise. Amounts are returned as 6-decimal bigints.
+ * Reads the per-currency small-order threshold and the three per-order-type
+ * fixed fees from the Diamond. Uses viem `multicall` when available (1 RPC) and
+ * falls back to parallel `readContract` calls otherwise. Amounts are returned as
+ * 6-decimal bigints.
+ *
+ * The Diamond split the old single `getSmallOrderFixedFee(bytes32)` getter into
+ * BUY/SELL/PAY variants; the old selector no longer exists on-chain and reverts
+ * with `Diamond: Function does not exist`.
  */
 export function readFeeConfigMulticall(
 	publicClient: PublicClientLike,
@@ -84,35 +91,44 @@ export function readFeeConfigMulticall(
 ): ResultAsync<RawFeeConfig, Error> {
 	const currencyHex = stringToHex(currency, { size: 32 });
 	const calls = [
-		{
-			address: diamondAddress,
-			abi: ABIS.FACETS.ORDER_PROCESSOR,
-			functionName: "getSmallOrderThreshold",
-			args: [currencyHex] as const,
-		},
-		{
-			address: diamondAddress,
-			abi: ABIS.FACETS.ORDER_PROCESSOR,
-			functionName: "getSmallOrderFixedFee",
-			args: [currencyHex] as const,
-		},
-	];
+		"getSmallOrderThreshold",
+		"getSmallOrderFixedFeeBuy",
+		"getSmallOrderFixedFeeSell",
+		"getSmallOrderFixedFeePay",
+	].map((functionName) => ({
+		address: diamondAddress,
+		abi: ABIS.FACETS.ORDER_PROCESSOR,
+		functionName,
+		args: [currencyHex] as const,
+	}));
 
 	const toError = (error: unknown) =>
 		new Error("Fee config contract read failed", { cause: error });
 
+	const shape = ([
+		smallOrderThreshold,
+		smallOrderFixedFeeBuy,
+		smallOrderFixedFeeSell,
+		smallOrderFixedFeePay,
+	]: readonly bigint[]): RawFeeConfig => ({
+		smallOrderThreshold,
+		smallOrderFixedFeeBuy,
+		smallOrderFixedFeeSell,
+		smallOrderFixedFeePay,
+	});
+
 	const exec = async (): Promise<RawFeeConfig> => {
 		if (publicClient.multicall) {
-			const [smallOrderThreshold, smallOrderFixedFee] = (await publicClient.multicall({
-				contracts: calls,
-				allowFailure: false,
-			})) as [bigint, bigint];
-			return { smallOrderThreshold, smallOrderFixedFee };
+			return shape(
+				(await publicClient.multicall({
+					contracts: calls,
+					allowFailure: false,
+				})) as readonly bigint[],
+			);
 		}
-		const [smallOrderThreshold, smallOrderFixedFee] = (await Promise.all(
-			calls.map((c) => publicClient.readContract(c)),
-		)) as [bigint, bigint];
-		return { smallOrderThreshold, smallOrderFixedFee };
+		return shape(
+			(await Promise.all(calls.map((c) => publicClient.readContract(c)))) as readonly bigint[],
+		);
 	};
 
 	return ResultAsync.fromPromise(exec(), toError);
