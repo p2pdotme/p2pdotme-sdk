@@ -69,7 +69,11 @@ Raw USDC balance (6 decimals).
 
 ### `profile.getUsdcAllowance({ owner })` → `ResultAsync<bigint, ProfileError>`
 
-Raw USDC allowance `owner → diamond` (6 decimals). Useful as a pre-flight before a SELL/PAY order — if the allowance is less than `amount`, call `orders.approveUsdc.execute({ amount })` first.
+Raw USDC allowance `owner → diamond` (6 decimals). Useful as a pre-flight before
+a SELL/PAY order — but compare it against `order.actualUsdcAmount`, not
+`amount`: the Diamond pulls the small-order fee too, and a fee-short allowance
+makes it cancel the order rather than fail. See
+[`orders.placeOrder`](../orders/README.md#ordersplaceorder).
 
 ### `profile.getBalances({ address, currency })` → `ResultAsync<Balances, ProfileError>`
 
