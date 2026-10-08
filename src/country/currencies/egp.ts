@@ -53,6 +53,6 @@ export const EGP_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: ["EG"],
 	precision: 2,
 	isAlpha: true,
-	disabled: false,
+	disabled: true,
 	disabledPaymentTypes: ["PAY"],
 };
