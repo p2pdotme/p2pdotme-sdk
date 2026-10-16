@@ -93,6 +93,18 @@ describe("parseUPI (INR) — real-world examples", () => {
 		expect(data.amount?.fiat).toBe(1500);
 	});
 
+	it.each(["undefined", "null", ""])(
+		"treats a placeholder am=%j from a buggy QR generator as no amount",
+		(placeholder) => {
+			// Seen in the wild: a merchant sticker QR generated with JS `undefined`
+			// serialised straight into the query string. UPI apps pay it fine.
+			const qr = `upi://pay?pa=gpay-12204366557@okbizaxis&pn=Kagithala%20resturant&tn=${placeholder}&am=${placeholder}`;
+			const data = unwrap(parseUPI(qr, SELL_PRICE));
+			expect(data.paymentAddress).toBe("gpay-12204366557@okbizaxis");
+			expect(data.amount).toBeUndefined();
+		},
+	);
+
 	it("parses a small-decimal amount (99.99)", () => {
 		const qr = "upi://pay?pa=sample.store@examplebank&pn=Sample%20Store&am=99.99&cu=INR";
 		const data = unwrap(parseUPI(qr, SELL_PRICE));
