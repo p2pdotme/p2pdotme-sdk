@@ -9,6 +9,19 @@ const UPI_ID_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
 const FONEPAY_COUNTRY_TAG = "58" as const;
 
 /**
+ * Values some QR generators serialise into `am=` when no amount was set
+ * (JS `undefined`/`null` stringified straight into the query). UPI apps treat
+ * such a QR as "payer enters amount", so we do too instead of rejecting it.
+ */
+const PLACEHOLDER_AMOUNT_VALUES = new Set(["undefined", "null"]);
+
+function readAmountParam(params: URLSearchParams): string | null {
+	const raw = params.get("am")?.trim();
+	if (!raw || PLACEHOLDER_AMOUNT_VALUES.has(raw.toLowerCase())) return null;
+	return raw;
+}
+
+/**
  * Fonepay (Nepal NPQR) EMVCo QR. Indian UPI apps can pay these through the
  * NPCI–Fonepay cross-border link, so an INR PAY order accepts them. Detected by
  * the `fonepay.com` reverse-domain marker (merchant account template, tag 26),
@@ -57,7 +70,7 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 
 	const result: ParsedQR = { paymentAddress: pa };
 
-	const amountStr = params.get("am");
+	const amountStr = readAmountParam(params);
 	if (amountStr) {
 		const amount = parseAmount(amountStr, sellPrice);
 		if (!amount) {
