@@ -58,6 +58,11 @@
       "types": "./dist/zkkyc.d.ts",
       "import": "./dist/zkkyc.mjs",
       "require": "./dist/zkkyc.cjs"
+    },
+    "./payment-proof": {
+      "types": "./dist/payment-proof.d.ts",
+      "import": "./dist/payment-proof.mjs",
+      "require": "./dist/payment-proof.cjs"
     }
   },
   "typesVersions": {
@@ -91,6 +96,9 @@
       ],
       "zkkyc": [
         "./dist/zkkyc.d.ts"
+      ],
+      "payment-proof": [
+        "./dist/payment-proof.d.ts"
       ]
     }
   },
@@ -123,6 +131,7 @@
     "@fingerprintjs/fingerprintjs": "5.1.0",
     "@seontechnologies/seon-javascript-sdk": "6.10.2",
     "neverthrow": "8.2.0",
+    "p2pme-encrypted-payment-proof": "1.2.0",
     "viem": "2.47.6",
     "zod": "4.3.6"
   },
