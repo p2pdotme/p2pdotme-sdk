@@ -79,7 +79,7 @@ export const PHP_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: ["PH"],
 	precision: 2,
 	isAlpha: true,
-	disabled: false,
+	disabled: true,
 	disabledPaymentTypes: [],
 	getPayQrPayload: (paymentId) => {
 		const candidate = payQrCandidate(paymentId);
