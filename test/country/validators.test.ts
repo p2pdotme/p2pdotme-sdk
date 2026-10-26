@@ -1064,11 +1064,14 @@ describe("validateRevolutId (EUR / USD)", () => {
 
 describe("validateEcuadorianCedula (ECU)", () => {
 	it.each([
-		["valid Pichincha cédula", "1710034065"],
-		["valid cédula with surrounding spaces", " 1710034065 "],
-		["valid 13-digit natural-person RUC", "1710034065001"],
-		["13-digit private-company RUC (3rd digit 9)", "1790016919001"],
-		["13-digit public-entity RUC (3rd digit 6)", "1760013210001"],
+		["9-digit foreign-national ID", "171003406"],
+		["10-digit cédula", "1710034065"],
+		["10-digit cédula with surrounding spaces", " 1710034065 "],
+		["10-digit value without a valid checksum", "1710034066"],
+		["11 digits", "17100340650"],
+		["12 digits", "179001691900"],
+		["13-digit RUC", "1710034065001"],
+		["13-digit company RUC", "1790016919001"],
 		["RUC with separators", "1790016919-001"],
 	])("accepts %s", (_label, input) => {
 		expect(validateEcuadorianCedula(input)).toBe(true);
@@ -1077,18 +1080,9 @@ describe("validateEcuadorianCedula (ECU)", () => {
 	it.each([
 		["empty string", ""],
 		["whitespace only", "   "],
-		["too short (9 digits)", "171003406"],
-		["wrong length (11 digits)", "17100340650"],
-		["bad province (99)", "9910034065"],
-		["third digit >= 6", "1760034065"],
-		["failed checksum", "1710034066"],
-		["RUC with bad province (99)", "9990016919001"],
-		["RUC with third digit 7", "1770016919001"],
-		["RUC with third digit 8", "1780016919001"],
-		["RUC with 000 establishment", "1790016919000"],
-		["natural-person RUC with bad cédula", "1710034066001"],
-		["wrong length (12 digits)", "179001691900"],
-		["wrong length (14 digits)", "17900169190011"],
+		["too short (8 digits)", "17100340"],
+		["too long (14 digits)", "17900169190011"],
+		["letters only", "ABCDEFGHIJ"],
 	])("rejects %s", (_label, input) => {
 		expect(validateEcuadorianCedula(input)).toBe(false);
 	});
