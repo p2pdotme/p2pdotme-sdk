@@ -32,6 +32,7 @@ bun add @zkpassport/sdk                  # only for zkkyc ZK Passport flow
 | `@p2pdotme/sdk/fraud-engine` | [Fraud detection](./src/fraud-engine/README.md), device fingerprinting, SEON integration |
 | `@p2pdotme/sdk/zkkyc` | [ZK KYC](./src/zkkyc/README.md) — Reclaim, Anon Aadhaar, ZK Passport |
 | `@p2pdotme/sdk/country` | [Country & currency config](./src/country/README.md) — payment methods, validators, field configs |
+| `@p2pdotme/sdk/payment-proof` | [Encrypted payment proofs](./src/payment-proof/README.md) for completed SELL/PAY orders — request, status pill, download |
 | `@p2pdotme/sdk/react` | Unified React provider (`SdkProvider`) + hooks |
 
 Circle-selection routing is an internal implementation detail of `placeOrder` — it is **not** exposed as a public subpath.
