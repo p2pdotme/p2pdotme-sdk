@@ -138,3 +138,54 @@ describe("parseUPI (INR) — Fonepay (Nepal) cross-border QR", () => {
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 });
+
+describe("parseUPI (INR) — UPI mandate / AutoPay QRs are rejected", () => {
+	// Real-world UPI AutoPay mandate QR: scanning it would register a recurring
+	// debit (up to ₹15,000 for 10 years), not make a one-off payment.
+	const MANDATE_QR =
+		"upi://mandate?ver=01&pa=anomaly.cfp@cashfreensdlpb&pn=Anomaly&tr=enroll403842870&am=15000.00&cu=INR&amrule=MAX&mode=04&recur=ASPRESENTED&validitystart=18112026&validityend=15112036&mc=5734&txnType=CREATE&tn=OPENCODE&fam=943.70&purpose=14&block=N&rev=Y&orgid=000000";
+
+	function expectInvalid(qr: string) {
+		const result = parseUPI(qr, SELL_PRICE);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
+	}
+
+	it("rejects a upi://mandate QR", () => {
+		expectInvalid(MANDATE_QR);
+	});
+
+	it("rejects the mandate scheme regardless of case", () => {
+		expectInvalid(MANDATE_QR.replace("upi://mandate", "UPI://MANDATE"));
+	});
+
+	it("does not reject a non-mandate UPI intent (e.g. upi://collect)", () => {
+		const data = unwrap(parseUPI("upi://collect?pa=foo@bar&am=800", SELL_PRICE));
+		expect(data.paymentAddress).toBe("foo@bar");
+	});
+
+	it.each([
+		["recur", "upi://pay?pa=foo@bar&am=10&recur=MONTHLY"],
+		["amrule", "upi://pay?pa=foo@bar&am=10&amrule=MAX"],
+		["validitystart", "upi://pay?pa=foo@bar&validitystart=18112026"],
+		["validityend", "upi://pay?pa=foo@bar&validityend=15112036"],
+		["scheme-less mandate params", "pa=foo@bar&am=10&recur=ASPRESENTED"],
+	])("rejects a pay QR carrying mandate param %s", (_label, qr) => {
+		expectInvalid(qr);
+	});
+
+	it.each([
+		["GPay merchant", "upi://pay?pa=gpay-11223344@okbizaxis&pn=Shop&mc=5411&aid=uGICAgIDxyz&tr=BCR2DN4T&mode=02&purpose=00&orgid=159761"],
+		["PhonePe merchant", "upi://pay?pa=Q123456789@ybl&pn=PhonePeMerchant&mc=0000&mode=02&purpose=00"],
+		["Paytm signed", "upi://pay?pa=paytmqr123@paytm&pn=Paytm&mc=5499&tr=abc&tn=Pay&am=100&cu=INR&mode=02&orgid=000000&sign=MEUCIQ"],
+		["BharatPe", "upi://pay?pa=BHARATPE.90@fbpe&pn=Store&cu=INR&tn=Pay%20to%20Store&mode=02"],
+		["pay with txnType", "upi://pay?pa=foo@bar&am=10&txnType=PAY"],
+	])("still accepts a real-world pay QR: %s", (_label, qr) => {
+		expect(parseUPI(qr, SELL_PRICE).isOk()).toBe(true);
+	});
+
+	it("still accepts a normal upi://pay QR (scheme case-insensitive)", () => {
+		const data = unwrap(parseUPI("UPI://PAY?pa=merchant@okaxis&am=800", SELL_PRICE));
+		expect(data.paymentAddress).toBe("merchant@okaxis");
+	});
+});
