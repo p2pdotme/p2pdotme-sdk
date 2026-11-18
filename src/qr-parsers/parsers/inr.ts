@@ -8,6 +8,30 @@ const UPI_ID_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
 
 const FONEPAY_COUNTRY_TAG = "58" as const;
 
+/** `upi://<intent>?…` — captures the intent (`pay`, `mandate`, `collect`, …). */
+const UPI_SCHEME_REGEX = /^upi:\/\/([^?/]*)/i;
+
+/** The only UPI intent that is a one-off payment. */
+const UPI_PAY_INTENT = "pay";
+
+/**
+ * Params that only appear on UPI AutoPay / mandate intents (NPCI recurring
+ * debits). A QR carrying any of them registers a standing debit on the payer's
+ * account instead of making a one-off payment, so it is never payable here.
+ */
+const UPI_MANDATE_PARAMS = ["recur", "amrule", "validitystart", "validityend", "txnType"] as const;
+
+/** True for anything other than a plain `upi://pay` intent (e.g. `upi://mandate`). */
+function isNonPayUpiIntent(payload: string): boolean {
+	const intent = UPI_SCHEME_REGEX.exec(payload)?.[1];
+	return intent !== undefined && intent.toLowerCase() !== UPI_PAY_INTENT;
+}
+
+function hasMandateParams(params: URLSearchParams): boolean {
+	const keys = new Set([...params.keys()].map((key) => key.toLowerCase()));
+	return UPI_MANDATE_PARAMS.some((param) => keys.has(param.toLowerCase()));
+}
+
 /**
  * Values some QR generators serialise into `am=` when no amount was set
  * (JS `undefined`/`null` stringified straight into the query). UPI apps treat
@@ -48,8 +72,14 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 		return success({ paymentAddress: trimmed });
 	}
 
+	// UPI AutoPay mandates (`upi://mandate?…`) and other non-pay intents would
+	// set up a recurring debit or collect request, not a one-off payment.
+	if (isNonPayUpiIntent(trimmed)) {
+		return failure("INVALID_QR", "Only UPI pay QRs are supported (mandate/AutoPay QRs are not)");
+	}
+
 	let paramString: string;
-	if (trimmed.startsWith("upi://pay?")) {
+	if (/^upi:\/\/pay\?/i.test(trimmed)) {
 		paramString = trimmed.substring(10);
 	} else if (trimmed.includes("?")) {
 		paramString = trimmed.split("?")[1];
@@ -58,6 +88,10 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 	}
 
 	const params = new URLSearchParams(paramString);
+	if (hasMandateParams(params)) {
+		return failure("INVALID_QR", "UPI mandate/AutoPay QRs are not supported");
+	}
+
 	const pa = params.get("pa");
 
 	if (!pa) {
