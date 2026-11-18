@@ -159,11 +159,9 @@ describe("parseUPI (INR) — UPI mandate / AutoPay QRs are rejected", () => {
 		expectInvalid(MANDATE_QR.replace("upi://mandate", "UPI://MANDATE"));
 	});
 
-	it.each([
-		["upi://collect", "upi://collect?pa=foo@bar&am=10"],
-		["upi://autopay", "upi://autopay?pa=foo@bar&am=10"],
-	])("rejects non-pay UPI intent %s", (_label, qr) => {
-		expectInvalid(qr);
+	it("does not reject a non-mandate UPI intent (e.g. upi://collect)", () => {
+		const data = unwrap(parseUPI("upi://collect?pa=foo@bar&am=800", SELL_PRICE));
+		expect(data.paymentAddress).toBe("foo@bar");
 	});
 
 	it.each([

@@ -8,11 +8,8 @@ const UPI_ID_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
 
 const FONEPAY_COUNTRY_TAG = "58" as const;
 
-/** `upi://<intent>?…` — captures the intent (`pay`, `mandate`, `collect`, …). */
-const UPI_SCHEME_REGEX = /^upi:\/\/([^?/]*)/i;
-
-/** The only UPI intent that is a one-off payment. */
-const UPI_PAY_INTENT = "pay";
+/** UPI AutoPay mandate intent: `upi://mandate?…` (case-insensitive). */
+const UPI_MANDATE_INTENT_REGEX = /^upi:\/\/mandate(?:[?/]|$)/i;
 
 /**
  * Params that only appear on UPI AutoPay / mandate intents (NPCI recurring
@@ -21,10 +18,8 @@ const UPI_PAY_INTENT = "pay";
  */
 const UPI_MANDATE_PARAMS = ["recur", "amrule", "validitystart", "validityend", "txnType"] as const;
 
-/** True for anything other than a plain `upi://pay` intent (e.g. `upi://mandate`). */
-function isNonPayUpiIntent(payload: string): boolean {
-	const intent = UPI_SCHEME_REGEX.exec(payload)?.[1];
-	return intent !== undefined && intent.toLowerCase() !== UPI_PAY_INTENT;
+function isUpiMandateIntent(payload: string): boolean {
+	return UPI_MANDATE_INTENT_REGEX.test(payload);
 }
 
 function hasMandateParams(params: URLSearchParams): boolean {
@@ -72,10 +67,10 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 		return success({ paymentAddress: trimmed });
 	}
 
-	// UPI AutoPay mandates (`upi://mandate?…`) and other non-pay intents would
-	// set up a recurring debit or collect request, not a one-off payment.
-	if (isNonPayUpiIntent(trimmed)) {
-		return failure("INVALID_QR", "Only UPI pay QRs are supported (mandate/AutoPay QRs are not)");
+	// UPI AutoPay mandates (`upi://mandate?…`) register a recurring debit on
+	// the payer's account, not a one-off payment.
+	if (isUpiMandateIntent(trimmed)) {
+		return failure("INVALID_QR", "UPI mandate/AutoPay QRs are not supported");
 	}
 
 	let paramString: string;
