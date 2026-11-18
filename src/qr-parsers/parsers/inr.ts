@@ -8,6 +8,25 @@ const UPI_ID_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
 
 const FONEPAY_COUNTRY_TAG = "58" as const;
 
+/** UPI AutoPay mandate intent: `upi://mandate?…` (case-insensitive). */
+const UPI_MANDATE_INTENT_REGEX = /^upi:\/\/mandate(?:[?/]|$)/i;
+
+/**
+ * Params that only appear on UPI AutoPay / mandate intents (NPCI recurring
+ * debits). A QR carrying any of them registers a standing debit on the payer's
+ * account instead of making a one-off payment, so it is never payable here.
+ */
+const UPI_MANDATE_PARAMS = ["recur", "amrule", "validitystart", "validityend"] as const;
+
+function isUpiMandateIntent(payload: string): boolean {
+	return UPI_MANDATE_INTENT_REGEX.test(payload);
+}
+
+function hasMandateParams(params: URLSearchParams): boolean {
+	const keys = new Set([...params.keys()].map((key) => key.toLowerCase()));
+	return UPI_MANDATE_PARAMS.some((param) => keys.has(param.toLowerCase()));
+}
+
 /**
  * Values some QR generators serialise into `am=` when no amount was set
  * (JS `undefined`/`null` stringified straight into the query). UPI apps treat
@@ -48,8 +67,14 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 		return success({ paymentAddress: trimmed });
 	}
 
+	// UPI AutoPay mandates (`upi://mandate?…`) register a recurring debit on
+	// the payer's account, not a one-off payment.
+	if (isUpiMandateIntent(trimmed)) {
+		return failure("INVALID_QR", "UPI mandate/AutoPay QRs are not supported");
+	}
+
 	let paramString: string;
-	if (trimmed.startsWith("upi://pay?")) {
+	if (/^upi:\/\/pay\?/i.test(trimmed)) {
 		paramString = trimmed.substring(10);
 	} else if (trimmed.includes("?")) {
 		paramString = trimmed.split("?")[1];
@@ -58,6 +83,10 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 	}
 
 	const params = new URLSearchParams(paramString);
+	if (hasMandateParams(params)) {
+		return failure("INVALID_QR", "UPI mandate/AutoPay QRs are not supported");
+	}
+
 	const pa = params.get("pa");
 
 	if (!pa) {
