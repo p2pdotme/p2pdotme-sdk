@@ -16,7 +16,7 @@ const UPI_MANDATE_INTENT_REGEX = /^upi:\/\/mandate(?:[?/]|$)/i;
  * debits). A QR carrying any of them registers a standing debit on the payer's
  * account instead of making a one-off payment, so it is never payable here.
  */
-const UPI_MANDATE_PARAMS = ["recur", "amrule", "validitystart", "validityend", "txnType"] as const;
+const UPI_MANDATE_PARAMS = ["recur", "amrule", "validitystart", "validityend"] as const;
 
 function isUpiMandateIntent(payload: string): boolean {
 	return UPI_MANDATE_INTENT_REGEX.test(payload);
