@@ -138,3 +138,47 @@ describe("parseUPI (INR) — Fonepay (Nepal) cross-border QR", () => {
 		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
 	});
 });
+
+describe("parseUPI (INR) — UPI mandate / AutoPay QRs are rejected", () => {
+	// Real-world UPI AutoPay mandate QR: scanning it would register a recurring
+	// debit (up to ₹15,000 for 10 years), not make a one-off payment.
+	const MANDATE_QR =
+		"upi://mandate?ver=01&pa=anomaly.cfp@cashfreensdlpb&pn=Anomaly&tr=enroll403842870&am=15000.00&cu=INR&amrule=MAX&mode=04&recur=ASPRESENTED&validitystart=18112026&validityend=15112036&mc=5734&txnType=CREATE&tn=OPENCODE&fam=943.70&purpose=14&block=N&rev=Y&orgid=000000";
+
+	function expectInvalid(qr: string) {
+		const result = parseUPI(qr, SELL_PRICE);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
+	}
+
+	it("rejects a upi://mandate QR", () => {
+		expectInvalid(MANDATE_QR);
+	});
+
+	it("rejects the mandate scheme regardless of case", () => {
+		expectInvalid(MANDATE_QR.replace("upi://mandate", "UPI://MANDATE"));
+	});
+
+	it.each([
+		["upi://collect", "upi://collect?pa=foo@bar&am=10"],
+		["upi://autopay", "upi://autopay?pa=foo@bar&am=10"],
+	])("rejects non-pay UPI intent %s", (_label, qr) => {
+		expectInvalid(qr);
+	});
+
+	it.each([
+		["recur", "upi://pay?pa=foo@bar&am=10&recur=MONTHLY"],
+		["amrule", "upi://pay?pa=foo@bar&am=10&amrule=MAX"],
+		["validitystart", "upi://pay?pa=foo@bar&validitystart=18112026"],
+		["validityend", "upi://pay?pa=foo@bar&validityend=15112036"],
+		["txnType=CREATE", "upi://pay?pa=foo@bar&txnType=CREATE"],
+		["scheme-less mandate params", "pa=foo@bar&am=10&recur=ASPRESENTED"],
+	])("rejects a pay QR carrying mandate param %s", (_label, qr) => {
+		expectInvalid(qr);
+	});
+
+	it("still accepts a normal upi://pay QR (scheme case-insensitive)", () => {
+		const data = unwrap(parseUPI("UPI://PAY?pa=merchant@okaxis&am=800", SELL_PRICE));
+		expect(data.paymentAddress).toBe("merchant@okaxis");
+	});
+});
