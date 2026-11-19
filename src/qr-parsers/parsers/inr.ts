@@ -28,6 +28,20 @@ function hasMandateParams(params: URLSearchParams): boolean {
 }
 
 /**
+ * SBI UPI-ATM cardless cash withdrawal QR ("ATM CASH WITHDRAWAL THROUGH UPI"):
+ * payee `sbi@sbi` with MCC 6013. Paying one dispenses cash at a physical ATM
+ * to whoever scanned it, so it is never payable here.
+ */
+const SBI_ATM_PAYEE = "sbi@sbi";
+const SBI_ATM_MCC = "6013";
+
+function isSbiAtmWithdrawalQr(params: URLSearchParams): boolean {
+	const pa = params.get("pa")?.trim().toLowerCase();
+	const mc = params.get("mc")?.trim();
+	return pa === SBI_ATM_PAYEE && mc === SBI_ATM_MCC;
+}
+
+/**
  * Values some QR generators serialise into `am=` when no amount was set
  * (JS `undefined`/`null` stringified straight into the query). UPI apps treat
  * such a QR as "payer enters amount", so we do too instead of rejecting it.
@@ -85,6 +99,10 @@ export function parseUPI(qrData: string, sellPrice: number): ParseResult {
 	const params = new URLSearchParams(paramString);
 	if (hasMandateParams(params)) {
 		return failure("INVALID_QR", "UPI mandate/AutoPay QRs are not supported");
+	}
+
+	if (isSbiAtmWithdrawalQr(params)) {
+		return failure("INVALID_QR", "SBI UPI-ATM cash withdrawal QRs are not supported");
 	}
 
 	const pa = params.get("pa");

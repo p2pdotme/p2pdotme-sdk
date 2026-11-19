@@ -189,3 +189,27 @@ describe("parseUPI (INR) — UPI mandate / AutoPay QRs are rejected", () => {
 		expect(data.paymentAddress).toBe("merchant@okaxis");
 	});
 });
+
+describe("parseUPI (INR) — SBI UPI-ATM cash withdrawal QRs are rejected", () => {
+	// Real-world SBI UPI-ATM QR: paying it dispenses ₹10,000 cash at an ATM.
+	const SBI_ATM_QR =
+		"upi://pay?tid=SBI609b4eece7dccbcde063b74cb00aefbb&tn=Amt shall be debited for ATM CASHWDL S1BD016900001&tr=100879339342&pa=sbi@sbi&pn=SBI ATM CASH WITHDRAWAL THROUGH UPI&url=https://upi.onlinesbi.sbi&am=10000.00&category=01&cu=INR&mc=6013&mid=SBI0000003056630&mode=18&msid=3131198&mtid=S1BD016900001&pinCode=400012&purpose=12&ver=01&QRexpire=2026-11-19T11:00:37+05:30&QRts=2026-11-19T10:59:37+05:30&qrMedium=05&orgid=180102&sign=MEYCIQC3NI+uQZ0/OT6XpUXrrExArrpb0VAwRl0eyYaaStXnIwIhAPMIfZqh1eqIGt9bFf0SlZn9qubRHe7weVXHQfmRAdR8";
+
+	it("rejects the SBI UPI-ATM cash withdrawal QR", () => {
+		const result = parseUPI(SBI_ATM_QR, SELL_PRICE);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) expect(result.error.code).toBe("INVALID_QR");
+	});
+
+	it("rejects it regardless of payee case", () => {
+		expect(parseUPI("upi://pay?pa=SBI@SBI&am=10&mc=6013", SELL_PRICE).isErr()).toBe(true);
+	});
+
+	it.each([
+		["other bank ATM QR", "upi://pay?pa=atm@hdfcbank&am=10&mc=6013&mode=18"],
+		["sbi@sbi with non-ATM MCC", "upi://pay?pa=sbi@sbi&am=10&mc=5411"],
+		["merchant QR with mode=18", "upi://pay?pa=shop@okaxis&am=10&mode=18"],
+	])("does not reject %s", (_label, qr) => {
+		expect(parseUPI(qr, SELL_PRICE).isOk()).toBe(true);
+	});
+});
