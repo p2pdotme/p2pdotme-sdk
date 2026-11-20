@@ -122,6 +122,6 @@ export const KES_COUNTRY_OPTION: CountryOption = {
 	smsCountryCodes: ["KE"],
 	precision: 2,
 	isAlpha: true,
-	disabled: false,
+	disabled: true,
 	disabledPaymentTypes: ["PAY"],
 };
