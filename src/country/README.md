@@ -139,7 +139,7 @@ getPayQrPayload("PHP", qrPhBlob); // QR Ph EMVCo; null for phone|bank
 | `validateBolivianAccount` | BOB | 8–20 digit bank account number (spaces/dashes allowed) |
 | `validateBolivianQr` | BOB | QR Simple EMVCo QR (country `BO`, currency `068`, valid CRC) |
 | `validateNigerianAccountNumber` | NGN | Exactly 10 digits (NUBAN) |
-| `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, or email |
+| `validateColombianPaymentId` | COP | 10-digit phone starting with `3`, email, Bre-B `@alias`, or Bre-B ID-document key (6–10 digits starting with `0` or `1`) |
 | `validateCubanPhoneNumber` | CUP | 8-digit phone (optional `+53` prefix) |
 | `validateCubanCardNumber` | CUP | 16-digit bank card (spaces/dashes allowed) |
 | `validateEcuadorianCedula` | ECU | 9–13 digits: foreign-national ID (9), cédula (10) or RUC (13); no checksum |
