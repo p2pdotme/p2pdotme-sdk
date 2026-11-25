@@ -688,6 +688,11 @@ describe("validateColombianPaymentId (COP)", () => {
 		["Bre-B alias with underscores", "@juan_perez"],
 		["Bre-B alias with hyphens", "@juan-perez"],
 		["Bre-B alias with numbers", "@juan123"],
+		["Bre-B ID-document key starting with 1 (10-digit NUIP)", "1023456789"],
+		["Bre-B ID-document key starting with 1 (8-digit cédula)", "19345678"],
+		["Bre-B ID-document key starting with 0", "0123456789"],
+		["Bre-B ID-document key, 6 digits", "123456"],
+		["Bre-B ID-document key with surrounding whitespace", " 1023456789 "],
 	])("accepts %s", (_label, input) => {
 		expect(validateColombianPaymentId(input)).toBe(true);
 	});
@@ -695,7 +700,11 @@ describe("validateColombianPaymentId (COP)", () => {
 	it.each([
 		["empty string", ""],
 		["whitespace only", "   "],
-		["phone not starting with 3", "1234567890"],
+		["10 digits not starting with 0, 1 or 3", "4234567890"],
+		["ID-document key too short (5 digits)", "12345"],
+		["ID-document key too long (11 digits)", "10234567890"],
+		["ID-document key with letters", "10234567a9"],
+		["ID-document key with separators", "1.023.456.789"],
 		["phone starting with 3 but 9 digits", "300123456"],
 		["phone starting with 3 but 11 digits", "30012345678"],
 		["invalid email (no @)", "juannequi.com"],
